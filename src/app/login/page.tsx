@@ -23,15 +23,28 @@ export default function LoginPage() {
       const { data: { session } } = await supabase.auth.getSession();
       if (session) {
         router.push('/dashboard');
-      } else {
-        const mockEmail = localStorage.getItem('mock_user_email');
-        if (mockEmail) {
-          router.push('/dashboard');
-        }
       }
     }
     checkUser();
   }, [router]);
+
+  // Helper to extract a human-readable error message from any error
+  const getErrorMessage = (err: unknown): string => {
+    if (!err) return 'An unknown error occurred.';
+    if (typeof err === 'string') return err;
+    if (err instanceof Error) return err.message || 'An unknown error occurred.';
+    if (typeof err === 'object' && err !== null) {
+      const obj = err as Record<string, unknown>;
+      if (typeof obj.message === 'string' && obj.message) return obj.message;
+      if (typeof obj.error_description === 'string' && obj.error_description) return obj.error_description;
+      if (typeof obj.msg === 'string' && obj.msg) return obj.msg;
+      try {
+        const str = JSON.stringify(err);
+        if (str && str !== '{}') return str;
+      } catch (_) { /* ignore */ }
+    }
+    return 'An unknown error occurred.';
+  };
 
   const handleOAuthLogin = async (provider: 'google' | 'facebook' | 'apple') => {
     setLoading(true);
@@ -48,7 +61,34 @@ export default function LoginPage() {
       console.error(`OAuth login error with ${provider}:`, err);
       setMessage({
         type: 'error',
-        text: err instanceof Error ? err.message : `OAuth login failed with ${provider}.`
+        text: getErrorMessage(err),
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleForgotPassword = async () => {
+    if (!email.trim()) {
+      setMessage({ type: 'error', text: 'Please enter your email address first, then click Forgot password.' });
+      return;
+    }
+    setLoading(true);
+    setMessage(null);
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/login`,
+      });
+      if (error) throw error;
+      setMessage({
+        type: 'success',
+        text: 'Password reset link sent! Please check your email inbox.',
+      });
+    } catch (err) {
+      console.error('Password reset error:', err);
+      setMessage({
+        type: 'error',
+        text: getErrorMessage(err),
       });
     } finally {
       setLoading(false);
@@ -81,24 +121,36 @@ export default function LoginPage() {
           },
         });
 
-        // Log for debugging
-        console.log('Signup response data:', JSON.stringify(data, null, 2));
-        console.log('Signup response error:', JSON.stringify(error, null, 2));
+        // Log full response for debugging
+        console.log('Signup response:', { data, error });
 
         if (error) {
-          // Extract readable message from Supabase error
-          const msg = error.message || (error as any).error_description || JSON.stringify(error);
-          throw new Error(msg);
+          throw new Error(error.message || 'Signup failed. Please try again.');
         }
 
         // Supabase returns user with empty identities[] if email is already registered
-        if (data?.user && data.user.identities && data.user.identities.length === 0) {
+        if (data?.user?.identities?.length === 0) {
           throw new Error('This email is already registered. Please sign in instead, or use a different email.');
         }
 
-        // If promo code matches a lifetime free code
+        // Try to ensure profile row exists (backup for when trigger doesn't exist)
+        if (data?.user?.id) {
+          try {
+            await supabase.from('users').upsert({
+              id: data.user.id,
+              email: data.user.email || email,
+              role: 'user',
+              subscription_tier: promoCode.toUpperCase() === 'LIFETIMEFREE' || promoCode.toUpperCase() === 'FREEVIP' ? 'vip' : 'free',
+            }, { onConflict: 'id' });
+          } catch (profileErr) {
+            // Not critical — trigger may have already created it, or table may not exist
+            console.log('Profile upsert note (non-critical):', profileErr);
+          }
+        }
+
+        // Handle promo code locally
         if (promoCode.toUpperCase() === 'LIFETIMEFREE' || promoCode.toUpperCase() === 'FREEVIP') {
-          localStorage.setItem(`invite_abdul-sana_paid`, 'true');
+          localStorage.setItem('invite_abdul-sana_paid', 'true');
         }
 
         setMessage({
@@ -113,41 +165,21 @@ export default function LoginPage() {
           password,
         });
 
-        console.log('Login response data:', JSON.stringify(data, null, 2));
-        console.log('Login response error:', JSON.stringify(error, null, 2));
+        // Log full response for debugging
+        console.log('Login response:', { data, error });
 
         if (error) {
-          const msg = error.message || (error as any).error_description || JSON.stringify(error);
-          throw new Error(msg);
+          throw new Error(error.message || 'Invalid email or password.');
         }
 
-        // Successful login
         router.push('/dashboard');
         router.refresh();
       }
-    } catch (err: any) {
-      console.error('Auth error (full object):', err);
-      let messageText = 'Authentication failed. Please try again.';
-
-      if (err instanceof Error && err.message) {
-        messageText = err.message;
-      } else if (typeof err === 'string') {
-        messageText = err;
-      } else if (err && typeof err === 'object') {
-        messageText = err.message || err.msg || err.error_description || '';
-        if (!messageText) {
-          try { messageText = JSON.stringify(err); } catch (_) { /* fallback */ }
-        }
-      }
-
-      // Clean up unhelpful messages
-      if (!messageText || messageText === '{}' || messageText === 'null') {
-        messageText = 'An unexpected error occurred. Please check your Supabase project configuration and try again.';
-      }
-
+    } catch (err: unknown) {
+      console.error('Auth error (full):', err);
       setMessage({
         type: 'error',
-        text: messageText,
+        text: getErrorMessage(err),
       });
     } finally {
       setLoading(false);
@@ -226,7 +258,7 @@ export default function LoginPage() {
               {!isSignUp && (
                 <button
                   type="button"
-                  onClick={() => alert('Password reset is not enabled in offline/developer mode.')}
+                  onClick={handleForgotPassword}
                   className="text-xs text-[#d4af37] hover:underline font-semibold"
                 >
                   Forgot password?
@@ -336,7 +368,7 @@ export default function LoginPage() {
             Need to find{' '}
             <button
               type="button"
-              onClick={() => alert('Please sign in using your registered email address.')}
+              onClick={() => setMessage({ type: 'error', text: 'Please sign in using your registered email address.' })}
               className="text-[#d4af37] hover:underline font-semibold"
             >
               your username
@@ -344,7 +376,7 @@ export default function LoginPage() {
             or{' '}
             <button
               type="button"
-              onClick={() => alert('Password reset links will be sent to your registered email.')}
+              onClick={handleForgotPassword}
               className="text-[#d4af37] hover:underline font-semibold"
             >
               your password
