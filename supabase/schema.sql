@@ -3,6 +3,24 @@
 -- Enable UUID extension
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
+-- Clean up existing database objects to allow clean reruns
+DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users CASCADE;
+DROP FUNCTION IF EXISTS public.handle_new_user() CASCADE;
+DROP TABLE IF EXISTS public.analytics CASCADE;
+DROP TABLE IF EXISTS public.payments CASCADE;
+DROP TABLE IF EXISTS public.gift_transactions CASCADE;
+DROP TABLE IF EXISTS public.gift_collection_details CASCADE;
+DROP TABLE IF EXISTS public.rsvp CASCADE;
+DROP TABLE IF EXISTS public.events CASCADE;
+DROP TABLE IF EXISTS public.styling_preferences CASCADE;
+DROP TABLE IF EXISTS public.invitations CASCADE;
+DROP TABLE IF EXISTS public.templates CASCADE;
+DROP TABLE IF EXISTS public.users CASCADE;
+
+DROP TYPE IF EXISTS user_role CASCADE;
+DROP TYPE IF EXISTS subscription_tier CASCADE;
+DROP TYPE IF EXISTS attending_status CASCADE;
+
 -- 1. Create Roles & Tier Enums
 CREATE TYPE user_role AS ENUM ('user', 'admin');
 CREATE TYPE subscription_tier AS ENUM ('free', 'basic', 'premium', 'vip');
