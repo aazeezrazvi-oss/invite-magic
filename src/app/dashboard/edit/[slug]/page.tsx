@@ -6,7 +6,7 @@ import Sidebar from '@/components/Editor/Sidebar';
 import Canvas from '@/components/Editor/Canvas';
 import { Invitation } from '@/types';
 import { getInvitationBySlug, saveInvitation } from '@/app/actions';
-import { ArrowLeft, Check, AlertCircle } from 'lucide-react';
+import { ArrowLeft, Check, AlertCircle, Heart } from 'lucide-react';
 import Link from 'next/link';
 import { supabase } from '@/utils/supabase';
 
@@ -78,10 +78,29 @@ export default function EditorPage({ params }: PageProps) {
   const [saveStatus, setSaveStatus] = useState<'idle' | 'success' | 'error'>('idle');
   const [isSupabaseWorking, setIsSupabaseWorking] = useState(true);
   const [hasPaid, setHasPaid] = useState<boolean>(false);
+  
+  // Share modal states
+  const [showShareModal, setShowShareModal] = useState(false);
+  const [copied, setCopied] = useState(false);
 
   const handlePaymentSuccess = () => {
     setHasPaid(true);
     localStorage.setItem(`invite_${slug}_paid`, 'true');
+  };
+
+  const handleShareClick = () => {
+    if (!hasPaid) {
+      alert("⚠️ Upgrade Required: Please buy any upgrade plan in the editor sidebar to activate your live link and share it with guests!");
+      return;
+    }
+    setShowShareModal(true);
+  };
+
+  const handleCopyLink = () => {
+    const link = `${window.location.origin}/invite/${slug}`;
+    navigator.clipboard.writeText(link);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
   };
 
   useEffect(() => {
@@ -204,6 +223,12 @@ export default function EditorPage({ params }: PageProps) {
           >
             Open Live Invitation
           </a>
+          <button
+            onClick={handleShareClick}
+            className="px-3.5 py-1.5 rounded bg-[#d4af37] hover:bg-[#b8962e] text-[#0d0d11] font-bold transition-all flex items-center gap-1.5 cursor-pointer"
+          >
+            Share Invitation
+          </button>
         </div>
       </div>
 
@@ -222,6 +247,52 @@ export default function EditorPage({ params }: PageProps) {
         {/* Live Canvas Preview */}
         <Canvas invitation={invitation} />
       </div>
+
+      {showShareModal && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="w-full max-w-[400px] bg-[#161622] border border-[#d4af37]/30 rounded-[20px] p-6 space-y-5 shadow-[0_4px_30px_rgba(212,175,55,0.15)] relative">
+            <button
+              onClick={() => setShowShareModal(false)}
+              className="absolute top-4 right-4 text-gray-400 hover:text-white text-lg font-bold"
+            >
+              &times;
+            </button>
+            <div className="text-center space-y-1">
+              <Heart className="w-8 h-8 text-[#d4af37] fill-[#d4af37]/20 mx-auto" />
+              <h3 className="text-lg font-light text-white font-cinzel tracking-wider">Share Invitation</h3>
+              <p className="text-[10px] text-gray-400">Your live invitation link is active and ready to share!</p>
+            </div>
+            
+            <div className="space-y-1.5">
+              <label className="block text-[10px] font-semibold text-gray-400 uppercase tracking-widest">Invitation Link</label>
+              <div className="flex bg-[#0d0d11] rounded border border-[#26263b] p-1.5 items-center justify-between gap-2 overflow-hidden">
+                <span className="text-[11px] font-mono text-gray-300 truncate select-all px-1">
+                  {`${typeof window !== 'undefined' ? window.location.origin : ''}/invite/${slug}`}
+                </span>
+                <button
+                  onClick={handleCopyLink}
+                  className="px-3 py-1 bg-[#26263b] hover:bg-[#34344d] rounded text-[10px] font-bold uppercase text-white transition-all shrink-0 cursor-pointer"
+                >
+                  {copied ? 'Copied!' : 'Copy'}
+                </button>
+              </div>
+            </div>
+
+            <div className="h-[1px] bg-[#26263b]" />
+
+            <div className="grid grid-cols-1 gap-2">
+              <a
+                href={`https://api.whatsapp.com/send?text=Hey! You are cordially invited to our wedding. Please view our wedding card here: ${typeof window !== 'undefined' ? window.location.origin : ''}/invite/${slug}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-full py-2.5 bg-[#25D366] hover:bg-[#20ba56] text-[#0d0d11] font-bold rounded-lg flex items-center justify-center gap-1.5 transition-all text-xs text-center"
+              >
+                Share on WhatsApp
+              </a>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -17,7 +17,19 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
+  // Password reset recovery state
+  const [isResetPasswordMode, setIsResetPasswordMode] = useState(false);
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmNewPassword, setConfirmNewPassword] = useState('');
+
   useEffect(() => {
+    // Check if user reached here via a password reset link
+    const isRecovery = typeof window !== 'undefined' && window.location.hash.includes('type=recovery');
+    if (isRecovery) {
+      setIsResetPasswordMode(true);
+      return;
+    }
+
     // Check if user is already logged in
     async function checkUser() {
       const { data: { session } } = await supabase.auth.getSession();
@@ -86,6 +98,38 @@ export default function LoginPage() {
       });
     } catch (err) {
       console.error('Password reset error:', err);
+      setMessage({
+        type: 'error',
+        text: getErrorMessage(err),
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleUpdatePassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newPassword.trim()) return;
+    if (newPassword !== confirmNewPassword) {
+      setMessage({ type: 'error', text: 'Passwords do not match.' });
+      return;
+    }
+    setLoading(true);
+    setMessage(null);
+    try {
+      const { error } = await supabase.auth.updateUser({
+        password: newPassword,
+      });
+      if (error) throw error;
+      setMessage({
+        type: 'success',
+        text: 'Password updated successfully! Redirecting to dashboard...',
+      });
+      setTimeout(() => {
+        router.push('/dashboard');
+      }, 2000);
+    } catch (err) {
+      console.error('Password update error:', err);
       setMessage({
         type: 'error',
         text: getErrorMessage(err),
@@ -205,10 +249,14 @@ export default function LoginPage() {
         {/* Heading */}
         <div className="space-y-1">
           <h2 className="text-2xl font-light text-white tracking-wider font-cinzel">
-            {isSignUp ? 'Create account' : 'Welcome back'}
+            {isResetPasswordMode 
+              ? 'Reset Password' 
+              : isSignUp ? 'Create account' : 'Welcome back'}
           </h2>
           <p className="text-xs text-gray-400">
-            {isSignUp ? 'Design your custom wedding invitation today' : 'Sign in to your InviteMagic account'}
+            {isResetPasswordMode
+              ? 'Enter your new password below'
+              : isSignUp ? 'Design your custom wedding invitation today' : 'Sign in to your InviteMagic account'}
           </p>
         </div>
 
@@ -223,183 +271,236 @@ export default function LoginPage() {
           </div>
         )}
 
-        {/* Form */}
-        <form onSubmit={handleAuth} className="space-y-4">
-          
-          {isSignUp && (
+        {isResetPasswordMode ? (
+          <form onSubmit={handleUpdatePassword} className="space-y-4">
             <div>
-              <label className="block text-xs font-semibold text-gray-400 mb-1.5 uppercase tracking-wider">Full name</label>
+              <label className="block text-xs font-semibold text-gray-400 mb-1.5 uppercase tracking-wider">New Password</label>
               <input
-                type="text"
+                type="password"
                 required
-                value={fullName}
-                onChange={(e) => setFullName(e.target.value)}
-                placeholder="John Doe"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                placeholder="••••••••"
                 className="w-full bg-[#0d0d11]/80 border border-[#26263b] rounded-lg px-3.5 py-2.5 text-sm text-white placeholder-gray-600 outline-none focus:border-[#d4af37] focus:ring-1 focus:ring-[#d4af37] transition-all"
               />
             </div>
-          )}
-
-          <div>
-            <label className="block text-xs font-semibold text-gray-400 mb-1.5 uppercase tracking-wider">Email</label>
-            <input
-              type="email"
-              required
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="name@company.com"
-              className="w-full bg-[#0d0d11]/80 border border-[#26263b] rounded-lg px-3.5 py-2.5 text-sm text-white placeholder-gray-600 outline-none focus:border-[#d4af37] focus:ring-1 focus:ring-[#d4af37] transition-all"
-            />
-          </div>
-
-          <div>
-            <div className="flex justify-between items-center mb-1.5">
-              <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider">Password</label>
-              {!isSignUp && (
-                <button
-                  type="button"
-                  onClick={handleForgotPassword}
-                  className="text-xs text-[#d4af37] hover:underline font-semibold"
-                >
-                  Forgot password?
-                </button>
-              )}
+            <div>
+              <label className="block text-xs font-semibold text-gray-400 mb-1.5 uppercase tracking-wider">Confirm New Password</label>
+              <input
+                type="password"
+                required
+                value={confirmNewPassword}
+                onChange={(e) => setConfirmNewPassword(e.target.value)}
+                placeholder="••••••••"
+                className="w-full bg-[#0d0d11]/80 border border-[#26263b] rounded-lg px-3.5 py-2.5 text-sm text-white placeholder-gray-600 outline-none focus:border-[#d4af37] focus:ring-1 focus:ring-[#d4af37] transition-all"
+              />
             </div>
-            <input
-              type="password"
-              required
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="••••••••"
-              className="w-full bg-[#0d0d11]/80 border border-[#26263b] rounded-lg px-3.5 py-2.5 text-sm text-white placeholder-gray-600 outline-none focus:border-[#d4af37] focus:ring-1 focus:ring-[#d4af37] transition-all"
-            />
-          </div>
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full py-3 bg-[#d4af37] hover:bg-[#b8962e] text-[#0d0d11] font-bold rounded-lg flex items-center justify-center gap-2 transition-all text-sm outline-none focus:ring-2 focus:ring-[#d4af37]/50 disabled:opacity-50 cursor-pointer mt-2"
+            >
+              {loading ? (
+                <div className="w-5 h-5 border-2 border-t-transparent border-[#0d0d11] rounded-full animate-spin" />
+              ) : (
+                <span>Update Password</span>
+              )}
+            </button>
+            <div className="text-center pt-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setIsResetPasswordMode(false);
+                  setMessage(null);
+                  router.push('/login');
+                }}
+                className="text-xs text-[#d4af37] hover:underline font-semibold"
+              >
+                Back to Sign in
+              </button>
+            </div>
+          </form>
+        ) : (
+          <>
+            {/* Form */}
+            <form onSubmit={handleAuth} className="space-y-4">
+              
+              {isSignUp && (
+                <div>
+                  <label className="block text-xs font-semibold text-gray-400 mb-1.5 uppercase tracking-wider">Full name</label>
+                  <input
+                    type="text"
+                    required
+                    value={fullName}
+                    onChange={(e) => setFullName(e.target.value)}
+                    placeholder="John Doe"
+                    className="w-full bg-[#0d0d11]/80 border border-[#26263b] rounded-lg px-3.5 py-2.5 text-sm text-white placeholder-gray-600 outline-none focus:border-[#d4af37] focus:ring-1 focus:ring-[#d4af37] transition-all"
+                  />
+                </div>
+              )}
 
-          {isSignUp && (
-            <>
               <div>
-                <label className="block text-xs font-semibold text-gray-400 mb-1.5 uppercase tracking-wider">Confirm password</label>
+                <label className="block text-xs font-semibold text-gray-400 mb-1.5 uppercase tracking-wider">Email</label>
                 <input
-                  type="password"
+                  type="email"
                   required
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  placeholder="Repeat your password"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="name@company.com"
                   className="w-full bg-[#0d0d11]/80 border border-[#26263b] rounded-lg px-3.5 py-2.5 text-sm text-white placeholder-gray-600 outline-none focus:border-[#d4af37] focus:ring-1 focus:ring-[#d4af37] transition-all"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-gray-400 mb-1.5 uppercase tracking-wider flex items-center gap-1">
-                  <Gift className="w-3.5 h-3.5 text-[#d4af37]" />
-                  <span>Promo / Lifetime code <span className="text-gray-500 lowercase font-normal">(optional)</span></span>
-                </label>
+                <div className="flex justify-between items-center mb-1.5">
+                  <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider">Password</label>
+                  {!isSignUp && (
+                    <button
+                      type="button"
+                      onClick={handleForgotPassword}
+                      className="text-xs text-[#d4af37] hover:underline font-semibold"
+                    >
+                      Forgot password?
+                    </button>
+                  )}
+                </div>
                 <input
-                  type="text"
-                  value={promoCode}
-                  onChange={(e) => setPromoCode(e.target.value)}
-                  placeholder="e.g. LIFETIMEFREE"
-                  className="w-full bg-[#0d0d11]/80 border border-[#26263b] rounded-lg px-3.5 py-2.5 text-sm text-white placeholder-gray-600 outline-none focus:border-[#d4af37] focus:ring-1 focus:ring-[#d4af37] transition-all uppercase font-mono"
+                  type="password"
+                  required
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="••••••••"
+                  className="w-full bg-[#0d0d11]/80 border border-[#26263b] rounded-lg px-3.5 py-2.5 text-sm text-white placeholder-gray-600 outline-none focus:border-[#d4af37] focus:ring-1 focus:ring-[#d4af37] transition-all"
                 />
               </div>
-            </>
-          )}
 
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full py-3 bg-[#d4af37] hover:bg-[#b8962e] text-[#0d0d11] font-bold rounded-lg flex items-center justify-center gap-2 transition-all text-sm outline-none focus:ring-2 focus:ring-[#d4af37]/50 disabled:opacity-50 cursor-pointer mt-2"
-          >
-            {loading ? (
-              <div className="w-5 h-5 border-2 border-t-transparent border-[#0d0d11] rounded-full animate-spin" />
-            ) : (
-              <span>{isSignUp ? 'Create account' : 'Sign in'}</span>
-            )}
-          </button>
-        </form>
+              {isSignUp && (
+                <>
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-400 mb-1.5 uppercase tracking-wider">Confirm password</label>
+                    <input
+                      type="password"
+                      required
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      placeholder="Repeat your password"
+                      className="w-full bg-[#0d0d11]/80 border border-[#26263b] rounded-lg px-3.5 py-2.5 text-sm text-white placeholder-gray-600 outline-none focus:border-[#d4af37] focus:ring-1 focus:ring-[#d4af37] transition-all"
+                    />
+                  </div>
 
-        {/* OR SIGN IN WITH Social Login Option */}
-        <div className="space-y-4 pt-1">
-          <div className="relative flex items-center justify-center">
-            <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-[#26263b]/50" />
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-400 mb-1.5 uppercase tracking-wider flex items-center gap-1">
+                      <Gift className="w-3.5 h-3.5 text-[#d4af37]" />
+                      <span>Promo / Lifetime code <span className="text-gray-500 lowercase font-normal">(optional)</span></span>
+                    </label>
+                    <input
+                      type="text"
+                      value={promoCode}
+                      onChange={(e) => setPromoCode(e.target.value)}
+                      placeholder="e.g. LIFETIMEFREE"
+                      className="w-full bg-[#0d0d11]/80 border border-[#26263b] rounded-lg px-3.5 py-2.5 text-sm text-white placeholder-gray-600 outline-none focus:border-[#d4af37] focus:ring-1 focus:ring-[#d4af37] transition-all uppercase font-mono"
+                    />
+                  </div>
+                </>
+              )}
+
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full py-3 bg-[#d4af37] hover:bg-[#b8962e] text-[#0d0d11] font-bold rounded-lg flex items-center justify-center gap-2 transition-all text-sm outline-none focus:ring-2 focus:ring-[#d4af37]/50 disabled:opacity-50 cursor-pointer mt-2"
+              >
+                {loading ? (
+                  <div className="w-5 h-5 border-2 border-t-transparent border-[#0d0d11] rounded-full animate-spin" />
+                ) : (
+                  <span>{isSignUp ? 'Create account' : 'Sign in'}</span>
+                )}
+              </button>
+            </form>
+
+            {/* OR SIGN IN WITH Social Login Option */}
+            <div className="space-y-4 pt-1">
+              <div className="relative flex items-center justify-center">
+                <div className="absolute inset-0 flex items-center">
+                  <div className="w-full border-t border-[#26263b]/50" />
+                </div>
+                <span className="relative px-3 text-[10px] text-gray-400 uppercase tracking-widest bg-[#13131d] font-semibold">
+                  or sign in with
+                </span>
+              </div>
+
+              <div className="grid grid-cols-3 gap-3">
+                {/* Apple Button */}
+                <button
+                  onClick={() => handleOAuthLogin('apple')}
+                  type="button"
+                  className="h-12 border border-[#26263b] rounded-xl flex items-center justify-center bg-[#0d0d11]/40 hover:bg-[#0d0d11]/80 hover:border-[#d4af37]/50 transition-all cursor-pointer shadow-sm group"
+                >
+                  <svg className="w-5 h-5 text-white opacity-85 group-hover:opacity-100 transition-opacity" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.81-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M15.97 4.17c.66-.81 1.11-1.93.99-3.06-1 .04-2.22.67-2.94 1.51-.62.71-1.16 1.85-1.01 2.96 1.12.09 2.27-.58 2.96-1.41z" />
+                  </svg>
+                </button>
+
+                {/* Facebook Button */}
+                <button
+                  onClick={() => handleOAuthLogin('facebook')}
+                  type="button"
+                  className="h-12 border border-[#26263b] rounded-xl flex items-center justify-center bg-[#0d0d11]/40 hover:bg-[#0d0d11]/80 hover:border-[#d4af37]/50 transition-all cursor-pointer shadow-sm group"
+                >
+                  <svg className="w-5 h-5 text-white opacity-85 group-hover:opacity-100 transition-opacity" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M22 12c0-5.52-4.48-10-10-10S2 6.48 2 12c0 4.84 3.44 8.87 8 9.8V15H8v-3h2V9.5C10 7.57 11.57 6 13.5 6H16v3h-2c-.55 0-1 .45-1 1v2h3v3h-3v6.95c4.56-.93 8-4.96 8-9.75z" />
+                  </svg>
+                </button>
+
+                {/* Google Button */}
+                <button
+                  onClick={() => handleOAuthLogin('google')}
+                  type="button"
+                  className="h-12 border border-[#26263b] rounded-xl flex items-center justify-center bg-[#0d0d11]/40 hover:bg-[#0d0d11]/80 hover:border-[#d4af37]/50 transition-all cursor-pointer shadow-sm group"
+                >
+                  <svg className="w-5 h-5 text-white opacity-85 group-hover:opacity-100 transition-opacity" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M12.24 10.285V14.4h6.887c-.648 2.41-2.519 4.114-5.136 4.114A5.53 5.53 0 0 1 8.46 13a5.53 5.53 0 0 1 5.53-5.53c2.25 0 4.225 1.134 5.378 2.87L22.6 7.1A9.7 9.7 0 0 0 13.99 3c-5.385 0-9.75 4.365-9.75 9.75s4.365 9.75 9.75 9.75c5.385 0 9.75-4.365 9.75-9.75 0-.616-.062-1.218-.184-1.808l-11.066.093z" />
+                  </svg>
+                </button>
+              </div>
+
+              <div className="text-center text-xs text-gray-400">
+                Need to find{' '}
+                <button
+                  type="button"
+                  onClick={() => setMessage({ type: 'error', text: 'Please sign in using your registered email address.' })}
+                  className="text-[#d4af37] hover:underline font-semibold"
+                >
+                  your username
+                </button>{' '}
+                or{' '}
+                <button
+                  type="button"
+                  onClick={handleForgotPassword}
+                  className="text-[#d4af37] hover:underline font-semibold"
+                >
+                  your password
+                </button>
+                ?
+              </div>
             </div>
-            <span className="relative px-3 text-[10px] text-gray-400 uppercase tracking-widest bg-[#13131d] font-semibold">
-              or sign in with
-            </span>
-          </div>
 
-          <div className="grid grid-cols-3 gap-3">
-            {/* Apple Button */}
-            <button
-              onClick={() => handleOAuthLogin('apple')}
-              type="button"
-              className="h-12 border border-[#26263b] rounded-xl flex items-center justify-center bg-[#0d0d11]/40 hover:bg-[#0d0d11]/80 hover:border-[#d4af37]/50 transition-all cursor-pointer shadow-sm group"
-            >
-              <svg className="w-5 h-5 text-white opacity-85 group-hover:opacity-100 transition-opacity" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.81-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M15.97 4.17c.66-.81 1.11-1.93.99-3.06-1 .04-2.22.67-2.94 1.51-.62.71-1.16 1.85-1.01 2.96 1.12.09 2.27-.58 2.96-1.41z" />
-              </svg>
-            </button>
-
-            {/* Facebook Button */}
-            <button
-              onClick={() => handleOAuthLogin('facebook')}
-              type="button"
-              className="h-12 border border-[#26263b] rounded-xl flex items-center justify-center bg-[#0d0d11]/40 hover:bg-[#0d0d11]/80 hover:border-[#d4af37]/50 transition-all cursor-pointer shadow-sm group"
-            >
-              <svg className="w-5 h-5 text-white opacity-85 group-hover:opacity-100 transition-opacity" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M22 12c0-5.52-4.48-10-10-10S2 6.48 2 12c0 4.84 3.44 8.87 8 9.8V15H8v-3h2V9.5C10 7.57 11.57 6 13.5 6H16v3h-2c-.55 0-1 .45-1 1v2h3v3h-3v6.95c4.56-.93 8-4.96 8-9.75z" />
-              </svg>
-            </button>
-
-            {/* Google Button */}
-            <button
-              onClick={() => handleOAuthLogin('google')}
-              type="button"
-              className="h-12 border border-[#26263b] rounded-xl flex items-center justify-center bg-[#0d0d11]/40 hover:bg-[#0d0d11]/80 hover:border-[#d4af37]/50 transition-all cursor-pointer shadow-sm group"
-            >
-              <svg className="w-5 h-5 text-white opacity-85 group-hover:opacity-100 transition-opacity" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M12.24 10.285V14.4h6.887c-.648 2.41-2.519 4.114-5.136 4.114A5.53 5.53 0 0 1 8.46 13a5.53 5.53 0 0 1 5.53-5.53c2.25 0 4.225 1.134 5.378 2.87L22.6 7.1A9.7 9.7 0 0 0 13.99 3c-5.385 0-9.75 4.365-9.75 9.75s4.365 9.75 9.75 9.75c5.385 0 9.75-4.365 9.75-9.75 0-.616-.062-1.218-.184-1.808l-11.066.093z" />
-              </svg>
-            </button>
-          </div>
-
-          <div className="text-center text-xs text-gray-400">
-            Need to find{' '}
-            <button
-              type="button"
-              onClick={() => setMessage({ type: 'error', text: 'Please sign in using your registered email address.' })}
-              className="text-[#d4af37] hover:underline font-semibold"
-            >
-              your username
-            </button>{' '}
-            or{' '}
-            <button
-              type="button"
-              onClick={handleForgotPassword}
-              className="text-[#d4af37] hover:underline font-semibold"
-            >
-              your password
-            </button>
-            ?
-          </div>
-        </div>
-
-        {/* Footer links */}
-        <div className="text-center pt-2">
-          <p className="text-xs text-gray-400">
-            {isSignUp ? 'Already have an account? ' : "Don't have an account? "}
-            <button
-              onClick={() => {
-                setIsSignUp(!isSignUp);
-                setMessage(null);
-              }}
-              className="text-[#d4af37] hover:underline font-semibold"
-            >
-              {isSignUp ? 'Sign in' : 'Create account'}
-            </button>
-          </p>
-        </div>
+            {/* Footer links */}
+            <div className="text-center pt-2">
+              <p className="text-xs text-gray-400">
+                {isSignUp ? 'Already have an account? ' : "Don't have an account? "}
+                <button
+                  onClick={() => {
+                    setIsSignUp(!isSignUp);
+                    setMessage(null);
+                  }}
+                  className="text-[#d4af37] hover:underline font-semibold"
+                >
+                  {isSignUp ? 'Sign in' : 'Create account'}
+                </button>
+              </p>
+            </div>
+          </>
+        )}
 
       </div>
     </div>

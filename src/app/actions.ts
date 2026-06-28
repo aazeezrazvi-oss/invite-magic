@@ -18,6 +18,13 @@ export async function getInvitationBySlug(slug: string): Promise<Partial<Invitat
       return null;
     }
 
+    // Fetch the owner's subscription tier
+    const { data: owner } = await supabase
+      .from('users')
+      .select('subscription_tier')
+      .eq('id', invitation.user_id)
+      .single();
+
     const { data: styling } = await supabase
       .from('styling_preferences')
       .select('*')
@@ -37,6 +44,7 @@ export async function getInvitationBySlug(slug: string): Promise<Partial<Invitat
 
     return {
       ...invitation,
+      owner_tier: owner?.subscription_tier || 'free',
       styling: styling || undefined,
       events: events || [],
       gift_collection: gift_collection || undefined,
@@ -44,6 +52,29 @@ export async function getInvitationBySlug(slug: string): Promise<Partial<Invitat
   } catch (error) {
     console.error('Error in getInvitationBySlug:', error);
     return null;
+  }
+}
+
+// Action to upgrade subscription tier in the database
+export async function upgradeUserSubscription(userId: string, tier: 'basic' | 'premium' | 'vip'): Promise<boolean> {
+  try {
+    const { error } = await supabase
+      .from('users')
+      .update({
+        subscription_tier: tier,
+        subscription_expires_at: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString(), // 1 year
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', userId);
+
+    if (error) {
+      console.error('Error upgrading subscription:', error);
+      return false;
+    }
+    return true;
+  } catch (e) {
+    console.error('Error in upgradeUserSubscription:', e);
+    return false;
   }
 }
 

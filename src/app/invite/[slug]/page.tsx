@@ -5,7 +5,7 @@ import { use } from 'react';
 import InvitationPreview from '@/components/InvitationPreview';
 import { Invitation, RSVP } from '@/types';
 import { getInvitationBySlug, submitRsvp } from '@/app/actions';
-import { AlertCircle } from 'lucide-react';
+import { AlertCircle, Heart } from 'lucide-react';
 import Link from 'next/link';
 
 interface PageProps {
@@ -132,6 +132,38 @@ export default function GuestInvitePage({ params }: PageProps) {
         <Link href="/" className="px-6 py-2 bg-[#d4af37] text-[#0d0d11] rounded font-bold hover:bg-[#b8962e] transition-all">
           Create Your Invitation
         </Link>
+      </div>
+    );
+  }
+
+  if (!invitation.owner_tier || invitation.owner_tier === 'free') {
+    return (
+      <div className="min-h-screen bg-[#0d0d11] text-[#f3f4f6] flex flex-col justify-center items-center text-center p-8 relative font-sans">
+        {/* Background ambient glow */}
+        <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[350px] h-[350px] bg-[#d4af37]/5 rounded-full blur-[100px] pointer-events-none" />
+        
+        <div className="w-full max-w-[480px] bg-[#161622]/40 backdrop-blur-md border border-[#26263b] rounded-[24px] p-8 shadow-[0_8px_32px_rgba(0,0,0,0.37)] z-10 space-y-6">
+          <div className="flex justify-center">
+            <div className="w-16 h-16 rounded-[20px] bg-[#d4af37]/10 border border-[#d4af37]/20 flex items-center justify-center animate-pulse">
+              <Heart className="w-8 h-8 text-[#d4af37]" />
+            </div>
+          </div>
+          
+          <h2 className="text-2xl font-light text-white tracking-wider font-cinzel">Activation Pending</h2>
+          <p className="text-sm text-gray-400 leading-relaxed">
+            This wedding invitation link is currently in <strong>Draft Mode</strong>. The host needs to activate or upgrade their subscription plan to publish this invitation live.
+          </p>
+          
+          <div className="h-[1px] bg-[#26263b] w-full my-4" />
+          
+          <p className="text-xs text-gray-500">
+            Are you the owner of this invitation? Log in to your dashboard and complete activation.
+          </p>
+          
+          <Link href="/login" className="inline-block px-6 py-2.5 bg-[#d4af37] hover:bg-[#b8962e] text-[#0d0d11] text-xs font-bold uppercase tracking-wider rounded transition-all shadow-[0_2px_15px_rgba(212,175,55,0.15)] cursor-pointer">
+            Log in to Dashboard
+          </Link>
+        </div>
       </div>
     );
   }

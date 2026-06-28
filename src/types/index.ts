@@ -49,6 +49,7 @@ export interface Invitation {
   gallery_photos?: string[];
   created_at?: string;
   updated_at?: string;
+  owner_tier?: string;
   
   // Relational details
   styling?: StylingPreferences;

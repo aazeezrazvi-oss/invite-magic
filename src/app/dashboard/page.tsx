@@ -4,78 +4,247 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { 
-  Heart, Users, Gift, Eye, Edit2, Plus, BarChart2, ShieldAlert
+  Heart, Users, Gift, Eye, Edit2, Plus, BarChart2, ShieldAlert, User, Lock
 } from 'lucide-react';
 import { RSVP, GiftTransaction } from '@/types';
 import CheckoutButton from '@/components/CheckoutButton';
 import { supabase } from '@/utils/supabase';
-
-// Mock values for dashboard statistics when DB has not loaded
-const mockRsvps: RSVP[] = [
-  { id: '1', invitation_id: 'mock-123', guest_name: 'Zeeshan Ahmed', attending_status: 'going', guest_count: 2, wishes: 'Congratulations to the beautiful couple!' },
-  { id: '2', invitation_id: 'mock-123', guest_name: 'Maria Khan', attending_status: 'going', guest_count: 1, wishes: 'So happy for you both, Sana! Can\'t wait.' },
-  { id: '3', invitation_id: 'mock-123', guest_name: 'Faizan Razvi', attending_status: 'pending', guest_count: 3 },
-  { id: '4', invitation_id: 'mock-123', guest_name: 'Imran Qureshi', attending_status: 'not_going', guest_count: 0, wishes: 'Warmest wishes from Chicago. Sorry I cannot make it!' },
-];
-
-const mockGifts: GiftTransaction[] = [
-  { id: 'g1', invitation_id: 'mock-123', sender_name: 'Zeeshan Ahmed', amount: 2000, message: 'Shagun from family', status: 'completed' },
-  { id: 'g2', invitation_id: 'mock-123', sender_name: 'Dr. Siddiqui', amount: 5001, message: 'Blessings and love', status: 'completed' },
-  { id: 'g3', invitation_id: 'mock-123', sender_name: 'Samina F.', amount: 1000, status: 'completed' },
-];
+import { upgradeUserSubscription } from '@/app/actions';
 
 export default function Dashboard() {
   const router = useRouter();
+  
+  // Navigation tabs
+  const [activeTab, setActiveTab] = useState<'invitations' | 'profile'>('invitations');
+  
+  // Invitation states
+  const [invitationId, setInvitationId] = useState<string>('');
   const [slug, setSlug] = useState('abdul-sana');
-  const [rsvps, setRsvps] = useState<RSVP[]>(mockRsvps);
-  const [gifts, setGifts] = useState<GiftTransaction[]>(mockGifts);
-  const [views, setViews] = useState(148);
+  const [groomName, setGroomName] = useState('Abdul');
+  const [brideName, setBrideName] = useState('Sana');
+  const [rsvps, setRsvps] = useState<RSVP[]>([]);
+  const [gifts, setGifts] = useState<GiftTransaction[]>([]);
+  const [views, setViews] = useState(0);
+  
+  // User states
+  const [userId, setUserId] = useState<string>('');
   const [userEmail, setUserEmail] = useState<string>('loading...');
+  const [fullName, setFullName] = useState<string>('');
+  const [subscriptionTier, setSubscriptionTier] = useState<string>('free');
   const [isAdmin, setIsAdmin] = useState<boolean>(false);
   const [isVip, setIsVip] = useState<boolean>(false);
+  const [isPaid, setIsPaid] = useState<boolean>(false);
+  
+  // Profile form states
+  const [profileName, setProfileName] = useState('');
+  const [profilePassword, setProfilePassword] = useState('');
+  const [profileConfirmPassword, setProfileConfirmPassword] = useState('');
+  const [profileMessage, setProfileMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [profileLoading, setProfileLoading] = useState(false);
+  
+  const [loadingInvite, setLoadingInvite] = useState(true);
+
+  // Load user session and user profile
+  async function loadUserAndData() {
+    const { data: { session } } = await supabase.auth.getSession();
+    
+    let currentUserId = '';
+    let currentEmail = '';
+    let currentFullName = '';
+    
+    if (session?.user) {
+      currentUserId = session.user.id;
+      currentEmail = session.user.email || '';
+      currentFullName = session.user.user_metadata?.full_name || '';
+      setUserId(currentUserId);
+      setUserEmail(currentEmail);
+      setFullName(currentFullName);
+      setProfileName(currentFullName);
+    } else {
+      const mockEmail = localStorage.getItem('mock_user_email');
+      if (mockEmail) {
+        currentEmail = mockEmail;
+        setUserEmail(mockEmail);
+      } else {
+        router.push('/login');
+        return;
+      }
+    }
+
+    // Load subscription tier from database
+    if (currentUserId) {
+      const { data: userProfile } = await supabase
+        .from('users')
+        .select('*')
+        .eq('id', currentUserId)
+        .maybeSingle();
+        
+      if (userProfile) {
+        setSubscriptionTier(userProfile.subscription_tier);
+        setIsAdmin(userProfile.role === 'admin' || currentEmail === 'abdulazeezrazvi125@gmail.com');
+        setIsVip(userProfile.subscription_tier === 'vip' || currentEmail === 'abdulazeezrazvi125@gmail.com' || currentEmail === 'abdulazeezrazvi97@gmail.com');
+        setIsPaid(userProfile.subscription_tier !== 'free');
+      } else {
+        // Safe fallback
+        const isBypass = currentEmail === 'abdulazeezrazvi125@gmail.com' || currentEmail === 'abdulazeezrazvi97@gmail.com';
+        setSubscriptionTier(isBypass ? 'vip' : 'free');
+        setIsAdmin(currentEmail === 'abdulazeezrazvi125@gmail.com');
+        setIsVip(isBypass);
+        setIsPaid(isBypass);
+      }
+    }
+
+    // Load or create user invitation
+    if (currentUserId) {
+      setLoadingInvite(true);
+      try {
+        let { data: userInvite } = await supabase
+          .from('invitations')
+          .select('*')
+          .eq('user_id', currentUserId)
+          .maybeSingle();
+
+        if (!userInvite) {
+          // Auto-create default invitation
+          const baseSlug = currentEmail ? currentEmail.split('@')[0].replace(/[^a-zA-Z0-9]/g, '') : 'wedding';
+          const newSlug = `${baseSlug}-${Math.random().toString(36).substring(2, 6)}`;
+          
+          const { data: createdInvite } = await supabase
+            .from('invitations')
+            .insert({
+              user_id: currentUserId,
+              slug: newSlug,
+              groom_name: 'Abdul',
+              bride_name: 'Sana',
+              is_published: false,
+            })
+            .select('*')
+            .single();
+            
+          if (createdInvite) {
+            userInvite = createdInvite;
+            // Create default styling
+            await supabase.from('styling_preferences').insert({
+              invitation_id: createdInvite.id,
+              primary_color: '#d4af37',
+              secondary_color: '#aa7c11',
+              background_color: '#0d0d11',
+              text_color: '#f3f4f6',
+              font_heading: 'cinzel',
+              font_body: 'inter',
+              section_order: ['hero', 'countdown', 'story', 'events', 'gallery', 'rsvp', 'gifts'],
+              animation_style: 'fade',
+              button_style: 'gold-border',
+              countdown_style: 'circles',
+              gallery_layout: 'grid',
+              background_type: 'gradient',
+            });
+            // Create default gift collection details
+            await supabase.from('gift_collection_details').insert({
+              invitation_id: createdInvite.id,
+              upi_id: 'shadi@okaxis',
+              receiver_name: 'Abdul & Sana',
+            });
+          }
+        }
+
+        if (userInvite) {
+          setInvitationId(userInvite.id);
+          setSlug(userInvite.slug);
+          setGroomName(userInvite.groom_name || 'Abdul');
+          setBrideName(userInvite.bride_name || 'Sana');
+
+          // Fetch real RSVPs
+          const { data: rsvpData } = await supabase
+            .from('rsvp')
+            .select('*')
+            .eq('invitation_id', userInvite.id)
+            .order('created_at', { ascending: false });
+          if (rsvpData) setRsvps(rsvpData || []);
+
+          // Fetch real Gifts
+          const { data: giftData } = await supabase
+            .from('gift_transactions')
+            .select('*')
+            .eq('invitation_id', userInvite.id)
+            .order('created_at', { ascending: false });
+          if (giftData) setGifts(giftData || []);
+
+          // Fetch real Views count from analytics
+          const { count } = await supabase
+            .from('analytics')
+            .select('*', { count: 'exact', head: true })
+            .eq('invitation_id', userInvite.id)
+            .eq('event_type', 'view');
+          setViews(count || 0);
+        }
+      } catch (err) {
+        console.error('Error loading invitation details:', err);
+      } finally {
+        setLoadingInvite(false);
+      }
+    }
+  }
 
   useEffect(() => {
-    async function loadUser() {
-      const { data: { session } } = await supabase.auth.getSession();
-      
-      let email = '';
-      let isUserAdmin = false;
-      let isUserVip = false;
-
-      if (session?.user) {
-        email = session.user.email || '';
-        isUserAdmin = email === 'abdulazeezrazvi125@gmail.com';
-        isUserVip = email === 'abdulazeezrazvi125@gmail.com' || email === 'abdulazeezrazvi97@gmail.com';
-      } else {
-        const mockEmail = localStorage.getItem('mock_user_email');
-        if (mockEmail) {
-          email = mockEmail;
-          isUserAdmin = email === 'abdulazeezrazvi125@gmail.com';
-          isUserVip = email === 'abdulazeezrazvi125@gmail.com' || email === 'abdulazeezrazvi97@gmail.com';
-        } else {
-          router.push('/login');
-          return;
-        }
-      }
-
-      setUserEmail(email);
-      setIsAdmin(isUserAdmin);
-      setIsVip(isUserVip);
-    }
-    loadUser();
+    loadUserAndData();
   }, [router]);
 
-  useEffect(() => {
-    // Read local data override if any
-    const localData = localStorage.getItem(`invite_${slug}`);
-    if (localData) {
-      try {
-        const parsed = JSON.parse(localData);
-      } catch (e) {
-        console.error(e);
+  // Handle successful upgrade checkout
+  const handleUpgradeSuccess = async (purchasedTier: 'basic' | 'premium' | 'vip') => {
+    if (userId) {
+      const ok = await upgradeUserSubscription(userId, purchasedTier);
+      if (ok) {
+        alert(`Upgrade to ${purchasedTier.toUpperCase()} plan active!`);
+        loadUserAndData();
+      } else {
+        alert('Payment completed, but database update failed. Please contact support.');
       }
     }
-  }, [slug]);
+  };
+
+  // Handle Profile Update
+  const handleUpdateProfile = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setProfileLoading(true);
+    setProfileMessage(null);
+
+    try {
+      // 1. Update Full Name in auth metadata
+      if (profileName.trim() && profileName !== fullName) {
+        const { error: nameErr } = await supabase.auth.updateUser({
+          data: { full_name: profileName }
+        });
+        if (nameErr) throw nameErr;
+        setFullName(profileName);
+      }
+
+      // 2. Update Password
+      if (profilePassword.trim()) {
+        if (profilePassword !== profileConfirmPassword) {
+          setProfileMessage({ type: 'error', text: 'Passwords do not match.' });
+          setProfileLoading(false);
+          return;
+        }
+        const { error: passErr } = await supabase.auth.updateUser({
+          password: profilePassword
+        });
+        if (passErr) throw passErr;
+        setProfilePassword('');
+        setProfileConfirmPassword('');
+      }
+
+      setProfileMessage({ type: 'success', text: 'Profile updated successfully!' });
+    } catch (err: any) {
+      console.error('Error updating profile:', err);
+      setProfileMessage({
+        type: 'error',
+        text: err.message || 'Failed to update profile settings.'
+      });
+    } finally {
+      setProfileLoading(false);
+    }
+  };
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -98,7 +267,7 @@ export default function Dashboard() {
     .filter(r => r.attending_status === 'pending')
     .length;
 
-  const totalGiftsAmount = gifts.reduce((acc, curr) => acc + curr.amount, 0);
+  const totalGiftsAmount = gifts.reduce((acc, curr) => acc + Number(curr.amount), 0);
 
   return (
     <div className="min-h-screen bg-[#0d0d11] text-[#f3f4f6] flex flex-col">
@@ -135,196 +304,335 @@ export default function Dashboard() {
         </div>
       </nav>
 
+      {/* Sub-navbar with Tabs */}
+      <div className="bg-[#161622]/20 border-b border-[#26263b] px-6">
+        <div className="max-w-7xl mx-auto flex gap-6">
+          <button
+            onClick={() => setActiveTab('invitations')}
+            className={`py-3.5 text-xs font-semibold uppercase tracking-widest border-b-2 transition-all cursor-pointer ${
+              activeTab === 'invitations'
+                ? 'border-[#d4af37] text-[#d4af37]'
+                : 'border-transparent text-gray-400 hover:text-white'
+            }`}
+          >
+            My Invitations
+          </button>
+          <button
+            onClick={() => setActiveTab('profile')}
+            className={`py-3.5 text-xs font-semibold uppercase tracking-widest border-b-2 transition-all cursor-pointer ${
+              activeTab === 'profile'
+                ? 'border-[#d4af37] text-[#d4af37]'
+                : 'border-transparent text-gray-400 hover:text-white'
+            }`}
+          >
+            Profile Settings
+          </button>
+        </div>
+      </div>
+
       {/* Main Container */}
       <div className="flex-1 max-w-7xl w-full mx-auto p-6 space-y-8">
-        
-        {/* Upper Title */}
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-[#26263b] pb-6">
-          <div>
-            <h1 className="text-3xl font-light text-white font-cinzel">Your Invitations</h1>
-            <p className="text-xs text-gray-400 mt-1">Manage themes, edit event timing schedules, and monitor gift records.</p>
-          </div>
-          <Link
-            href={`/dashboard/edit/${slug}`}
-            className="px-4 py-2.5 rounded bg-[#d4af37] hover:bg-[#b8962e] text-[#0d0d11] text-xs font-bold uppercase tracking-wider flex items-center gap-1.5 transition-all shadow-[0_2px_15px_rgba(212,175,55,0.15)]"
-          >
-            <Plus className="w-4 h-4" />
-            <span>Create Invitation</span>
-          </Link>
-        </div>
-
-        {/* Invitation Cards List */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          <div className="bg-[#161622] border border-[#26263b] rounded-lg p-6 flex flex-col justify-between hover:border-[#d4af37]/30 transition-all">
-            <div>
-              <div className="flex justify-between items-start mb-4">
-                <div>
-                  <h3 className="font-bold text-white font-cinzel text-lg">Abdul & Sana</h3>
-                  <span className="text-[10px] text-[#d4af37] font-mono select-all">/invite/abdul-sana</span>
-                </div>
-                <span className="px-2.5 py-0.5 rounded-full text-[9px] bg-green-500/10 border border-green-500/20 text-green-500 uppercase tracking-wider font-bold">
-                  Active
-                </span>
+        {activeTab === 'profile' ? (
+          <div className="max-w-2xl mx-auto">
+            <div className="bg-[#161622] border border-[#26263b] rounded-lg p-8 space-y-6">
+              <div>
+                <h2 className="text-xl font-bold text-white font-cinzel flex items-center gap-2">
+                  <User className="w-5 h-5 text-[#d4af37]" />
+                  <span>Profile Settings</span>
+                </h2>
+                <p className="text-xs text-gray-400 mt-1">Manage your name, email, account details and change your password.</p>
               </div>
-              <p className="text-xs text-gray-400 leading-relaxed mb-6">
-                Template: Royal Gold. Features enabled: Countdown, couple bio cards, photo gallery, RSVP card, and UPI QR shagun collection.
-              </p>
+
+              {profileMessage && (
+                <div className={`p-3.5 rounded-lg text-xs border ${
+                  profileMessage.type === 'success' 
+                    ? 'bg-green-500/10 border-green-500/20 text-green-400' 
+                    : 'bg-red-500/10 border-red-500/20 text-red-400'
+                }`}>
+                  {profileMessage.text}
+                </div>
+              )}
+
+              <form onSubmit={handleUpdateProfile} className="space-y-4">
+                <div>
+                  <label className="block text-xs font-semibold text-gray-400 mb-1.5 uppercase tracking-wider">Email Address</label>
+                  <input
+                    type="email"
+                    disabled
+                    value={userEmail}
+                    className="w-full bg-[#0d0d11]/80 border border-[#26263b] rounded-lg px-3.5 py-2.5 text-sm text-gray-500 cursor-not-allowed outline-none"
+                  />
+                  <p className="text-[10px] text-gray-500 mt-1">Email address cannot be changed.</p>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-gray-400 mb-1.5 uppercase tracking-wider">Full Name</label>
+                  <input
+                    type="text"
+                    required
+                    value={profileName}
+                    onChange={(e) => setProfileName(e.target.value)}
+                    placeholder="Enter your name"
+                    className="w-full bg-[#0d0d11]/80 border border-[#26263b] rounded-lg px-3.5 py-2.5 text-sm text-white placeholder-gray-600 outline-none focus:border-[#d4af37] focus:ring-1 focus:ring-[#d4af37] transition-all"
+                  />
+                </div>
+
+                <div className="h-[1px] bg-[#26263b] my-6" />
+
+                <div>
+                  <h3 className="text-xs font-bold text-white uppercase tracking-wider mb-3 flex items-center gap-1.5">
+                    <Lock className="w-3.5 h-3.5 text-[#d4af37]" />
+                    <span>Change Password</span>
+                  </h3>
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-xs font-semibold text-gray-400 mb-1.5 uppercase tracking-wider">New Password</label>
+                      <input
+                        type="password"
+                        value={profilePassword}
+                        onChange={(e) => setProfilePassword(e.target.value)}
+                        placeholder="••••••••"
+                        className="w-full bg-[#0d0d11]/80 border border-[#26263b] rounded-lg px-3.5 py-2.5 text-sm text-white placeholder-gray-600 outline-none focus:border-[#d4af37] focus:ring-1 focus:ring-[#d4af37] transition-all"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-gray-400 mb-1.5 uppercase tracking-wider">Confirm New Password</label>
+                      <input
+                        type="password"
+                        value={profileConfirmPassword}
+                        onChange={(e) => setProfileConfirmPassword(e.target.value)}
+                        placeholder="••••••••"
+                        className="w-full bg-[#0d0d11]/80 border border-[#26263b] rounded-lg px-3.5 py-2.5 text-sm text-white placeholder-gray-600 outline-none focus:border-[#d4af37] focus:ring-1 focus:ring-[#d4af37] transition-all"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={profileLoading}
+                  className="px-6 py-2.5 bg-[#d4af37] hover:bg-[#b8962e] text-[#0d0d11] font-bold rounded-lg transition-all text-xs outline-none focus:ring-2 focus:ring-[#d4af37]/50 disabled:opacity-50 cursor-pointer"
+                >
+                  {profileLoading ? 'Saving Changes...' : 'Save Settings'}
+                </button>
+              </form>
             </div>
-            
-            <div className="flex gap-2">
+          </div>
+        ) : (
+          <>
+            {/* Upper Title */}
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-[#26263b] pb-6">
+              <div>
+                <h1 className="text-3xl font-light text-white font-cinzel">Your Invitations</h1>
+                <p className="text-xs text-gray-400 mt-1">Manage themes, edit event timing schedules, and monitor gift records.</p>
+              </div>
               <Link
                 href={`/dashboard/edit/${slug}`}
-                className="flex-1 py-2 px-3 text-center bg-[#26263b] hover:bg-[#34344d] rounded text-white text-xs font-bold flex items-center justify-center gap-1.5 transition-all"
+                className="px-4 py-2.5 rounded bg-[#d4af37] hover:bg-[#b8962e] text-[#0d0d11] text-xs font-bold uppercase tracking-wider flex items-center gap-1.5 transition-all shadow-[0_2px_15px_rgba(212,175,55,0.15)]"
               >
-                <Edit2 className="w-3.5 h-3.5" />
-                <span>Customize Code</span>
-              </Link>
-              <Link
-                href={`/invite/${slug}`}
-                target="_blank"
-                className="py-2 px-3 bg-[#d4af37]/10 hover:bg-[#d4af37]/20 border border-[#d4af37]/20 rounded text-[#d4af37] text-xs font-semibold flex items-center justify-center transition-all"
-              >
-                <Eye className="w-4 h-4" />
+                <Plus className="w-4 h-4" />
+                <span>Create Invitation</span>
               </Link>
             </div>
-          </div>
-        </div>
 
-        {/* Analytics Statistics Panel */}
-        <div>
-          <h2 className="text-xl font-bold text-white font-cinzel mb-4 flex items-center gap-2">
-            <BarChart2 className="w-5 h-5 text-[#d4af37]" />
-            <span>Invitation Performance Analytics</span>
-          </h2>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div className="bg-[#161622] border border-[#26263b] rounded-lg p-5">
-              <span className="text-xs text-gray-400 block mb-1">Total Page Visits</span>
-              <span className="text-2xl font-bold text-white">{views}</span>
-            </div>
-            <div className="bg-[#161622] border border-[#26263b] rounded-lg p-5">
-              <span className="text-xs text-gray-400 block mb-1">RSVPs: Attending</span>
-              <span className="text-2xl font-bold text-green-500">{totalAttending} <span className="text-xs font-normal text-gray-400">guests</span></span>
-            </div>
-            <div className="bg-[#161622] border border-[#26263b] rounded-lg p-5">
-              <span className="text-xs text-gray-400 block mb-1">RSVPs: Pending / Decline</span>
-              <span className="text-2xl font-bold text-yellow-500">{totalPending} <span className="text-xs font-normal text-gray-400">/ {totalNotAttending}</span></span>
-            </div>
-            <div className="bg-[#161622] border border-[#26263b] rounded-lg p-5">
-              <span className="text-xs text-gray-400 block mb-1">Total Digital Shagun</span>
-              <span className="text-2xl font-bold text-[#d4af37]">₹{totalGiftsAmount}</span>
-            </div>
-          </div>
-        </div>
-
-        {/* RSVP and Gifts Lists Tables */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          
-          {/* Guest RSVPs List */}
-          <div className="bg-[#161622] border border-[#26263b] rounded-lg p-6 flex flex-col h-[400px]">
-            <div className="flex justify-between items-center mb-4 border-b border-[#26263b] pb-3">
-              <h3 className="font-bold text-white font-cinzel flex items-center gap-1.5">
-                <Users className="w-4 h-4 text-[#d4af37]" />
-                <span>Guest RSVP Responses</span>
-              </h3>
-              <span className="text-[10px] bg-[#0d0d11] px-2 py-0.5 rounded border border-[#26263b] text-gray-400 font-semibold">
-                {rsvps.length} Responses
-              </span>
-            </div>
-            
-            <div className="flex-1 overflow-y-auto space-y-3 pr-1 text-xs">
-              {rsvps.map((r) => (
-                <div key={r.id} className="bg-[#0d0d11] p-3 rounded border border-[#26263b] flex justify-between gap-4">
-                  <div className="space-y-1">
-                    <span className="font-bold text-white block">{r.guest_name}</span>
-                    {r.wishes && <p className="italic text-gray-400 text-[11px] leading-relaxed">&ldquo;{r.wishes}&rdquo;</p>}
+            {loadingInvite ? (
+              <div className="py-20 flex flex-col items-center justify-center gap-3">
+                <div className="w-8 h-8 border-4 border-[#d4af37] border-t-transparent rounded-full animate-spin" />
+                <span className="text-xs text-gray-400 tracking-wider uppercase font-semibold">Loading invitation...</span>
+              </div>
+            ) : (
+              /* Invitation Cards List */
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div className="bg-[#161622] border border-[#26263b] rounded-lg p-6 flex flex-col justify-between hover:border-[#d4af37]/30 transition-all">
+                  <div>
+                    <div className="flex justify-between items-start mb-4">
+                      <div>
+                        <h3 className="font-bold text-white font-cinzel text-lg">{groomName} & {brideName}</h3>
+                        <span className="text-[10px] text-[#d4af37] font-mono select-all">/invite/{slug}</span>
+                      </div>
+                      <span className={`px-2.5 py-0.5 rounded-full text-[9px] uppercase tracking-wider font-bold border ${
+                        isPaid 
+                          ? 'bg-green-500/10 border-green-500/20 text-green-500' 
+                          : 'bg-yellow-500/10 border-yellow-500/20 text-yellow-500'
+                      }`}>
+                        {isPaid ? 'Active / Paid' : 'Draft / Unpaid'}
+                      </span>
+                    </div>
+                    <p className="text-xs text-gray-400 leading-relaxed mb-6">
+                      Customize countdown, couple cards, photo gallery, RSVP responses, and UPI digital gift logs.
+                    </p>
                   </div>
-                  <div className="text-right shrink-0 flex flex-col items-end gap-1.5">
-                    {r.attending_status === 'going' ? (
-                      <span className="px-2 py-0.5 rounded bg-green-500/10 text-green-500 font-bold uppercase tracking-wider text-[9px]">
-                        Going ({r.guest_count})
-                      </span>
-                    ) : r.attending_status === 'not_going' ? (
-                      <span className="px-2 py-0.5 rounded bg-red-500/10 text-red-500 font-bold uppercase tracking-wider text-[9px]">
-                        Declined
-                      </span>
-                    ) : (
-                      <span className="px-2 py-0.5 rounded bg-yellow-500/10 text-yellow-500 font-bold uppercase tracking-wider text-[9px]">
-                        Pending
-                      </span>
-                    )}
+                  
+                  <div className="flex gap-2">
+                    <Link
+                      href={`/dashboard/edit/${slug}`}
+                      className="flex-1 py-2 px-3 text-center bg-[#26263b] hover:bg-[#34344d] rounded text-white text-xs font-bold flex items-center justify-center gap-1.5 transition-all"
+                    >
+                      <Edit2 className="w-3.5 h-3.5" />
+                      <span>Customize Code</span>
+                    </Link>
+                    <Link
+                      href={`/invite/${slug}`}
+                      target="_blank"
+                      className="py-2 px-3 bg-[#d4af37]/10 hover:bg-[#d4af37]/20 border border-[#d4af37]/20 rounded text-[#d4af37] text-xs font-semibold flex items-center justify-center transition-all"
+                    >
+                      <Eye className="w-4 h-4" />
+                    </Link>
                   </div>
                 </div>
-              ))}
-            </div>
-          </div>
+              </div>
+            )}
 
-          {/* Digital Shagun Logs */}
-          <div className="bg-[#161622] border border-[#26263b] rounded-lg p-6 flex flex-col h-[400px]">
-            <div className="flex justify-between items-center mb-4 border-b border-[#26263b] pb-3">
-              <h3 className="font-bold text-white font-cinzel flex items-center gap-1.5">
-                <Gift className="w-4 h-4 text-[#d4af37]" />
-                <span>UPI Gift Logs</span>
-              </h3>
-              <span className="text-[10px] bg-[#0d0d11] px-2 py-0.5 rounded border border-[#26263b] text-gray-400 font-semibold">
-                ₹{totalGiftsAmount} Recieved
-              </span>
-            </div>
-
-            <div className="flex-1 overflow-y-auto space-y-3 pr-1 text-xs">
-              {gifts.map((g) => (
-                <div key={g.id} className="bg-[#0d0d11] p-3 rounded border border-[#26263b] flex justify-between gap-4">
-                  <div className="space-y-1">
-                    <span className="font-bold text-white block">{g.sender_name || 'Anonymous Guest'}</span>
-                    {g.message && <p className="italic text-gray-400 text-[11px] leading-relaxed">&ldquo;{g.message}&rdquo;</p>}
-                  </div>
-                  <div className="text-right shrink-0">
-                    <span className="font-bold text-[#d4af37] block text-sm">₹{g.amount}</span>
-                    <span className="text-[9px] text-green-500 mt-1 block uppercase tracking-wider font-semibold">Completed</span>
-                  </div>
+            {/* Analytics Statistics Panel */}
+            <div>
+              <h2 className="text-xl font-bold text-white font-cinzel mb-4 flex items-center gap-2">
+                <BarChart2 className="w-5 h-5 text-[#d4af37]" />
+                <span>Invitation Performance Analytics</span>
+              </h2>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="bg-[#161622] border border-[#26263b] rounded-lg p-5">
+                  <span className="text-xs text-gray-400 block mb-1">Total Page Visits</span>
+                  <span className="text-2xl font-bold text-white">{views}</span>
                 </div>
-              ))}
+                <div className="bg-[#161622] border border-[#26263b] rounded-lg p-5">
+                  <span className="text-xs text-gray-400 block mb-1">RSVPs: Attending</span>
+                  <span className="text-2xl font-bold text-green-500">{totalAttending} <span className="text-xs font-normal text-gray-400">guests</span></span>
+                </div>
+                <div className="bg-[#161622] border border-[#26263b] rounded-lg p-5">
+                  <span className="text-xs text-gray-400 block mb-1">RSVPs: Pending / Decline</span>
+                  <span className="text-2xl font-bold text-yellow-500">{totalPending} <span className="text-xs font-normal text-gray-400">/ {totalNotAttending}</span></span>
+                </div>
+                <div className="bg-[#161622] border border-[#26263b] rounded-lg p-5">
+                  <span className="text-xs text-gray-400 block mb-1">Total Digital Shagun</span>
+                  <span className="text-2xl font-bold text-[#d4af37]">₹{totalGiftsAmount}</span>
+                </div>
+              </div>
             </div>
-          </div>
 
-        </div>
+            {/* RSVP and Gifts Lists Tables */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+              
+              {/* Guest RSVPs List */}
+              <div className="bg-[#161622] border border-[#26263b] rounded-lg p-6 flex flex-col h-[400px]">
+                <div className="flex justify-between items-center mb-4 border-b border-[#26263b] pb-3">
+                  <h3 className="font-bold text-white font-cinzel flex items-center gap-1.5">
+                    <Users className="w-4 h-4 text-[#d4af37]" />
+                    <span>Guest RSVP Responses</span>
+                  </h3>
+                  <span className="text-[10px] bg-[#0d0d11] px-2 py-0.5 rounded border border-[#26263b] text-gray-400 font-semibold">
+                    {rsvps.length} Responses
+                  </span>
+                </div>
+                
+                <div className="flex-1 overflow-y-auto space-y-3 pr-1 text-xs">
+                  {rsvps.length === 0 ? (
+                    <div className="h-full flex flex-col items-center justify-center text-gray-500 gap-1">
+                      <span>No guest responses yet.</span>
+                      <span className="text-[10px] text-gray-600">Responses will appear here when guests submit their RSVP.</span>
+                    </div>
+                  ) : (
+                    rsvps.map((r) => (
+                      <div key={r.id} className="bg-[#0d0d11] p-3 rounded border border-[#26263b] flex justify-between gap-4">
+                        <div className="space-y-1">
+                          <span className="font-bold text-white block">{r.guest_name}</span>
+                          {r.wishes && <p className="italic text-gray-400 text-[11px] leading-relaxed">&ldquo;{r.wishes}&rdquo;</p>}
+                        </div>
+                        <div className="text-right shrink-0 flex flex-col items-end gap-1.5">
+                          {r.attending_status === 'going' ? (
+                            <span className="px-2 py-0.5 rounded bg-green-500/10 text-green-500 font-bold uppercase tracking-wider text-[9px]">
+                              Going ({r.guest_count})
+                            </span>
+                          ) : r.attending_status === 'not_going' ? (
+                            <span className="px-2 py-0.5 rounded bg-red-500/10 text-red-500 font-bold uppercase tracking-wider text-[9px]">
+                              Declined
+                            </span>
+                          ) : (
+                            <span className="px-2 py-0.5 rounded bg-yellow-500/10 text-yellow-500 font-bold uppercase tracking-wider text-[9px]">
+                              Pending
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
 
-        {/* Upgrade Subscription Section */}
-        <div className="bg-[#161622] border border-[#26263b] rounded-lg p-6 space-y-4">
-          <div>
-            <h3 className="text-lg font-bold text-white font-cinzel flex items-center gap-2">
-              <ShieldAlert className="w-5 h-5 text-[#d4af37]" />
-              <span>Upgrade Your Subscription Tier</span>
-            </h3>
-            <p className="text-xs text-gray-400 mt-1">Unlock premium features, unlimited photos, and advanced gift analytics.</p>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="bg-[#0d0d11] p-4 rounded border border-[#26263b] flex flex-col justify-between">
-              <div>
-                <span className="font-bold text-white block">Basic Upgrade</span>
-                <span className="text-xs text-gray-400">6 Months Access</span>
-                <p className="text-xs opacity-75 my-3">Allows 1 active invitation link, up to 20 photos, and basic UPI shagun collection.</p>
+              {/* Digital Shagun Logs */}
+              <div className="bg-[#161622] border border-[#26263b] rounded-lg p-6 flex flex-col h-[400px]">
+                <div className="flex justify-between items-center mb-4 border-b border-[#26263b] pb-3">
+                  <h3 className="font-bold text-white font-cinzel flex items-center gap-1.5">
+                    <Gift className="w-4 h-4 text-[#d4af37]" />
+                    <span>UPI Gift Logs</span>
+                  </h3>
+                  <span className="text-[10px] bg-[#0d0d11] px-2 py-0.5 rounded border border-[#26263b] text-gray-400 font-semibold">
+                    ₹{totalGiftsAmount} Recieved
+                  </span>
+                </div>
+
+                <div className="flex-1 overflow-y-auto space-y-3 pr-1 text-xs">
+                  {gifts.length === 0 ? (
+                    <div className="h-full flex flex-col items-center justify-center text-gray-500 gap-1">
+                      <span>No gift records yet.</span>
+                      <span className="text-[10px] text-gray-600">Digital blessings and gifts will log here.</span>
+                    </div>
+                  ) : (
+                    gifts.map((g) => (
+                      <div key={g.id} className="bg-[#0d0d11] p-3 rounded border border-[#26263b] flex justify-between gap-4">
+                        <div className="space-y-1">
+                          <span className="font-bold text-white block">{g.sender_name || 'Anonymous Guest'}</span>
+                          {g.message && <p className="italic text-gray-400 text-[11px] leading-relaxed">&ldquo;{g.message}&rdquo;</p>}
+                        </div>
+                        <div className="text-right shrink-0">
+                          <span className="font-bold text-[#d4af37] block text-sm">₹{g.amount}</span>
+                          <span className="text-[9px] text-green-500 mt-1 block uppercase tracking-wider font-semibold">Completed</span>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
               </div>
-              <CheckoutButton amount={299} tier="basic" className="mt-4 w-full" />
             </div>
-            <div className="bg-[#0d0d11] p-4 rounded border border-[#d4af37]/30 flex flex-col justify-between relative">
-              <span className="absolute -top-2.5 right-4 bg-[#d4af37] text-[#0d0d11] text-[9px] font-extrabold uppercase px-2 py-0.5 rounded">Popular</span>
+
+            {/* Upgrade Subscription Section */}
+            <div className="bg-[#161622] border border-[#26263b] rounded-lg p-6 space-y-4">
               <div>
-                <span className="font-bold text-[#d4af37] block">Premium Upgrade</span>
-                <span className="text-xs text-gray-400">1 Year Access</span>
-                <p className="text-xs opacity-75 my-3">Unlocks all templates, unlimited photos, and advanced gift logs dashboard.</p>
+                <h3 className="text-lg font-bold text-white font-cinzel flex items-center gap-2">
+                  <ShieldAlert className="w-5 h-5 text-[#d4af37]" />
+                  <span>Upgrade Your Subscription Tier</span>
+                </h3>
+                <p className="text-xs text-gray-400 mt-1">Unlock premium features, unlimited photos, and advanced gift analytics.</p>
               </div>
-              <CheckoutButton amount={499} tier="premium" className="mt-4 w-full" />
-            </div>
-            <div className="bg-[#0d0d11] p-4 rounded border border-[#26263b] flex flex-col justify-between">
-              <div>
-                <span className="font-bold text-white block">VIP Lifetime</span>
-                <span className="text-xs text-gray-400">Lifetime Access</span>
-                <p className="text-xs opacity-75 my-3">Adds custom domain mapping (Cloudflare), advanced analytics, and premium support.</p>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="bg-[#0d0d11] p-4 rounded border border-[#26263b] flex flex-col justify-between">
+                  <div>
+                    <span className="font-bold text-white block">Basic Upgrade</span>
+                    <span className="text-xs text-gray-400">6 Months Access</span>
+                    <p className="text-xs opacity-75 my-3">Allows 1 active invitation link, up to 20 photos, and basic UPI shagun collection.</p>
+                  </div>
+                  <CheckoutButton amount={299} tier="basic" userId={userId} userEmail={userEmail} onSuccess={() => handleUpgradeSuccess('basic')} className="mt-4 w-full" />
+                </div>
+                <div className="bg-[#0d0d11] p-4 rounded border border-[#d4af37]/30 flex flex-col justify-between relative">
+                  <span className="absolute -top-2.5 right-4 bg-[#d4af37] text-[#0d0d11] text-[9px] font-extrabold uppercase px-2 py-0.5 rounded">Popular</span>
+                  <div>
+                    <span className="font-bold text-[#d4af37] block">Premium Upgrade</span>
+                    <span className="text-xs text-gray-400">1 Year Access</span>
+                    <p className="text-xs opacity-75 my-3">Unlocks all templates, unlimited photos, and advanced gift logs dashboard.</p>
+                  </div>
+                  <CheckoutButton amount={499} tier="premium" userId={userId} userEmail={userEmail} onSuccess={() => handleUpgradeSuccess('premium')} className="mt-4 w-full" />
+                </div>
+                <div className="bg-[#0d0d11] p-4 rounded border border-[#26263b] flex flex-col justify-between">
+                  <div>
+                    <span className="font-bold text-white block">VIP Lifetime</span>
+                    <span className="text-xs text-gray-400">Lifetime Access</span>
+                    <p className="text-xs opacity-75 my-3">Adds custom domain mapping (Cloudflare), advanced analytics, and premium support.</p>
+                  </div>
+                  <CheckoutButton amount={999} tier="vip" userId={userId} userEmail={userEmail} onSuccess={() => handleUpgradeSuccess('vip')} className="mt-4 w-full" />
+                </div>
               </div>
-              <CheckoutButton amount={999} tier="vip" className="mt-4 w-full" />
             </div>
-          </div>
-        </div>
+          </>
+        )}
       </div>
     </div>
   );
