@@ -69,7 +69,7 @@ export default function LoginPage() {
 
     try {
       if (isSignUp) {
-        // Normal signup
+        // --- SIGN UP ---
         const { data, error } = await supabase.auth.signUp({
           email,
           password,
@@ -81,88 +81,68 @@ export default function LoginPage() {
           },
         });
 
-        if (error) throw error;
+        // Log for debugging
+        console.log('Signup response data:', JSON.stringify(data, null, 2));
+        console.log('Signup response error:', JSON.stringify(error, null, 2));
 
-        // If promo code matches a lifetime free code, update tier locally or directly
+        if (error) {
+          // Extract readable message from Supabase error
+          const msg = error.message || (error as any).error_description || JSON.stringify(error);
+          throw new Error(msg);
+        }
+
+        // Supabase returns user with empty identities[] if email is already registered
+        if (data?.user && data.user.identities && data.user.identities.length === 0) {
+          throw new Error('This email is already registered. Please sign in instead, or use a different email.');
+        }
+
+        // If promo code matches a lifetime free code
         if (promoCode.toUpperCase() === 'LIFETIMEFREE' || promoCode.toUpperCase() === 'FREEVIP') {
           localStorage.setItem(`invite_abdul-sana_paid`, 'true');
         }
 
         setMessage({
           type: 'success',
-          text: 'Account created! Please check your email to confirm registration.',
+          text: 'Account created successfully! Please check your email to confirm your registration.',
         });
+
       } else {
-        // Sign in
-        try {
-          const { error } = await supabase.auth.signInWithPassword({
-            email,
-            password,
-          });
+        // --- SIGN IN ---
+        const { data, error } = await supabase.auth.signInWithPassword({
+          email,
+          password,
+        });
 
-          if (error) {
-            // Fallback for default admin credentials if not created on remote DB yet
-            if (email === 'abdulazeezrazvi125@gmail.com' && password === 'Azeez@97') {
-              localStorage.setItem('mock_user_email', email);
-              localStorage.setItem('invite_abdul-sana_paid', 'true');
-              router.push('/dashboard');
-              router.refresh();
-              return;
-            }
-            throw error;
-          }
-          
-          // Save sandbox status if email is a bypass email
-          if (email === 'abdulazeezrazvi125@gmail.com' || email === 'abdulazeezrazvi97@gmail.com') {
-            localStorage.setItem('mock_user_email', email);
-            localStorage.setItem('invite_abdul-sana_paid', 'true');
-          }
+        console.log('Login response data:', JSON.stringify(data, null, 2));
+        console.log('Login response error:', JSON.stringify(error, null, 2));
 
-          router.push('/dashboard');
-          router.refresh();
-        } catch (err) {
-          if (email === 'abdulazeezrazvi125@gmail.com' && password === 'Azeez@97') {
-            localStorage.setItem('mock_user_email', email);
-            localStorage.setItem('invite_abdul-sana_paid', 'true');
-            router.push('/dashboard');
-            router.refresh();
-            return;
-          }
-          throw err;
+        if (error) {
+          const msg = error.message || (error as any).error_description || JSON.stringify(error);
+          throw new Error(msg);
         }
+
+        // Successful login
+        router.push('/dashboard');
+        router.refresh();
       }
     } catch (err: any) {
-      console.error('Auth error:', err);
+      console.error('Auth error (full object):', err);
       let messageText = 'Authentication failed. Please try again.';
-      if (err) {
-        if (typeof err === 'string') {
-          messageText = err;
-        } else if (err.message) {
-          // If message is a JSON string, try to parse it
-          if (typeof err.message === 'string' && err.message.trim().startsWith('{')) {
-            try {
-              const parsed = JSON.parse(err.message);
-              messageText = parsed.message || parsed.msg || parsed.error_description || err.message;
-            } catch (e) {
-              messageText = err.message;
-            }
-          } else {
-            messageText = err.message;
-          }
-        } else if (err.error_description) {
-          messageText = err.error_description;
-        } else {
-          try {
-            messageText = JSON.stringify(err);
-          } catch (e) {
-            // fallback
-          }
+
+      if (err instanceof Error && err.message) {
+        messageText = err.message;
+      } else if (typeof err === 'string') {
+        messageText = err;
+      } else if (err && typeof err === 'object') {
+        messageText = err.message || err.msg || err.error_description || '';
+        if (!messageText) {
+          try { messageText = JSON.stringify(err); } catch (_) { /* fallback */ }
         }
       }
 
-      // If the error message is empty or serialized to an empty JSON object
-      if (messageText === '{}' || messageText === 'null' || !messageText) {
-        messageText = 'Database signup trigger error. Please make sure you have run the schema.sql in your Supabase SQL Editor to create the users table and signup trigger.';
+      // Clean up unhelpful messages
+      if (!messageText || messageText === '{}' || messageText === 'null') {
+        messageText = 'An unexpected error occurred. Please check your Supabase project configuration and try again.';
       }
 
       setMessage({
