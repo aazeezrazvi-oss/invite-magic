@@ -8,8 +8,8 @@ import { Heart, Lock, User, Gift, Mail } from 'lucide-react';
 
 export default function LoginPage() {
   const router = useRouter();
-  const [email, setEmail] = useState('abdulazeezrazvi125@gmail.com');
-  const [password, setPassword] = useState('Azeez@97');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [fullName, setFullName] = useState('');
   const [promoCode, setPromoCode] = useState('');
