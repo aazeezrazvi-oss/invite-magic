@@ -131,9 +131,40 @@ export default function LoginPage() {
           throw err;
         }
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error('Auth error:', err);
-      const messageText = err instanceof Error ? err.message : 'Authentication failed. Please try again.';
+      let messageText = 'Authentication failed. Please try again.';
+      if (err) {
+        if (typeof err === 'string') {
+          messageText = err;
+        } else if (err.message) {
+          // If message is a JSON string, try to parse it
+          if (typeof err.message === 'string' && err.message.trim().startsWith('{')) {
+            try {
+              const parsed = JSON.parse(err.message);
+              messageText = parsed.message || parsed.msg || parsed.error_description || err.message;
+            } catch (e) {
+              messageText = err.message;
+            }
+          } else {
+            messageText = err.message;
+          }
+        } else if (err.error_description) {
+          messageText = err.error_description;
+        } else {
+          try {
+            messageText = JSON.stringify(err);
+          } catch (e) {
+            // fallback
+          }
+        }
+      }
+
+      // If the error message is empty or serialized to an empty JSON object
+      if (messageText === '{}' || messageText === 'null' || !messageText) {
+        messageText = 'Database signup trigger error. Please make sure you have run the schema.sql in your Supabase SQL Editor to create the users table and signup trigger.';
+      }
+
       setMessage({
         type: 'error',
         text: messageText,
