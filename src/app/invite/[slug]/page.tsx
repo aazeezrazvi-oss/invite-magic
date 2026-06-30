@@ -7,6 +7,7 @@ import { Invitation, RSVP } from '@/types';
 import { getInvitationBySlug, submitRsvp } from '@/app/actions';
 import { AlertCircle, Heart } from 'lucide-react';
 import Link from 'next/link';
+import { supabase } from '@/utils/supabase';
 
 interface PageProps {
   params: Promise<{ slug: string }>;
@@ -75,10 +76,29 @@ export default function GuestInvitePage({ params }: PageProps) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [isSuspended, setIsSuspended] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
     async function loadData() {
       setLoading(true);
+
+      // Check if current viewer is an admin
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session?.user) {
+          const { data: profile } = await supabase
+            .from('users')
+            .select('role')
+            .eq('id', session.user.id)
+            .maybeSingle();
+          if (profile?.role === 'admin' || session.user.email === 'abdulazeezrazvi125@gmail.com') {
+            setIsAdmin(true);
+          }
+        }
+      } catch (e) {
+        // Viewer is a guest, ignore
+      }
+
       try {
         const data = await getInvitationBySlug(slug);
         if (data && data.is_suspended) {
@@ -127,7 +147,7 @@ export default function GuestInvitePage({ params }: PageProps) {
     );
   }
 
-  if (isSuspended) {
+  if (isSuspended && !isAdmin) {
     return (
       <div className="min-h-screen bg-[#0d0d11] text-[#f3f4f6] flex flex-col justify-center items-center text-center p-8 relative font-sans">
         <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[350px] h-[350px] bg-red-500/5 rounded-full blur-[100px] pointer-events-none" />
@@ -167,7 +187,7 @@ export default function GuestInvitePage({ params }: PageProps) {
     );
   }
 
-  if (!invitation.owner_tier || invitation.owner_tier === 'free') {
+  if (!isAdmin && (!invitation.owner_tier || invitation.owner_tier === 'free')) {
     return (
       <div className="min-h-screen bg-[#0d0d11] text-[#f3f4f6] flex flex-col justify-center items-center text-center p-8 relative font-sans">
         {/* Background ambient glow */}
