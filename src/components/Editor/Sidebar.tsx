@@ -19,6 +19,9 @@ interface SidebarProps {
   isSaving: boolean;
   hasPaid?: boolean;
   onPaymentSuccess?: () => void;
+  activeTab?: 'details' | 'design' | 'events' | 'gifts';
+  onTabChange?: (tab: 'details' | 'design' | 'events' | 'gifts') => void;
+  isMobileSheet?: boolean;
 }
 
 export default function Sidebar({ 
@@ -27,9 +30,14 @@ export default function Sidebar({
   onSave, 
   isSaving,
   hasPaid = false,
-  onPaymentSuccess
+  onPaymentSuccess,
+  activeTab: externalActiveTab,
+  onTabChange: externalOnTabChange,
+  isMobileSheet = false
 }: SidebarProps) {
-  const [activeTab, setActiveTab] = useState<'details' | 'design' | 'events' | 'gifts'>('details');
+  const [internalActiveTab, setInternalActiveTab] = useState<'details' | 'design' | 'events' | 'gifts'>('details');
+  const activeTab = externalActiveTab || internalActiveTab;
+  const setActiveTab = externalOnTabChange || setInternalActiveTab;
   const [uploadingGroom, setUploadingGroom] = useState(false);
   const [uploadingBride, setUploadingBride] = useState(false);
   const [uploadingGallery, setUploadingGallery] = useState(false);
@@ -384,42 +392,46 @@ export default function Sidebar({
 
   return (
     <div className="w-full md:w-96 bg-[#161622] border-r border-[#26263b] h-full flex flex-col overflow-hidden text-sm">
-      {/* Sidebar Header */}
-      <div className="p-4 border-b border-[#26263b] flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <Heart className="w-5 h-5 text-[#d4af37] fill-[#d4af37]" />
-          <span className="font-semibold text-white tracking-wider font-cinzel">InviteMagic Editor</span>
-        </div>
-        <button
-          onClick={onSave}
-          disabled={isSaving}
-          className="px-3 py-1.5 bg-[#d4af37] hover:bg-[#b8962e] text-[#0d0d11] font-semibold rounded flex items-center gap-1.5 disabled:opacity-50 transition-all text-xs"
-        >
-          {isSaving ? (
-            <div className="w-4 h-4 border-2 border-t-transparent border-[#0d0d11] rounded-full animate-spin" />
-          ) : (
-            <Save className="w-4 h-4" />
-          )}
-          <span>Save Changes</span>
-        </button>
-      </div>
-
-      {/* Tabs Menu */}
-      <div className="flex bg-[#0f0f18] border-b border-[#26263b] text-xs">
-        {(['details', 'design', 'events', 'gifts'] as const).map((tab) => (
+      {/* Sidebar Header - Hidden if rendering inside mobile Canva sheet */}
+      {!isMobileSheet && (
+        <div className="p-4 border-b border-[#26263b] flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Heart className="w-5 h-5 text-[#d4af37] fill-[#d4af37]" />
+            <span className="font-semibold text-white tracking-wider font-cinzel">InviteMagic Editor</span>
+          </div>
           <button
-            key={tab}
-            onClick={() => setActiveTab(tab)}
-            className={`flex-1 py-3 text-center font-semibold border-b-2 capitalize transition-all ${
-              activeTab === tab 
-                ? 'border-[#d4af37] text-[#d4af37]' 
-                : 'border-transparent text-gray-400 hover:text-white'
-            }`}
+            onClick={onSave}
+            disabled={isSaving}
+            className="px-3 py-1.5 bg-[#d4af37] hover:bg-[#b8962e] text-[#0d0d11] font-semibold rounded flex items-center gap-1.5 disabled:opacity-50 transition-all text-xs"
           >
-            {tab}
+            {isSaving ? (
+              <div className="w-4 h-4 border-2 border-t-transparent border-[#0d0d11] rounded-full animate-spin" />
+            ) : (
+              <Save className="w-4 h-4" />
+            )}
+            <span>Save Changes</span>
           </button>
-        ))}
-      </div>
+        </div>
+      )}
+
+      {/* Tabs Menu - Hidden if rendering inside mobile Canva sheet */}
+      {!isMobileSheet && (
+        <div className="flex bg-[#0f0f18] border-b border-[#26263b] text-xs">
+          {(['details', 'design', 'events', 'gifts'] as const).map((tab) => (
+            <button
+              key={tab}
+              onClick={() => setActiveTab(tab)}
+              className={`flex-1 py-3 text-center font-semibold border-b-2 capitalize transition-all ${
+                activeTab === tab 
+                  ? 'border-[#d4af37] text-[#d4af37]' 
+                  : 'border-transparent text-gray-400 hover:text-white'
+              }`}
+            >
+              {tab}
+            </button>
+          ))}
+        </div>
+      )}
 
       {/* Tab Panels */}
       <div className="flex-1 overflow-y-auto p-4 space-y-6">

@@ -6,7 +6,7 @@ import Sidebar from '@/components/Editor/Sidebar';
 import Canvas from '@/components/Editor/Canvas';
 import { Invitation } from '@/types';
 import { getInvitationBySlug, saveInvitation } from '@/app/actions';
-import { ArrowLeft, Check, AlertCircle, Heart } from 'lucide-react';
+import { ArrowLeft, Check, AlertCircle, Heart, Palette, Calendar, Gift, Save } from 'lucide-react';
 import Link from 'next/link';
 import { supabase } from '@/utils/supabase';
 
@@ -79,8 +79,8 @@ export default function EditorPage({ params }: PageProps) {
   const [isSupabaseWorking, setIsSupabaseWorking] = useState(true);
   const [hasPaid, setHasPaid] = useState<boolean>(false);
   
-  // Mobile active workspace tab
-  const [mobileTab, setMobileTab] = useState<'edit' | 'preview'>('edit');
+  // Canva-style mobile editor tab/sheet state
+  const [activeMobileTab, setActiveMobileTab] = useState<'details' | 'design' | 'events' | 'gifts' | null>(null);
   
   // Share modal states
   const [showShareModal, setShowShareModal] = useState(false);
@@ -227,34 +227,10 @@ export default function EditorPage({ params }: PageProps) {
         </div>
       </div>
 
-      {/* Mobile Workspace Toggle Tabs (Visible only on mobile) */}
-      <div className="flex border-b border-[#26263b] bg-[#161622] md:hidden text-xs shrink-0">
-        <button
-          onClick={() => setMobileTab('edit')}
-          className={`flex-1 py-3 text-center font-bold tracking-wider uppercase transition-all ${
-            mobileTab === 'edit'
-              ? 'border-b-2 border-[#d4af37] text-[#d4af37]'
-              : 'text-gray-400 hover:text-white'
-          }`}
-        >
-          Edit Card
-        </button>
-        <button
-          onClick={() => setMobileTab('preview')}
-          className={`flex-1 py-3 text-center font-bold tracking-wider uppercase transition-all ${
-            mobileTab === 'preview'
-              ? 'border-b-2 border-[#d4af37] text-[#d4af37]'
-              : 'text-gray-400 hover:text-white'
-          }`}
-        >
-          Live Preview
-        </button>
-      </div>
-
       {/* Main Workspace split */}
-      <div className="flex-1 flex overflow-hidden">
-        {/* Editor Sidebar */}
-        <div className={`h-full overflow-hidden ${mobileTab === 'edit' ? 'w-full md:w-96' : 'hidden md:flex md:w-96'} shrink-0`}>
+      <div className="flex-1 flex overflow-hidden relative">
+        {/* Editor Sidebar (Always visible on desktop, hidden on mobile in favor of bottom sheet) */}
+        <div className="hidden md:flex md:w-96 h-full overflow-hidden shrink-0">
           <Sidebar 
             invitation={invitation} 
             onUpdate={handleUpdate} 
@@ -265,10 +241,110 @@ export default function EditorPage({ params }: PageProps) {
           />
         </div>
 
-        {/* Live Canvas Preview */}
-        <div className={`flex-1 h-full overflow-hidden ${mobileTab === 'preview' ? 'block' : 'hidden md:block'}`}>
+        {/* Live Canvas Preview (Always visible on desktop and mobile) */}
+        <div className="flex-1 h-full overflow-hidden pb-14 md:pb-0">
           <Canvas invitation={invitation} />
         </div>
+      </div>
+
+      {/* Canva-style Bottom Navigation Bar (Visible only on mobile) */}
+      <div className="flex border-t border-[#26263b] bg-[#161622] md:hidden text-[9px] uppercase font-bold tracking-wider shrink-0 z-30 justify-around py-1.5 shadow-[0_-4px_10px_rgba(0,0,0,0.3)]">
+        <button
+          onClick={() => setActiveMobileTab(activeMobileTab === 'details' ? null : 'details')}
+          className={`flex flex-col items-center gap-1 py-1 transition-all ${
+            activeMobileTab === 'details' ? 'text-[#d4af37]' : 'text-gray-400 hover:text-white'
+          }`}
+        >
+          <Heart className="w-4 h-4" />
+          <span>Details</span>
+        </button>
+        <button
+          onClick={() => setActiveMobileTab(activeMobileTab === 'design' ? null : 'design')}
+          className={`flex flex-col items-center gap-1 py-1 transition-all ${
+            activeMobileTab === 'design' ? 'text-[#d4af37]' : 'text-gray-400 hover:text-white'
+          }`}
+        >
+          <Palette className="w-4 h-4" />
+          <span>Design</span>
+        </button>
+        <button
+          onClick={() => setActiveMobileTab(activeMobileTab === 'events' ? null : 'events')}
+          className={`flex flex-col items-center gap-1 py-1 transition-all ${
+            activeMobileTab === 'events' ? 'text-[#d4af37]' : 'text-gray-400 hover:text-white'
+          }`}
+        >
+          <Calendar className="w-4 h-4" />
+          <span>Events</span>
+        </button>
+        <button
+          onClick={() => setActiveMobileTab(activeMobileTab === 'gifts' ? null : 'gifts')}
+          className={`flex flex-col items-center gap-1 py-1 transition-all ${
+            activeMobileTab === 'gifts' ? 'text-[#d4af37]' : 'text-gray-400 hover:text-white'
+          }`}
+        >
+          <Gift className="w-4 h-4" />
+          <span>Gifts</span>
+        </button>
+      </div>
+
+      {/* Canva-style Sliding Bottom Sheet Panel (Visible only on mobile when editing tab is active) */}
+      <div 
+        className={`fixed inset-x-0 bottom-0 bg-[#161622] border-t border-[#d4af37]/30 rounded-t-[20px] shadow-[0_-8px_30px_rgba(0,0,0,0.6)] z-40 transition-all duration-300 ease-out transform md:hidden ${
+          activeMobileTab ? 'translate-y-0 opacity-100 visible' : 'translate-y-full opacity-0 invisible'
+        }`}
+        style={{ height: '55vh' }}
+      >
+        {activeMobileTab && (
+          <div className="flex flex-col h-full">
+            {/* Sheet Handle and Title bar */}
+            <div className="px-4 py-2.5 border-b border-[#26263b] flex items-center justify-between bg-[#1b1b2a] rounded-t-[20px] shrink-0">
+              <div className="flex items-center gap-1.5">
+                {activeMobileTab === 'details' && <Heart className="w-4 h-4 text-[#d4af37]" />}
+                {activeMobileTab === 'design' && <Palette className="w-4 h-4 text-[#d4af37]" />}
+                {activeMobileTab === 'events' && <Calendar className="w-4 h-4 text-[#d4af37]" />}
+                {activeMobileTab === 'gifts' && <Gift className="w-4 h-4 text-[#d4af37]" />}
+                <span className="font-semibold text-white font-cinzel capitalize text-xs tracking-wider">
+                  Edit {activeMobileTab}
+                </span>
+              </div>
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={handleSave}
+                  disabled={isSaving}
+                  className="px-2.5 py-1 bg-[#d4af37] hover:bg-[#b8962e] text-[#0d0d11] font-bold rounded flex items-center gap-1 transition-all text-[9px] uppercase tracking-widest disabled:opacity-50"
+                >
+                  {isSaving ? (
+                    <div className="w-2.5 h-2.5 border-2 border-t-transparent border-[#0d0d11] rounded-full animate-spin" />
+                  ) : (
+                    <Save className="w-2.5 h-2.5" />
+                  )}
+                  <span>Save</span>
+                </button>
+                <button 
+                  onClick={() => setActiveMobileTab(null)}
+                  className="text-gray-400 hover:text-white text-base font-bold p-1 cursor-pointer"
+                >
+                  &times;
+                </button>
+              </div>
+            </div>
+
+            {/* Sheet Form Scroll Container */}
+            <div className="flex-grow overflow-y-auto">
+              <Sidebar 
+                invitation={invitation} 
+                onUpdate={handleUpdate} 
+                onSave={handleSave} 
+                isSaving={isSaving} 
+                hasPaid={hasPaid}
+                onPaymentSuccess={handlePaymentSuccess}
+                activeTab={activeMobileTab}
+                onTabChange={setActiveMobileTab}
+                isMobileSheet={true}
+              />
+            </div>
+          </div>
+        )}
       </div>
 
       {showShareModal && (

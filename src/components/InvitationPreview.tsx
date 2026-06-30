@@ -317,15 +317,6 @@ export default function InvitationPreview({
         }`}
         style={{ fontFamily: 'var(--font-body)' }}
       >
-        {/* SVG Fabric Noise Filter to simulate raw velvet/silk texture */}
-        <svg className="absolute w-0 h-0 pointer-events-none" aria-hidden="true">
-          <filter id="fabricNoise">
-            <feTurbulence type="fractalNoise" baseFrequency="0.55" numOctaves="3" stitchTiles="stitch" />
-            <feColorMatrix type="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 0.05 0" />
-          </filter>
-        </svg>
-        <div className="absolute inset-0 pointer-events-none mix-blend-overlay opacity-60" style={{ filter: 'url(#fabricNoise)' }} />
-
         {/* Soft Vignette overlay */}
         <div className="absolute inset-0 pointer-events-none bg-[radial-gradient(circle_at_center,transparent_30%,rgba(0,0,0,0.85)_100%)]" />
 
