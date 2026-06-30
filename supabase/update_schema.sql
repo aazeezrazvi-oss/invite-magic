@@ -8,7 +8,7 @@ BEGIN
   );
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
-
+ 
 -- 2. Create referral_codes table
 CREATE TABLE IF NOT EXISTS public.referral_codes (
     code TEXT PRIMARY KEY,
