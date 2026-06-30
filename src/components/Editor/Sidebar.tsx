@@ -4,12 +4,13 @@
 import React, { useState } from 'react';
 import { 
   Heart, Settings, Calendar, 
-  ChevronUp, ChevronDown, Plus, Trash2, Gift, Save, Lock
+  ChevronUp, ChevronDown, Plus, Trash2, Gift, Save, Lock, Image, Film, Music, Volume2
 } from 'lucide-react';
-import { Invitation, StylingPreferences, WeddingEvent, GiftCollectionDetails } from '@/types';
+import { Invitation, StylingPreferences, WeddingEvent, GiftCollectionDetails, MediaAsset } from '@/types';
 import { TEMPLATE_PRESETS, MUSIC_PRESETS, FONT_PRESETS } from '@/utils/presets';
 import CheckoutButton from '@/components/CheckoutButton';
 import { supabase } from '@/utils/supabase';
+import { getMediaAssets } from '@/app/actions';
 
 interface SidebarProps {
   invitation: Partial<Invitation>;
@@ -32,6 +33,61 @@ export default function Sidebar({
   const [uploadingGroom, setUploadingGroom] = useState(false);
   const [uploadingBride, setUploadingBride] = useState(false);
   const [uploadingGallery, setUploadingGallery] = useState(false);
+
+  // Media Modal states
+  const [showMediaModal, setShowMediaModal] = useState(false);
+  const [modalMediaType, setModalMediaType] = useState<'image' | 'video' | 'music'>('image');
+  const [libraryAssets, setLibraryAssets] = useState<MediaAsset[]>([]);
+  const [loadingAssets, setLoadingAssets] = useState(false);
+  const [playingAudioId, setPlayingAudioId] = useState<string | null>(null);
+  const [audioPreview, setAudioPreview] = useState<HTMLAudioElement | null>(null);
+
+  const openMediaModal = async (type: 'image' | 'video' | 'music') => {
+    setModalMediaType(type);
+    setShowMediaModal(true);
+    setLoadingAssets(true);
+    try {
+      const assets = await getMediaAssets(type);
+      setLibraryAssets(assets);
+    } catch (e) {
+      console.error('Failed to load media assets:', e);
+    } finally {
+      setLoadingAssets(false);
+    }
+  };
+
+  const handleSelectAsset = (url: string) => {
+    if (modalMediaType === 'music') {
+      handleStylingChange('music_url', url);
+    } else {
+      handleStylingChange('background_url', url);
+    }
+    closeMediaModal();
+  };
+
+  const handleToggleAudioPreview = (assetId: string, url: string) => {
+    if (playingAudioId === assetId) {
+      audioPreview?.pause();
+      setPlayingAudioId(null);
+    } else {
+      if (audioPreview) {
+        audioPreview.pause();
+      }
+      const newAudio = new Audio(url);
+      newAudio.play();
+      newAudio.onended = () => setPlayingAudioId(null);
+      setAudioPreview(newAudio);
+      setPlayingAudioId(assetId);
+    }
+  };
+
+  const closeMediaModal = () => {
+    if (audioPreview) {
+      audioPreview.pause();
+    }
+    setPlayingAudioId(null);
+    setShowMediaModal(false);
+  };
 
   const handleGalleryPhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -687,8 +743,18 @@ export default function Sidebar({
                   value={styling.background_url || ''}
                   onChange={(e) => handleStylingChange('background_url', e.target.value)}
                   placeholder={styling.background_type === 'gradient' ? 'linear-gradient(...)' : 'https://example.com/asset.mp4'}
-                  className="w-full bg-[#161622] border border-[#26263b] rounded px-3 py-1.5 text-xs text-white outline-none focus:border-[#d4af37] font-mono"
+                  className="w-full bg-[#161622] border border-[#26263b] rounded px-3 py-1.5 text-xs text-white outline-none focus:border-[#d4af37] font-mono mb-2"
                 />
+                {(styling.background_type === 'image' || styling.background_type === 'video') && (
+                  <button
+                    type="button"
+                    onClick={() => openMediaModal(styling.background_type === 'image' ? 'image' : 'video')}
+                    className="w-full py-1.5 bg-[#26263b] hover:bg-[#34344d] border border-[#d4af37]/35 rounded text-xs text-[#d4af37] font-semibold transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                  >
+                    {styling.background_type === 'image' ? <Image className="w-4 h-4" /> : <Film className="w-4 h-4" />}
+                    <span>Choose Background {styling.background_type === 'image' ? 'Image' : 'Video'} from Library</span>
+                  </button>
+                )}
               </div>
             </div>
 
@@ -778,16 +844,42 @@ export default function Sidebar({
             {/* Music presets */}
             <div className="space-y-3 bg-[#0d0d11] p-3 rounded border border-[#26263b]">
               <span className="font-semibold text-[#d4af37] block">Background Music</span>
-              <select
-                value={styling.music_url}
-                onChange={(e) => handleStylingChange('music_url', e.target.value)}
-                className="w-full bg-[#161622] border border-[#26263b] rounded px-3 py-1.5 text-white outline-none focus:border-[#d4af37]"
-              >
-                <option value="">No Music</option>
-                {MUSIC_PRESETS.map((m) => (
-                  <option key={m.url} value={m.url}>{m.name}</option>
-                ))}
-              </select>
+              
+              <div className="space-y-2">
+                <div>
+                  <label className="block text-[10px] text-gray-400 mb-0.5">Select Preset Track</label>
+                  <select
+                    value={styling.music_url}
+                    onChange={(e) => handleStylingChange('music_url', e.target.value)}
+                    className="w-full bg-[#161622] border border-[#26263b] rounded px-3 py-1.5 text-xs text-white outline-none focus:border-[#d4af37]"
+                  >
+                    <option value="">No Music</option>
+                    {MUSIC_PRESETS.map((m) => (
+                      <option key={m.url} value={m.url}>{m.name}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-[10px] text-gray-400 mb-0.5">Custom Music URL</label>
+                  <input
+                    type="text"
+                    value={styling.music_url || ''}
+                    onChange={(e) => handleStylingChange('music_url', e.target.value)}
+                    placeholder="https://example.com/song.mp3"
+                    className="w-full bg-[#161622] border border-[#26263b] rounded px-3 py-1.5 text-xs text-white outline-none focus:border-[#d4af37] font-mono"
+                  />
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => openMediaModal('music')}
+                  className="w-full py-1.5 bg-[#26263b] hover:bg-[#34344d] border border-[#d4af37]/35 rounded text-xs text-[#d4af37] font-semibold transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                >
+                  <Music className="w-4 h-4" />
+                  <span>Choose Music from Library</span>
+                </button>
+              </div>
             </div>
           </div>
         )}
@@ -934,6 +1026,93 @@ export default function Sidebar({
           </div>
         )}
       </div>
+
+      {showMediaModal && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="w-full max-w-[460px] bg-[#161622] border border-[#d4af37]/30 rounded-[20px] p-6 space-y-5 shadow-[0_4px_30px_rgba(212,175,55,0.15)] relative max-h-[80vh] flex flex-col">
+            <button
+              onClick={closeMediaModal}
+              className="absolute top-4 right-4 text-gray-400 hover:text-white text-lg font-bold cursor-pointer"
+            >
+              &times;
+            </button>
+            <div className="text-center space-y-1">
+              <span className="text-lg font-light text-white font-cinzel tracking-wider capitalize flex items-center justify-center gap-1.5">
+                {modalMediaType === 'image' && <Image className="w-5 h-5 text-[#d4af37]" />}
+                {modalMediaType === 'video' && <Film className="w-5 h-5 text-[#d4af37]" />}
+                {modalMediaType === 'music' && <Music className="w-5 h-5 text-[#d4af37]" />}
+                <span>Select {modalMediaType} Asset</span>
+              </span>
+              <p className="text-[10px] text-gray-400">Choose from the database media library to apply to your invitation background.</p>
+            </div>
+
+            <div className="flex-grow overflow-y-auto pr-1">
+              {loadingAssets ? (
+                <div className="py-20 flex flex-col items-center justify-center gap-2">
+                  <div className="w-6 h-6 border-2 border-t-transparent border-[#d4af37] rounded-full animate-spin" />
+                  <span className="text-[10px] text-gray-400 uppercase tracking-widest">Fetching library...</span>
+                </div>
+              ) : libraryAssets.length === 0 ? (
+                <div className="py-20 text-center text-gray-500 italic text-xs">
+                  No {modalMediaType} assets registered in the database library yet.
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 gap-4">
+                  {libraryAssets.map((asset) => (
+                    <div 
+                      key={asset.id}
+                      className="bg-[#0d0d11] border border-[#26263b] rounded-lg p-3 flex flex-col justify-between gap-3 hover:border-[#d4af37] transition-all cursor-pointer group"
+                    >
+                      {/* Asset visual preview */}
+                      <div className="relative aspect-video rounded overflow-hidden bg-slate-900 flex items-center justify-center border border-[#26263b]">
+                        {asset.media_type === 'image' && (
+                          <img src={asset.url} alt={asset.filename} className="w-full h-full object-cover" />
+                        )}
+                        {asset.media_type === 'video' && (
+                          <div className="w-full h-full relative">
+                            <video src={asset.url} muted className="w-full h-full object-cover" />
+                            <div className="absolute inset-0 bg-black/45 flex items-center justify-center">
+                              <Film className="w-5 h-5 text-purple-400" />
+                            </div>
+                          </div>
+                        )}
+                        {asset.media_type === 'music' && (
+                          <div className="flex flex-col items-center justify-center p-2 text-center space-y-2 w-full">
+                            <Music className="w-6 h-6 text-green-400 animate-pulse" />
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleToggleAudioPreview(asset.id, asset.url);
+                              }}
+                              className="px-2 py-0.5 bg-[#26263b] hover:bg-[#34344d] rounded text-[9px] font-bold text-white transition-all uppercase"
+                            >
+                              {playingAudioId === asset.id ? 'Stop' : 'Listen'}
+                            </button>
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="flex flex-col">
+                        <span className="font-semibold text-white truncate text-[11px]" title={asset.filename}>
+                          {asset.filename}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => handleSelectAsset(asset.url)}
+                          className="mt-2 w-full py-1 bg-[#d4af37] hover:bg-[#b8962e] text-[#0d0d11] font-bold text-[10px] rounded transition-all tracking-wider uppercase"
+                        >
+                          Select Asset
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

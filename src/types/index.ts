@@ -50,6 +50,7 @@ export interface Invitation {
   created_at?: string;
   updated_at?: string;
   owner_tier?: string;
+  is_suspended?: boolean;
   
   // Relational details
   styling?: StylingPreferences;
@@ -96,3 +97,18 @@ export interface PaymentLog {
   tier: SubscriptionTier;
   created_at?: string;
 }
+
+export interface ReferralCode {
+  code: string;
+  discount_percent: number;
+  created_at?: string;
+}
+
+export interface MediaAsset {
+  id: string;
+  url: string;
+  media_type: 'image' | 'video' | 'music';
+  filename: string;
+  created_at?: string;
+}
+

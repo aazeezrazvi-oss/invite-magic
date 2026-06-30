@@ -1,7 +1,7 @@
 'use server';
 
 import { supabase } from '@/utils/supabase';
-import { Invitation, RSVP } from '@/types';
+import { Invitation, RSVP, ReferralCode, MediaAsset } from '@/types';
 import { revalidatePath } from 'next/cache';
 
 // Helper to fetch full invitation by slug
@@ -218,3 +218,296 @@ export async function registerGiftClick(invitationId: string, senderName: string
     return false;
   }
 }
+
+// -------------------------------------------------------------
+// Admin & Referrals & Media Assets Server Actions
+// -------------------------------------------------------------
+
+// Fetch all database tables for admin view
+export async function getAdminDashboardData(): Promise<{
+  users: any[];
+  invitations: any[];
+  payments: any[];
+  referrals: ReferralCode[];
+  mediaAssets: MediaAsset[];
+} | null> {
+  try {
+    // 1. Fetch Users
+    const { data: users, error: usersErr } = await supabase
+      .from('users')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (usersErr) throw usersErr;
+
+    // 2. Fetch Invitations and join users email
+    const { data: invitations, error: invErr } = await supabase
+      .from('invitations')
+      .select('*, users(email)')
+      .order('created_at', { ascending: false });
+
+    if (invErr) throw invErr;
+
+    // 3. Fetch Payments and join users email
+    const { data: payments, error: payErr } = await supabase
+      .from('payments')
+      .select('*, users(email)')
+      .order('created_at', { ascending: false });
+
+    if (payErr) throw payErr;
+
+    // 4. Fetch Referral Codes
+    const { data: referrals, error: refErr } = await supabase
+      .from('referral_codes')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (refErr) throw refErr;
+
+    // 5. Fetch Media Assets
+    const { data: mediaAssets, error: mediaErr } = await supabase
+      .from('media_assets')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (mediaErr) throw mediaErr;
+
+    // Format invitations/payments owner emails for easier usage on client side
+    const formattedInvitations = (invitations || []).map((inv: any) => ({
+      id: inv.id,
+      slug: inv.slug,
+      user_id: inv.user_id,
+      is_published: inv.is_published,
+      is_suspended: inv.is_suspended || false,
+      owner: inv.users?.email || 'Unknown User',
+    }));
+
+    const formattedPayments = (payments || []).map((pay: any) => ({
+      id: pay.id,
+      email: pay.users?.email || 'Unknown User',
+      orderId: pay.order_id,
+      paymentId: pay.payment_id,
+      amount: pay.amount,
+      status: pay.status,
+      tier: pay.tier,
+      created_at: pay.created_at,
+    }));
+
+    return {
+      users: users || [],
+      invitations: formattedInvitations,
+      payments: formattedPayments,
+      referrals: referrals || [],
+      mediaAssets: mediaAssets || [],
+    };
+  } catch (error) {
+    console.error('Error fetching admin dashboard data:', error);
+    return null;
+  }
+}
+
+// Admin action to change a user's subscription tier
+export async function updateUserTierAdmin(userId: string, tier: 'free' | 'basic' | 'premium' | 'vip'): Promise<boolean> {
+  try {
+    const { error } = await supabase
+      .from('users')
+      .update({
+        subscription_tier: tier,
+        subscription_expires_at: tier === 'free' ? null : new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString(),
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', userId);
+
+    if (error) throw error;
+    return true;
+  } catch (error) {
+    console.error('Error in updateUserTierAdmin:', error);
+    return false;
+  }
+}
+
+// Admin action to toggle suspended status of invitation link
+export async function toggleInvitationSuspensionAdmin(invitationId: string, isSuspended: boolean): Promise<boolean> {
+  try {
+    const { error } = await supabase
+      .from('invitations')
+      .update({
+        is_suspended: isSuspended,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', invitationId);
+
+    if (error) throw error;
+    return true;
+  } catch (error) {
+    console.error('Error in toggleInvitationSuspensionAdmin:', error);
+    return false;
+  }
+}
+
+// Admin action to create new referral codes
+export async function createReferralCodeAdmin(code: string, discountPercent: number): Promise<boolean> {
+  try {
+    const cleanCode = code.trim().toUpperCase();
+    const { error } = await supabase
+      .from('referral_codes')
+      .insert({
+        code: cleanCode,
+        discount_percent: discountPercent,
+      });
+
+    if (error) throw error;
+    return true;
+  } catch (error) {
+    console.error('Error in createReferralCodeAdmin:', error);
+    return false;
+  }
+}
+
+// Admin action to delete referral codes
+export async function deleteReferralCodeAdmin(code: string): Promise<boolean> {
+  try {
+    const { error } = await supabase
+      .from('referral_codes')
+      .delete()
+      .eq('code', code);
+
+    if (error) throw error;
+    return true;
+  } catch (error) {
+    console.error('Error in deleteReferralCodeAdmin:', error);
+    return false;
+  }
+}
+
+// Admin action to create backgrounds/music assets
+export async function createMediaAssetAdmin(url: string, mediaType: 'image' | 'video' | 'music', filename: string): Promise<boolean> {
+  try {
+    const { error } = await supabase
+      .from('media_assets')
+      .insert({
+        url,
+        media_type: mediaType,
+        filename,
+      });
+
+    if (error) throw error;
+    return true;
+  } catch (error) {
+    console.error('Error in createMediaAssetAdmin:', error);
+    return false;
+  }
+}
+
+// Admin action to delete media assets
+export async function deleteMediaAssetAdmin(id: string): Promise<boolean> {
+  try {
+    const { error } = await supabase
+      .from('media_assets')
+      .delete()
+      .eq('id', id);
+
+    if (error) throw error;
+    return true;
+  } catch (error) {
+    console.error('Error in deleteMediaAssetAdmin:', error);
+    return false;
+  }
+}
+
+// Fetch media assets for editor popup selection
+export async function getMediaAssets(type?: 'image' | 'video' | 'music'): Promise<MediaAsset[]> {
+  try {
+    let query = supabase.from('media_assets').select('*');
+    if (type) {
+      query = query.eq('media_type', type);
+    }
+    const { data, error } = await query.order('created_at', { ascending: false });
+    if (error) throw error;
+    return data || [];
+  } catch (error) {
+    console.error('Error in getMediaAssets:', error);
+    return [];
+  }
+}
+
+// User action to apply a referral code to profile settings
+export async function applyReferralCode(userId: string, code: string | null): Promise<{ success: boolean; message: string; discountPercent?: number }> {
+  try {
+    if (!code) {
+      const { error } = await supabase
+        .from('users')
+        .update({ applied_referral_code: null, updated_at: new Date().toISOString() })
+        .eq('id', userId);
+      if (error) throw error;
+      return { success: true, message: 'Referral code removed.' };
+    }
+
+    const cleanCode = code.trim().toUpperCase();
+    
+    // Verify referral code exists
+    const { data: refCode, error: refErr } = await supabase
+      .from('referral_codes')
+      .select('*')
+      .eq('code', cleanCode)
+      .single();
+
+    if (refErr || !refCode) {
+      return { success: false, message: 'Invalid referral code.' };
+    }
+
+    // Update user profile
+    const { error: userErr } = await supabase
+      .from('users')
+      .update({
+        applied_referral_code: cleanCode,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', userId);
+
+    if (userErr) throw userErr;
+
+    return {
+      success: true,
+      message: `Code applied successfully! ${refCode.discount_percent}% discount is now active.`,
+      discountPercent: refCode.discount_percent,
+    };
+  } catch (error) {
+    console.error('Error in applyReferralCode:', error);
+    return { success: false, message: 'Failed to apply referral code.' };
+  }
+}
+
+// User action to fetch their active applied referral details
+export async function getAppliedReferralCode(userId: string): Promise<{ code: string; discount_percent: number } | null> {
+  try {
+    const { data: userProfile, error: userErr } = await supabase
+      .from('users')
+      .select('applied_referral_code')
+      .eq('id', userId)
+      .single();
+
+    if (userErr || !userProfile || !userProfile.applied_referral_code) {
+      return null;
+    }
+
+    const { data: refCode, error: refErr } = await supabase
+      .from('referral_codes')
+      .select('*')
+      .eq('code', userProfile.applied_referral_code)
+      .single();
+
+    if (refErr || !refCode) {
+      return null;
+    }
+
+    return {
+      code: refCode.code,
+      discount_percent: refCode.discount_percent,
+    };
+  } catch (error) {
+    console.error('Error in getAppliedReferralCode:', error);
+    return null;
+  }
+}
+

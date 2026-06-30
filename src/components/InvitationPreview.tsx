@@ -1227,6 +1227,7 @@ export default function InvitationPreview({
       {/* Background Layer */}
       {styling.background_type === 'video' ? (
         <video 
+          key={styling.background_url}
           autoPlay 
           loop 
           muted 

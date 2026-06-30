@@ -74,13 +74,17 @@ export default function GuestInvitePage({ params }: PageProps) {
   const [invitation, setInvitation] = useState<Partial<Invitation> | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
+  const [isSuspended, setIsSuspended] = useState(false);
 
   useEffect(() => {
     async function loadData() {
       setLoading(true);
       try {
         const data = await getInvitationBySlug(slug);
-        if (data && data.is_published) {
+        if (data && data.is_suspended) {
+          setIsSuspended(true);
+          setInvitation(data);
+        } else if (data && data.is_published) {
           setInvitation(data);
         } else {
           // Fallback to local storage or mock template
@@ -119,6 +123,33 @@ export default function GuestInvitePage({ params }: PageProps) {
       <div className="min-h-screen bg-[#0d0d11] flex flex-col justify-center items-center gap-4">
         <div className="w-10 h-10 border-4 border-[#d4af37] border-t-transparent rounded-full animate-spin" />
         <span className="text-gray-400 font-semibold tracking-wider font-cinzel animate-pulse">Loading Invitation...</span>
+      </div>
+    );
+  }
+
+  if (isSuspended) {
+    return (
+      <div className="min-h-screen bg-[#0d0d11] text-[#f3f4f6] flex flex-col justify-center items-center text-center p-8 relative font-sans">
+        <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[350px] h-[350px] bg-red-500/5 rounded-full blur-[100px] pointer-events-none" />
+        
+        <div className="w-full max-w-[480px] bg-[#161622]/40 backdrop-blur-md border border-red-500/20 rounded-[24px] p-8 shadow-[0_8px_32px_rgba(0,0,0,0.37)] z-10 space-y-6">
+          <div className="flex justify-center">
+            <div className="w-16 h-16 rounded-[20px] bg-red-500/10 border border-red-500/20 flex items-center justify-center">
+              <AlertCircle className="w-8 h-8 text-red-500" />
+            </div>
+          </div>
+          
+          <h2 className="text-2xl font-light text-white tracking-wider font-cinzel text-red-500">Link Suspended</h2>
+          <p className="text-sm text-gray-400 leading-relaxed">
+            This wedding invitation link has been <strong>suspended</strong> by the system administrator.
+          </p>
+          
+          <div className="h-[1px] bg-[#26263b] w-full my-4" />
+          
+          <p className="text-xs text-gray-500">
+            Please contact the wedding hosts or support if you believe this is an error.
+          </p>
+        </div>
       </div>
     );
   }

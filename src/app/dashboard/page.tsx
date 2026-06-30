@@ -4,12 +4,12 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { 
-  Heart, Users, Gift, Eye, Edit2, Plus, BarChart2, ShieldAlert, User, Lock
+  Heart, Users, Gift, Eye, Edit2, Plus, BarChart2, ShieldAlert, User, Lock, Tag
 } from 'lucide-react';
 import { RSVP, GiftTransaction } from '@/types';
 import CheckoutButton from '@/components/CheckoutButton';
 import { supabase } from '@/utils/supabase';
-import { upgradeUserSubscription } from '@/app/actions';
+import { upgradeUserSubscription, applyReferralCode, getAppliedReferralCode } from '@/app/actions';
 
 export default function Dashboard() {
   const router = useRouter();
@@ -41,6 +41,12 @@ export default function Dashboard() {
   const [profileConfirmPassword, setProfileConfirmPassword] = useState('');
   const [profileMessage, setProfileMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [profileLoading, setProfileLoading] = useState(false);
+  
+  // Referral States
+  const [appliedReferral, setAppliedReferral] = useState<{ code: string; discount_percent: number } | null>(null);
+  const [referralInput, setReferralInput] = useState('');
+  const [referralLoading, setReferralLoading] = useState(false);
+  const [referralMessage, setReferralMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   
   const [loadingInvite, setLoadingInvite] = useState(true);
 
@@ -84,6 +90,26 @@ export default function Dashboard() {
         setIsAdmin(userProfile.role === 'admin' || currentEmail === 'abdulazeezrazvi125@gmail.com');
         setIsVip(userProfile.subscription_tier === 'vip' || currentEmail === 'abdulazeezrazvi125@gmail.com' || currentEmail === 'abdulazeezrazvi97@gmail.com');
         setIsPaid(userProfile.subscription_tier !== 'free');
+
+        // Load active referral
+        if (userProfile.applied_referral_code) {
+          const { data: refCode } = await supabase
+            .from('referral_codes')
+            .select('*')
+            .eq('code', userProfile.applied_referral_code)
+            .maybeSingle();
+
+          if (refCode) {
+            setAppliedReferral({ code: refCode.code, discount_percent: refCode.discount_percent });
+            setReferralInput(refCode.code);
+          } else {
+            setAppliedReferral(null);
+            setReferralInput('');
+          }
+        } else {
+          setAppliedReferral(null);
+          setReferralInput('');
+        }
       } else {
         // Safe fallback
         const isBypass = currentEmail === 'abdulazeezrazvi125@gmail.com' || currentEmail === 'abdulazeezrazvi97@gmail.com';
@@ -91,6 +117,8 @@ export default function Dashboard() {
         setIsAdmin(currentEmail === 'abdulazeezrazvi125@gmail.com');
         setIsVip(isBypass);
         setIsPaid(isBypass);
+        setAppliedReferral(null);
+        setReferralInput('');
       }
     }
 
@@ -203,38 +231,41 @@ export default function Dashboard() {
     }
   };
 
-  // Handle Profile Update
+  // Handle Profile Update (Fixed race condition by combining metadata and password calls)
   const handleUpdateProfile = async (e: React.FormEvent) => {
     e.preventDefault();
     setProfileLoading(true);
     setProfileMessage(null);
 
     try {
-      // 1. Update Full Name in auth metadata
+      const updateData: any = {};
       if (profileName.trim() && profileName !== fullName) {
-        const { error: nameErr } = await supabase.auth.updateUser({
-          data: { full_name: profileName }
-        });
-        if (nameErr) throw nameErr;
-        setFullName(profileName);
+        updateData.data = { full_name: profileName };
       }
-
-      // 2. Update Password
       if (profilePassword.trim()) {
         if (profilePassword !== profileConfirmPassword) {
           setProfileMessage({ type: 'error', text: 'Passwords do not match.' });
           setProfileLoading(false);
           return;
         }
-        const { error: passErr } = await supabase.auth.updateUser({
-          password: profilePassword
-        });
-        if (passErr) throw passErr;
-        setProfilePassword('');
-        setProfileConfirmPassword('');
+        updateData.password = profilePassword;
       }
 
-      setProfileMessage({ type: 'success', text: 'Profile updated successfully!' });
+      if (Object.keys(updateData).length > 0) {
+        const { error: updateErr } = await supabase.auth.updateUser(updateData);
+        if (updateErr) throw updateErr;
+
+        if (updateData.data) {
+          setFullName(profileName);
+        }
+        if (updateData.password) {
+          setProfilePassword('');
+          setProfileConfirmPassword('');
+        }
+        setProfileMessage({ type: 'success', text: 'Profile updated successfully!' });
+      } else {
+        setProfileMessage({ type: 'error', text: 'No changes detected.' });
+      }
     } catch (err: any) {
       console.error('Error updating profile:', err);
       setProfileMessage({
@@ -243,6 +274,52 @@ export default function Dashboard() {
       });
     } finally {
       setProfileLoading(false);
+    }
+  };
+
+  // Handle Apply Referral Code
+  const handleApplyReferral = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!referralInput.trim()) return;
+    setReferralLoading(true);
+    setReferralMessage(null);
+    try {
+      const res = await applyReferralCode(userId, referralInput.trim());
+      if (res.success) {
+        setReferralMessage({ type: 'success', text: res.message });
+        if (res.discountPercent !== undefined) {
+          setAppliedReferral({ code: referralInput.trim().toUpperCase(), discount_percent: res.discountPercent });
+        }
+        // Refresh profile states
+        loadUserAndData();
+      } else {
+        setReferralMessage({ type: 'error', text: res.message });
+      }
+    } catch (err: any) {
+      setReferralMessage({ type: 'error', text: err.message || 'Failed to apply referral code.' });
+    } finally {
+      setReferralLoading(false);
+    }
+  };
+
+  // Handle Remove Referral Code
+  const handleRemoveReferral = async () => {
+    setReferralLoading(true);
+    setReferralMessage(null);
+    try {
+      const res = await applyReferralCode(userId, null);
+      if (res.success) {
+        setReferralMessage({ type: 'success', text: 'Referral discount code removed.' });
+        setAppliedReferral(null);
+        setReferralInput('');
+        loadUserAndData();
+      } else {
+        setReferralMessage({ type: 'error', text: res.message });
+      }
+    } catch (err: any) {
+      setReferralMessage({ type: 'error', text: err.message || 'Failed to remove referral code.' });
+    } finally {
+      setReferralLoading(false);
     }
   };
 
@@ -416,6 +493,62 @@ export default function Dashboard() {
                   {profileLoading ? 'Saving Changes...' : 'Save Settings'}
                 </button>
               </form>
+            </div>
+
+            {/* Referral / Promo Code Section */}
+            <div className="bg-[#161622] border border-[#26263b] rounded-lg p-8 space-y-6">
+              <div>
+                <h2 className="text-xl font-bold text-white font-cinzel flex items-center gap-2">
+                  <Tag className="w-5 h-5 text-[#d4af37]" />
+                  <span>Referral & Promo Code</span>
+                </h2>
+                <p className="text-xs text-gray-400 mt-1">Activate a referral code to apply a discount percentage on your subscription upgrades.</p>
+              </div>
+
+              {referralMessage && (
+                <div className={`p-3.5 rounded-lg text-xs border ${
+                  referralMessage.type === 'success' 
+                    ? 'bg-green-500/10 border-green-500/20 text-green-400' 
+                    : 'bg-red-500/10 border-red-500/20 text-red-400'
+                }`}>
+                  {referralMessage.text}
+                </div>
+              )}
+
+              {appliedReferral ? (
+                <div className="p-4 rounded-lg bg-green-500/10 border border-green-500/20 flex justify-between items-center">
+                  <div>
+                    <span className="text-[10px] text-gray-400 uppercase tracking-widest block font-semibold mb-1">Active Referral Code</span>
+                    <span className="font-mono text-base font-bold text-white tracking-widest bg-black/40 px-2 py-0.5 rounded border border-[#26263b]">{appliedReferral.code}</span>
+                    <span className="block text-xs text-green-400 font-semibold mt-2">{appliedReferral.discount_percent}% Discount is active on upgrades!</span>
+                  </div>
+                  <button
+                    onClick={handleRemoveReferral}
+                    disabled={referralLoading}
+                    className="px-3.5 py-2 bg-red-500/20 hover:bg-red-500/30 text-red-400 font-semibold rounded text-xs transition-all cursor-pointer"
+                  >
+                    {referralLoading ? 'Removing...' : 'Remove Code'}
+                  </button>
+                </div>
+              ) : (
+                <form onSubmit={handleApplyReferral} className="flex gap-3">
+                  <input
+                    type="text"
+                    required
+                    value={referralInput}
+                    onChange={(e) => setReferralInput(e.target.value)}
+                    placeholder="Enter Referral Code (e.g. WED50)"
+                    className="flex-grow bg-[#0d0d11]/80 border border-[#26263b] rounded-lg px-3.5 py-2.5 text-sm text-white placeholder-gray-600 outline-none focus:border-[#d4af37] focus:ring-1 focus:ring-[#d4af37] transition-all uppercase font-mono"
+                  />
+                  <button
+                    type="submit"
+                    disabled={referralLoading || !referralInput.trim()}
+                    className="px-6 py-2.5 bg-[#d4af37] hover:bg-[#b8962e] text-[#0d0d11] font-bold rounded-lg transition-all text-xs outline-none focus:ring-2 focus:ring-[#d4af37]/50 disabled:opacity-50 cursor-pointer"
+                  >
+                    {referralLoading ? 'Activating...' : 'Apply Code'}
+                  </button>
+                </form>
+              )}
             </div>
           </div>
         ) : (
@@ -602,32 +735,72 @@ export default function Dashboard() {
                   <span>Upgrade Your Subscription Tier</span>
                 </h3>
                 <p className="text-xs text-gray-400 mt-1">Unlock premium features, unlimited photos, and advanced gift analytics.</p>
+                {appliedReferral && (
+                  <span className="inline-block text-[11px] bg-green-500/10 border border-green-500/20 text-green-400 px-2 py-0.5 rounded font-bold uppercase tracking-wider">
+                    🎉 Promo Discount Active: {appliedReferral.discount_percent}% off applied at checkout!
+                  </span>
+                )}
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
+                {/* Basic Upgrade */}
                 <div className="bg-[#0d0d11] p-4 rounded border border-[#26263b] flex flex-col justify-between">
                   <div>
-                    <span className="font-bold text-white block">Basic Upgrade</span>
-                    <span className="text-xs text-gray-400">6 Months Access</span>
+                    <div className="flex justify-between items-start">
+                      <span className="font-bold text-white block">Basic Upgrade</span>
+                      {appliedReferral ? (
+                        <div className="text-right">
+                          <span className="text-[10px] text-gray-500 line-through block">₹299</span>
+                          <span className="font-bold text-[#d4af37] text-sm">₹{Math.round(299 - (299 * appliedReferral.discount_percent / 100))}</span>
+                        </div>
+                      ) : (
+                        <span className="font-bold text-white">₹299</span>
+                      )}
+                    </div>
+                    <span className="text-[10px] text-gray-500 block">6 Months Access</span>
                     <p className="text-xs opacity-75 my-3">Allows 1 active invitation link, up to 20 photos, and basic UPI shagun collection.</p>
                   </div>
-                  <CheckoutButton amount={299} tier="basic" userId={userId} userEmail={userEmail} onSuccess={() => handleUpgradeSuccess('basic')} className="mt-4 w-full" />
+                  <CheckoutButton amount={appliedReferral ? Math.round(299 - (299 * appliedReferral.discount_percent / 100)) : 299} tier="basic" userId={userId} userEmail={userEmail} onSuccess={() => handleUpgradeSuccess('basic')} className="mt-4 w-full cursor-pointer" />
                 </div>
-                <div className="bg-[#0d0d11] p-4 rounded border border-[#d4af37]/30 flex flex-col justify-between relative">
-                  <span className="absolute -top-2.5 right-4 bg-[#d4af37] text-[#0d0d11] text-[9px] font-extrabold uppercase px-2 py-0.5 rounded">Popular</span>
+
+                {/* Premium Upgrade */}
+                <div className="bg-[#0d0d11] p-4 rounded border border-[#d4af37]/35 flex flex-col justify-between relative shadow-[0_0_15px_rgba(212,175,55,0.03)]">
+                  <span className="absolute -top-2.5 right-4 bg-[#d4af37] text-[#0d0d11] text-[8px] font-extrabold uppercase tracking-widest px-2 py-0.5 rounded-full">Popular</span>
                   <div>
-                    <span className="font-bold text-[#d4af37] block">Premium Upgrade</span>
-                    <span className="text-xs text-gray-400">1 Year Access</span>
+                    <div className="flex justify-between items-start">
+                      <span className="font-bold text-[#d4af37] block">Premium Upgrade</span>
+                      {appliedReferral ? (
+                        <div className="text-right">
+                          <span className="text-[10px] text-gray-500 line-through block">₹499</span>
+                          <span className="font-bold text-[#d4af37] text-sm">₹{Math.round(499 - (499 * appliedReferral.discount_percent / 100))}</span>
+                        </div>
+                      ) : (
+                        <span className="font-bold text-[#d4af37]">₹499</span>
+                      )}
+                    </div>
+                    <span className="text-[10px] text-gray-500 block">1 Year Access</span>
                     <p className="text-xs opacity-75 my-3">Unlocks all templates, unlimited photos, and advanced gift logs dashboard.</p>
                   </div>
-                  <CheckoutButton amount={499} tier="premium" userId={userId} userEmail={userEmail} onSuccess={() => handleUpgradeSuccess('premium')} className="mt-4 w-full" />
+                  <CheckoutButton amount={appliedReferral ? Math.round(499 - (499 * appliedReferral.discount_percent / 100)) : 499} tier="premium" userId={userId} userEmail={userEmail} onSuccess={() => handleUpgradeSuccess('premium')} className="mt-4 w-full cursor-pointer" />
                 </div>
+
+                {/* VIP Lifetime */}
                 <div className="bg-[#0d0d11] p-4 rounded border border-[#26263b] flex flex-col justify-between">
                   <div>
-                    <span className="font-bold text-white block">VIP Lifetime</span>
-                    <span className="text-xs text-gray-400">Lifetime Access</span>
+                    <div className="flex justify-between items-start">
+                      <span className="font-bold text-white block">VIP Lifetime</span>
+                      {appliedReferral ? (
+                        <div className="text-right">
+                          <span className="text-[10px] text-gray-500 line-through block">₹999</span>
+                          <span className="font-bold text-[#d4af37] text-sm">₹{Math.round(999 - (999 * appliedReferral.discount_percent / 100))}</span>
+                        </div>
+                      ) : (
+                        <span className="font-bold text-white">₹999</span>
+                      )}
+                    </div>
+                    <span className="text-[10px] text-gray-500 block">Lifetime Access</span>
                     <p className="text-xs opacity-75 my-3">Adds custom domain mapping (Cloudflare), advanced analytics, and premium support.</p>
                   </div>
-                  <CheckoutButton amount={999} tier="vip" userId={userId} userEmail={userEmail} onSuccess={() => handleUpgradeSuccess('vip')} className="mt-4 w-full" />
+                  <CheckoutButton amount={appliedReferral ? Math.round(999 - (999 * appliedReferral.discount_percent / 100)) : 999} tier="vip" userId={userId} userEmail={userEmail} onSuccess={() => handleUpgradeSuccess('vip')} className="mt-4 w-full cursor-pointer" />
                 </div>
               </div>
             </div>
