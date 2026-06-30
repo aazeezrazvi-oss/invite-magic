@@ -79,6 +79,9 @@ export default function EditorPage({ params }: PageProps) {
   const [isSupabaseWorking, setIsSupabaseWorking] = useState(true);
   const [hasPaid, setHasPaid] = useState<boolean>(false);
   
+  // Mobile active workspace tab
+  const [mobileTab, setMobileTab] = useState<'edit' | 'preview'>('edit');
+  
   // Share modal states
   const [showShareModal, setShowShareModal] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -118,22 +121,14 @@ export default function EditorPage({ params }: PageProps) {
         setHasPaid(paidStatus === 'true');
       }
 
-      const data = await getInvitationBySlug(slug);
-      if (data) {
-        setInvitation(data);
-        setIsSupabaseWorking(true);
-      } else {
-        // Fallback to local storage or mock template
-        setIsSupabaseWorking(false);
-        const localData = localStorage.getItem(`invite_${slug}`);
-        if (localData) {
-          try {
-            setInvitation(JSON.parse(localData));
-          } catch (e) {
-            console.error('Failed to parse local storage details:', e);
+      if (isSupabaseWorking) {
+        try {
+          const data = await getInvitationBySlug(slug);
+          if (data) {
+            setInvitation(data);
           }
-        } else {
-          setInvitation({ ...mockInvitation, slug });
+        } catch (e) {
+          console.error("Failed to load live invite data:", e);
         }
       }
     }
@@ -177,8 +172,8 @@ export default function EditorPage({ params }: PageProps) {
   return (
     <div className="flex flex-col h-screen overflow-hidden bg-[#0d0d11]">
       {/* Top Navbar */}
-      <div className="bg-[#161622] border-b border-[#26263b] px-4 py-3 flex items-center justify-between z-20">
-        <div className="flex items-center gap-3">
+      <div className="bg-[#161622] border-b border-[#26263b] px-4 py-3 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 z-20 shrink-0">
+        <div className="flex items-center gap-3 w-full sm:w-auto">
           <Link 
             href="/dashboard" 
             className="p-1.5 rounded hover:bg-[#26263b] text-gray-400 hover:text-white transition-all"
@@ -186,66 +181,94 @@ export default function EditorPage({ params }: PageProps) {
             <ArrowLeft className="w-4 h-4" />
           </Link>
           <div className="h-4 w-[1px] bg-[#26263b]" />
-          <div>
-            <div className="flex items-center gap-2">
-              <span className="text-white font-semibold">Editing Invite:</span>
-              <span className="text-[#d4af37] font-mono text-xs">{slug}</span>
+          <div className="min-w-0">
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <span className="text-white font-semibold text-xs sm:text-sm">Editing Invite:</span>
+              <span className="text-[#d4af37] font-mono text-xs truncate max-w-[120px] sm:max-w-none">{slug}</span>
             </div>
-            <span className="text-[10px] text-gray-400">Customizations update real-time in the preview canvas.</span>
+            <span className="text-[9px] text-gray-400 hidden md:block">Customizations update real-time in the preview canvas.</span>
           </div>
         </div>
 
         {/* Save/Sync Status Alert */}
-        <div className="flex items-center gap-3 text-xs">
+        <div className="flex items-center gap-2 sm:gap-3 text-xs w-full sm:w-auto justify-end flex-wrap">
           {!isSupabaseWorking && (
-            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded bg-yellow-500/10 border border-yellow-500/20 text-yellow-500">
-              <AlertCircle className="w-3.5 h-3.5" />
-              <span>Offline/Local Mode</span>
+            <div className="flex items-center gap-1 px-2 py-1 rounded bg-yellow-500/10 border border-yellow-500/20 text-yellow-500 text-[10px]">
+              <AlertCircle className="w-3 h-3" />
+              <span>Offline</span>
             </div>
           )}
           {saveStatus === 'success' && (
-            <div className="flex items-center gap-1 px-3 py-1.5 rounded bg-green-500/10 border border-green-500/20 text-green-500">
-              <Check className="w-3.5 h-3.5" />
-              <span>Saved Successfully</span>
+            <div className="flex items-center gap-1 px-2 py-1 rounded bg-green-500/10 border border-green-500/20 text-green-500 text-[10px]">
+              <Check className="w-3 h-3" />
+              <span>Saved</span>
             </div>
           )}
           {saveStatus === 'error' && (
-            <div className="flex items-center gap-1 px-3 py-1.5 rounded bg-red-500/10 border border-red-500/20 text-red-500">
-              <AlertCircle className="w-3.5 h-3.5" />
-              <span>Failed to Save</span>
+            <div className="flex items-center gap-1 px-2 py-1 rounded bg-red-500/10 border border-red-500/20 text-red-500 text-[10px]">
+              <AlertCircle className="w-3 h-3" />
+              <span>Err</span>
             </div>
           )}
           <a
             href={`/invite/${slug}`}
             target="_blank"
             rel="noopener noreferrer"
-            className="px-3 py-1.5 rounded bg-[#26263b] hover:bg-[#34344d] text-white font-semibold transition-all"
+            className="px-2.5 py-1 sm:py-1.5 rounded bg-[#26263b] hover:bg-[#34344d] text-white text-[11px] font-semibold transition-all text-center"
           >
-            Open Live Invitation
+            Open Live
           </a>
           <button
             onClick={handleShareClick}
-            className="px-3.5 py-1.5 rounded bg-[#d4af37] hover:bg-[#b8962e] text-[#0d0d11] font-bold transition-all flex items-center gap-1.5 cursor-pointer"
+            className="px-3 py-1 sm:py-1.5 rounded bg-[#d4af37] hover:bg-[#b8962e] text-[#0d0d11] font-bold transition-all flex items-center gap-1 cursor-pointer text-[11px]"
           >
-            Share Invitation
+            Share
           </button>
         </div>
+      </div>
+
+      {/* Mobile Workspace Toggle Tabs (Visible only on mobile) */}
+      <div className="flex border-b border-[#26263b] bg-[#161622] md:hidden text-xs shrink-0">
+        <button
+          onClick={() => setMobileTab('edit')}
+          className={`flex-1 py-3 text-center font-bold tracking-wider uppercase transition-all ${
+            mobileTab === 'edit'
+              ? 'border-b-2 border-[#d4af37] text-[#d4af37]'
+              : 'text-gray-400 hover:text-white'
+          }`}
+        >
+          Edit Card
+        </button>
+        <button
+          onClick={() => setMobileTab('preview')}
+          className={`flex-1 py-3 text-center font-bold tracking-wider uppercase transition-all ${
+            mobileTab === 'preview'
+              ? 'border-b-2 border-[#d4af37] text-[#d4af37]'
+              : 'text-gray-400 hover:text-white'
+          }`}
+        >
+          Live Preview
+        </button>
       </div>
 
       {/* Main Workspace split */}
       <div className="flex-1 flex overflow-hidden">
         {/* Editor Sidebar */}
-        <Sidebar 
-          invitation={invitation} 
-          onUpdate={handleUpdate} 
-          onSave={handleSave} 
-          isSaving={isSaving} 
-          hasPaid={hasPaid}
-          onPaymentSuccess={handlePaymentSuccess}
-        />
+        <div className={`h-full overflow-hidden ${mobileTab === 'edit' ? 'w-full md:w-96' : 'hidden md:flex md:w-96'} shrink-0`}>
+          <Sidebar 
+            invitation={invitation} 
+            onUpdate={handleUpdate} 
+            onSave={handleSave} 
+            isSaving={isSaving} 
+            hasPaid={hasPaid}
+            onPaymentSuccess={handlePaymentSuccess}
+          />
+        </div>
 
         {/* Live Canvas Preview */}
-        <Canvas invitation={invitation} />
+        <div className={`flex-1 h-full overflow-hidden ${mobileTab === 'preview' ? 'block' : 'hidden md:block'}`}>
+          <Canvas invitation={invitation} />
+        </div>
       </div>
 
       {showShareModal && (

@@ -349,32 +349,31 @@ export default function Dashboard() {
   return (
     <div className="min-h-screen bg-[#0d0d11] text-[#f3f4f6] flex flex-col">
       {/* Top Navbar */}
-      <nav className="border-b border-[#26263b] bg-[#161622]/50 backdrop-blur-md px-6 py-4 flex items-center justify-between">
-        <Link href="/" className="flex items-center gap-2">
+      <nav className="border-b border-[#26263b] bg-[#161622]/50 backdrop-blur-md px-4 sm:px-6 py-3 flex flex-wrap items-center justify-between gap-2">
+        <Link href="/" className="flex items-center gap-2 shrink-0">
           <Heart className="w-5 h-5 text-[#d4af37] fill-[#d4af37]" />
-          <span className="text-lg font-bold tracking-wider font-cinzel text-[#d4af37]">InviteMagic</span>
+          <span className="text-base sm:text-lg font-bold tracking-wider font-cinzel text-[#d4af37]">InviteMagic</span>
         </Link>
-        <div className="flex items-center gap-4 text-xs">
+        <div className="flex items-center gap-2 sm:gap-4 text-[10px] sm:text-xs flex-wrap">
           {isAdmin && (
             <>
               <Link href="/admin" className="text-gray-400 hover:text-white uppercase tracking-widest font-semibold transition-all">
-                Admin Panel
+                Admin
               </Link>
-              <div className="h-4 w-[1px] bg-[#26263b]" />
+              <div className="h-4 w-[1px] bg-[#26263b] hidden sm:block" />
             </>
           )}
-          <span className="text-gray-300 font-mono flex items-center gap-1.5">
+          <span className="text-gray-300 font-mono flex items-center gap-1 max-w-[140px] sm:max-w-none truncate">
             {userEmail}
             {isVip && (
-              <span className="px-1.5 py-0.5 bg-[#d4af37]/10 border border-[#d4af37]/20 rounded text-[9px] text-[#d4af37] font-bold uppercase tracking-wider">
+              <span className="px-1.5 py-0.5 bg-[#d4af37]/10 border border-[#d4af37]/20 rounded text-[9px] text-[#d4af37] font-bold uppercase tracking-wider shrink-0">
                 VIP
               </span>
             )}
           </span>
-          <div className="h-4 w-[1px] bg-[#26263b]" />
           <button 
             onClick={handleLogout}
-            className="text-red-400 hover:text-red-300 font-semibold uppercase tracking-wider transition-all cursor-pointer"
+            className="text-red-400 hover:text-red-300 font-semibold uppercase tracking-wider transition-all cursor-pointer shrink-0"
           >
             Logout
           </button>

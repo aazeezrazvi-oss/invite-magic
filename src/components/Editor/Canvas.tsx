@@ -45,14 +45,14 @@ export default function Canvas({ invitation }: CanvasProps) {
       </div>
 
       {/* Frame Canvas Wrapper */}
-      <div className="flex-grow flex items-center justify-center p-6 overflow-y-auto">
+      <div className="flex-grow flex items-center justify-center p-3 sm:p-6 overflow-y-auto">
         {device === 'mobile' ? (
-          <div className="relative w-[375px] h-[760px] rounded-[40px] border-[12px] border-[#1e1e2d] shadow-2xl bg-[#0d0d11] overflow-hidden flex flex-col">
+          <div className="relative w-full max-w-[340px] xs:max-w-[375px] h-[75vh] xs:h-[760px] rounded-[30px] xs:rounded-[40px] border-4 xs:border-[12px] border-[#1e1e2d] shadow-2xl bg-[#0d0d11] overflow-hidden flex flex-col">
             {/* Phone Speaker & Camera Notch */}
-            <div className="absolute top-0 left-1/2 transform -translate-x-1/2 w-32 h-6 bg-[#1e1e2d] rounded-b-2xl z-50 flex items-center justify-center">
-              <div className="w-12 h-1 bg-gray-700 rounded-full mb-1" />
+            <div className="absolute top-0 left-1/2 transform -translate-x-1/2 w-24 xs:w-32 h-4 xs:h-6 bg-[#1e1e2d] rounded-b-xl xs:rounded-b-2xl z-50 flex items-center justify-center">
+              <div className="w-8 xs:w-12 h-0.5 xs:h-1 bg-gray-700 rounded-full mb-0.5 xs:mb-1" />
             </div>
-
+ 
             {/* Preview scroll area */}
             <div className="flex-1 overflow-y-auto w-full h-full scroll-smooth pt-4">
               <InvitationPreview invitation={invitation} isPreviewMode={true} />
