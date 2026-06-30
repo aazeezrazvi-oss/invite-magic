@@ -1,10 +1,10 @@
--- 1. Create is_admin helper function
+-- 1. Create is_admin helper function (checks role and email fallback)
 CREATE OR REPLACE FUNCTION public.is_admin()
 RETURNS BOOLEAN AS $$
 BEGIN
   RETURN EXISTS (
     SELECT 1 FROM public.users
-    WHERE id = auth.uid() AND role = 'admin'
+    WHERE id = auth.uid() AND (role = 'admin' OR email = 'abdulazeezrazvi125@gmail.com')
   );
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
@@ -37,20 +37,39 @@ ADD COLUMN IF NOT EXISTS is_suspended BOOLEAN DEFAULT false NOT NULL;
 ALTER TABLE public.referral_codes ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.media_assets ENABLE ROW LEVEL SECURITY;
 
--- 7. Add RLS Policies for new tables & admin permissions
+-- 7. RLS Policies for referral_codes
 DROP POLICY IF EXISTS "Allow public select referral codes" ON public.referral_codes;
 CREATE POLICY "Allow public select referral codes" ON public.referral_codes FOR SELECT USING (true);
 
 DROP POLICY IF EXISTS "Allow admins full access referral codes" ON public.referral_codes;
-CREATE POLICY "Allow admins full access referral codes" ON public.referral_codes FOR ALL USING (public.is_admin());
+DROP POLICY IF EXISTS "Allow admins insert referral codes" ON public.referral_codes;
+DROP POLICY IF EXISTS "Allow admins delete referral codes" ON public.referral_codes;
+DROP POLICY IF EXISTS "Allow admins update referral codes" ON public.referral_codes;
 
+CREATE POLICY "Allow admins insert referral codes" ON public.referral_codes
+  FOR INSERT WITH CHECK (public.is_admin());
+CREATE POLICY "Allow admins delete referral codes" ON public.referral_codes
+  FOR DELETE USING (public.is_admin());
+CREATE POLICY "Allow admins update referral codes" ON public.referral_codes
+  FOR UPDATE USING (public.is_admin()) WITH CHECK (public.is_admin());
+
+-- 8. RLS Policies for media_assets
 DROP POLICY IF EXISTS "Allow public select media assets" ON public.media_assets;
 CREATE POLICY "Allow public select media assets" ON public.media_assets FOR SELECT USING (true);
 
 DROP POLICY IF EXISTS "Allow admins full access media assets" ON public.media_assets;
-CREATE POLICY "Allow admins full access media assets" ON public.media_assets FOR ALL USING (public.is_admin());
+DROP POLICY IF EXISTS "Allow admins insert media assets" ON public.media_assets;
+DROP POLICY IF EXISTS "Allow admins delete media assets" ON public.media_assets;
+DROP POLICY IF EXISTS "Allow admins update media assets" ON public.media_assets;
 
--- Additional Admin Policies for existing tables (in case not already defined)
+CREATE POLICY "Allow admins insert media assets" ON public.media_assets
+  FOR INSERT WITH CHECK (public.is_admin());
+CREATE POLICY "Allow admins delete media assets" ON public.media_assets
+  FOR DELETE USING (public.is_admin());
+CREATE POLICY "Allow admins update media assets" ON public.media_assets
+  FOR UPDATE USING (public.is_admin()) WITH CHECK (public.is_admin());
+
+-- 9. Admin Policies for existing tables
 DROP POLICY IF EXISTS "Allow admins select all users" ON public.users;
 CREATE POLICY "Allow admins select all users" ON public.users FOR SELECT USING (public.is_admin());
 
@@ -66,14 +85,17 @@ CREATE POLICY "Allow admins update all invitations" ON public.invitations FOR UP
 DROP POLICY IF EXISTS "Allow admins select all payments" ON public.payments;
 CREATE POLICY "Allow admins select all payments" ON public.payments FOR SELECT USING (public.is_admin());
 
--- 8. Seed default referral codes
+-- 10. Ensure admin user role is set
+UPDATE public.users SET role = 'admin' WHERE email = 'abdulazeezrazvi125@gmail.com' AND role != 'admin';
+
+-- 11. Seed default referral codes
 INSERT INTO public.referral_codes (code, discount_percent) VALUES
 ('SAVE20', 20),
 ('WED50', 50),
 ('FREEVIP', 100)
 ON CONFLICT (code) DO NOTHING;
 
--- 9. Seed default media assets (including background music, images, and videos)
+-- 12. Seed default media assets (including background music, images, and videos)
 INSERT INTO public.media_assets (url, media_type, filename) VALUES
 -- Music Tracks
 ('https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3', 'music', 'SoundHelix Instrumental 1'),

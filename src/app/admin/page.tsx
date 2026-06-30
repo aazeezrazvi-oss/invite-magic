@@ -79,40 +79,119 @@ export default function AdminDashboard() {
     verifyAdmin();
   }, [router]);
 
-  // Load Real Data
+  // Load Real Data (Uses client-side authenticated queries to satisfy RLS policies)
   async function loadAllData() {
     setLoading(true);
-    const data = await getAdminDashboardData();
-    if (data) {
-      setUsers(data.users);
-      setInvitations(data.invitations);
-      setPayments(data.payments);
-      setReferrals(data.referrals);
-      setMediaAssets(data.mediaAssets);
+    try {
+      // 1. Fetch Users
+      const { data: usersData, error: usersErr } = await supabase
+        .from('users')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (usersErr) throw usersErr;
+
+      // 2. Fetch Invitations
+      const { data: invData, error: invErr } = await supabase
+        .from('invitations')
+        .select('*, users(email)')
+        .order('created_at', { ascending: false });
+
+      if (invErr) throw invErr;
+
+      // 3. Fetch Payments
+      const { data: payData, error: payErr } = await supabase
+        .from('payments')
+        .select('*, users(email)')
+        .order('created_at', { ascending: false });
+
+      if (payErr) throw payErr;
+
+      // 4. Fetch Referral Codes
+      const { data: refData, error: refErr } = await supabase
+        .from('referral_codes')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (refErr) throw refErr;
+
+      // 5. Fetch Media Assets
+      const { data: mediaData, error: mediaErr } = await supabase
+        .from('media_assets')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (mediaErr) throw mediaErr;
+
+      // Format data
+      const formattedInvitations = (invData || []).map((inv: any) => ({
+        id: inv.id,
+        slug: inv.slug,
+        user_id: inv.user_id,
+        is_published: inv.is_published,
+        is_suspended: inv.is_suspended || false,
+        owner: inv.users?.email || 'Unknown User',
+      }));
+
+      const formattedPayments = (payData || []).map((pay: any) => ({
+        id: pay.id,
+        email: pay.users?.email || 'Unknown User',
+        orderId: pay.order_id,
+        paymentId: pay.payment_id,
+        amount: pay.amount,
+        status: pay.status,
+        tier: pay.tier,
+        created_at: pay.created_at,
+      }));
+
+      setUsers(usersData || []);
+      setInvitations(formattedInvitations);
+      setPayments(formattedPayments);
+      setReferrals(refData || []);
+      setMediaAssets(mediaData || []);
+    } catch (err: any) {
+      console.error("Error loading admin dashboard data:", err);
+      alert("Error loading dashboard data: " + err.message);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   }
 
   // Handle User Subscription Tier Change
   const handleUpdateUserTier = async (userId: string, tier: 'free' | 'basic' | 'premium' | 'vip') => {
-    const ok = await updateUserTierAdmin(userId, tier);
-    if (ok) {
+    const { error } = await supabase
+      .from('users')
+      .update({
+        subscription_tier: tier,
+        subscription_expires_at: tier === 'free' ? null : new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString(),
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', userId);
+
+    if (!error) {
       setUsers(prev => prev.map(u => u.id === userId ? { ...u, subscription_tier: tier } : u));
       alert('Customer tier updated successfully!');
     } else {
-      alert('Failed to update customer subscription tier.');
+      alert('Failed to update customer subscription tier: ' + error.message);
     }
   };
 
   // Handle Suspend/Activate Invitation link
   const handleToggleSuspension = async (invitationId: string, currentSuspended: boolean) => {
     const nextStatus = !currentSuspended;
-    const ok = await toggleInvitationSuspensionAdmin(invitationId, nextStatus);
-    if (ok) {
+    const { error } = await supabase
+      .from('invitations')
+      .update({
+        is_suspended: nextStatus,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', invitationId);
+
+    if (!error) {
       setInvitations(prev => prev.map(inv => inv.id === invitationId ? { ...inv, is_suspended: nextStatus } : inv));
       alert(`Invitation link ${nextStatus ? 'suspended' : 'activated'} successfully!`);
     } else {
-      alert('Failed to update suspension status.');
+      alert('Failed to update suspension status: ' + error.message);
     }
   };
 
@@ -121,14 +200,23 @@ export default function AdminDashboard() {
     e.preventDefault();
     if (!newRefCode.trim()) return;
     setAddingReferral(true);
-    const ok = await createReferralCodeAdmin(newRefCode, newRefDiscount);
-    if (ok) {
+    
+    const cleanCode = newRefCode.trim().toUpperCase();
+    const { error } = await supabase
+      .from('referral_codes')
+      .insert({
+        code: cleanCode,
+        discount_percent: newRefDiscount,
+      });
+
+    if (!error) {
       setNewRefCode('');
       setNewRefDiscount(20);
       loadAllData();
       alert('Referral discount code created!');
     } else {
-      alert('Failed to create code. It might already exist.');
+      console.error("Error creating referral code:", error);
+      alert('Failed to create code: ' + error.message);
     }
     setAddingReferral(false);
   };
@@ -136,12 +224,16 @@ export default function AdminDashboard() {
   // Delete Referral Code
   const handleDeleteReferral = async (code: string) => {
     if (!confirm(`Are you sure you want to delete referral code "${code}"?`)) return;
-    const ok = await deleteReferralCodeAdmin(code);
-    if (ok) {
+    const { error } = await supabase
+      .from('referral_codes')
+      .delete()
+      .eq('code', code);
+
+    if (!error) {
       setReferrals(prev => prev.filter(ref => ref.code !== code));
       alert('Referral code deleted.');
     } else {
-      alert('Failed to delete referral code.');
+      alert('Failed to delete referral code: ' + error.message);
     }
   };
 
@@ -150,14 +242,22 @@ export default function AdminDashboard() {
     e.preventDefault();
     if (!newMediaUrl.trim() || !newMediaName.trim()) return;
     setAddingMedia(true);
-    const ok = await createMediaAssetAdmin(newMediaUrl.trim(), newMediaType, newMediaName.trim());
-    if (ok) {
+
+    const { error } = await supabase
+      .from('media_assets')
+      .insert({
+        url: newMediaUrl.trim(),
+        media_type: newMediaType,
+        filename: newMediaName.trim(),
+      });
+
+    if (!error) {
       setNewMediaUrl('');
       setNewMediaName('');
       loadAllData();
       alert('Media asset registered successfully!');
     } else {
-      alert('Failed to register media asset.');
+      alert('Failed to register media asset: ' + error.message);
     }
     setAddingMedia(false);
   };
@@ -185,12 +285,19 @@ export default function AdminDashboard() {
         .from('photos')
         .getPublicUrl(filePath);
 
-      const ok = await createMediaAssetAdmin(publicUrl, type, file.name.split('.')[0]);
-      if (ok) {
+      const { error: dbErr } = await supabase
+        .from('media_assets')
+        .insert({
+          url: publicUrl,
+          media_type: type,
+          filename: file.name.split('.')[0],
+        });
+
+      if (!dbErr) {
         loadAllData();
         alert('Media asset uploaded and registered!');
       } else {
-        alert('File uploaded, but database registration failed.');
+        alert('File uploaded, but database registration failed: ' + dbErr.message);
       }
     } catch (err: any) {
       console.error(err);
@@ -203,12 +310,16 @@ export default function AdminDashboard() {
   // Delete Media Asset
   const handleDeleteMedia = async (id: string) => {
     if (!confirm('Are you sure you want to remove this media asset?')) return;
-    const ok = await deleteMediaAssetAdmin(id);
-    if (ok) {
+    const { error } = await supabase
+      .from('media_assets')
+      .delete()
+      .eq('id', id);
+
+    if (!error) {
       setMediaAssets(prev => prev.filter(media => media.id !== id));
       alert('Media asset deleted.');
     } else {
-      alert('Failed to delete media asset.');
+      alert('Failed to delete media asset: ' + error.message);
     }
   };
 

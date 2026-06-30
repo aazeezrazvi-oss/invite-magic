@@ -1232,18 +1232,18 @@ export default function InvitationPreview({
           loop 
           muted 
           playsInline 
-          className="absolute inset-0 w-full h-full object-cover z-0 pointer-events-none opacity-20"
+          className="fixed inset-0 w-full h-full object-cover z-0 pointer-events-none opacity-20"
         >
           <source src={styling.background_url} type="video/mp4" />
         </video>
       ) : styling.background_type === 'image' ? (
         <div 
-          className="absolute inset-0 bg-cover bg-center z-0 pointer-events-none opacity-10"
+          className="fixed inset-0 bg-cover bg-center z-0 pointer-events-none opacity-10"
           style={{ backgroundImage: `url(${styling.background_url})` }}
         />
       ) : (
         <div 
-          className="absolute inset-0 z-0 pointer-events-none opacity-100"
+          className="fixed inset-0 z-0 pointer-events-none opacity-100"
           style={{ background: styling.background_url }}
         />
       )}
