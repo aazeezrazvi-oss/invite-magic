@@ -91,18 +91,22 @@ export default function AdminDashboard() {
 
       if (usersErr) throw usersErr;
 
-      // 2. Fetch Invitations
+      // Build a user lookup map (id -> email)
+      const userMap: Record<string, string> = {};
+      (usersData || []).forEach((u: any) => { userMap[u.id] = u.email; });
+
+      // 2. Fetch Invitations (no join — use userMap for owner email)
       const { data: invData, error: invErr } = await supabase
         .from('invitations')
-        .select('*, users(email)')
+        .select('*')
         .order('created_at', { ascending: false });
 
       if (invErr) throw invErr;
 
-      // 3. Fetch Payments
+      // 3. Fetch Payments (no join — use userMap for customer email)
       const { data: payData, error: payErr } = await supabase
         .from('payments')
-        .select('*, users(email)')
+        .select('*')
         .order('created_at', { ascending: false });
 
       if (payErr) throw payErr;
@@ -123,19 +127,19 @@ export default function AdminDashboard() {
 
       if (mediaErr) throw mediaErr;
 
-      // Format data
+      // Format data using userMap lookup
       const formattedInvitations = (invData || []).map((inv: any) => ({
         id: inv.id,
         slug: inv.slug,
         user_id: inv.user_id,
         is_published: inv.is_published,
         is_suspended: inv.is_suspended || false,
-        owner: inv.users?.email || 'Unknown User',
+        owner: userMap[inv.user_id] || 'Unknown User',
       }));
 
       const formattedPayments = (payData || []).map((pay: any) => ({
         id: pay.id,
-        email: pay.users?.email || 'Unknown User',
+        email: userMap[pay.user_id] || 'Unknown User',
         orderId: pay.order_id,
         paymentId: pay.payment_id,
         amount: pay.amount,
@@ -535,23 +539,30 @@ export default function AdminDashboard() {
                               {inv.is_suspended ? 'SUSPENDED' : 'ACTIVE'}
                             </span>
                           </td>
-                          <td className="p-4 text-right flex justify-end gap-3">
-                            <a
-                              href={`/invite/${inv.slug}`}
-                              target="_blank"
-                              className="p-1 rounded hover:bg-[#26263b] text-gray-400 hover:text-white"
-                            >
-                              <Eye className="w-4 h-4" />
-                            </a>
-                            <button
-                              onClick={() => handleToggleSuspension(inv.id, inv.is_suspended)}
-                              className={`p-1 rounded hover:bg-[#26263b] ${
-                                inv.is_suspended ? 'text-green-500 hover:text-green-400' : 'text-red-500 hover:text-red-400'
-                              }`}
-                              title={inv.is_suspended ? 'Unsuspend Link' : 'Suspend Link'}
-                            >
-                              <Power className="w-4 h-4" />
-                            </button>
+                          <td className="p-4 text-right">
+                            <div className="flex justify-end items-center gap-2">
+                              <a
+                                href={`/invite/${inv.slug}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#d4af37]/10 hover:bg-[#d4af37]/20 border border-[#d4af37]/30 rounded text-[#d4af37] text-[10px] font-bold uppercase tracking-wider transition-all"
+                              >
+                                <Eye className="w-3.5 h-3.5" />
+                                Open Live
+                              </a>
+                              <button
+                                onClick={() => handleToggleSuspension(inv.id, inv.is_suspended)}
+                                className={`inline-flex items-center gap-1 px-3 py-1.5 rounded text-[10px] font-bold uppercase tracking-wider border transition-all ${
+                                  inv.is_suspended 
+                                    ? 'bg-green-500/10 hover:bg-green-500/20 border-green-500/30 text-green-500' 
+                                    : 'bg-red-500/10 hover:bg-red-500/20 border-red-500/30 text-red-500'
+                                }`}
+                                title={inv.is_suspended ? 'Unsuspend Link' : 'Suspend Link'}
+                              >
+                                <Power className="w-3.5 h-3.5" />
+                                {inv.is_suspended ? 'Activate' : 'Suspend'}
+                              </button>
+                            </div>
                           </td>
                         </tr>
                       ))}
