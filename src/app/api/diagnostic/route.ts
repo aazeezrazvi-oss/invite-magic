@@ -68,6 +68,26 @@ export async function GET(req: NextRequest) {
   // Query invitation
   let inviteData: any = null;
   let inviteError: any = null;
+  let bypassInviteData: any = null;
+  let bypassInviteError: any = null;
+  let serviceRoleKeyFound = false;
+
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SERVICE_ROLE_KEY || '';
+  if (serviceRoleKey) {
+    serviceRoleKeyFound = true;
+    try {
+      const adminClient = createClient(supabaseUrl, serviceRoleKey);
+      const { data, error } = await adminClient
+        .from('invitations')
+        .select('*')
+        .eq('slug', slug)
+        .single();
+      bypassInviteData = data;
+      bypassInviteError = error;
+    } catch (err: any) {
+      bypassInviteError = { message: err.message };
+    }
+  }
 
   if (slug) {
     try {
@@ -96,6 +116,9 @@ export async function GET(req: NextRequest) {
     publicInvError = { message: err.message };
   }
 
+  // Get list of env keys safely
+  const envKeys = Object.keys(process.env);
+
   return NextResponse.json({
     diagnostics: {
       slug,
@@ -110,8 +133,12 @@ export async function GET(req: NextRequest) {
       sessionUser,
       inviteData,
       inviteError,
+      serviceRoleKeyFound,
+      bypassInviteData,
+      bypassInviteError,
       publicInvCount,
-      publicInvError
+      publicInvError,
+      envKeys
     }
   });
 }
