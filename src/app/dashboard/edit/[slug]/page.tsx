@@ -1,12 +1,12 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { use } from 'react';
 import Sidebar from '@/components/Editor/Sidebar';
 import Canvas from '@/components/Editor/Canvas';
 import { Invitation } from '@/types';
 import { getInvitationBySlug, saveInvitation } from '@/app/actions';
-import { ArrowLeft, Check, AlertCircle, Heart, Palette, Calendar, Gift, Save } from 'lucide-react';
+import { ArrowLeft, Check, AlertCircle, Heart, Palette, Calendar, Gift, Save, Undo2, Redo2, ZoomIn, ZoomOut } from 'lucide-react';
 import Link from 'next/link';
 import { supabase } from '@/utils/supabase';
 
@@ -14,77 +14,112 @@ interface PageProps {
   params: Promise<{ slug: string }>;
 }
 
-const mockInvitation: Invitation = {
-  id: 'mock-id-123',
-  user_id: 'mock-user-123',
-  slug: 'abdul-sana',
+const mockInvitation: Partial<Invitation> = {
   groom_name: 'Abdul',
-  groom_photo: '',
-  groom_bio: 'A technology enthusiast who loves exploration, excited to build this beautiful life alongside Sana.',
   bride_name: 'Sana',
+  groom_photo: '',
+  groom_bio: '',
   bride_photo: '',
-  bride_bio: 'A creative designer and writer who loves nature walks, hot tea, and family get-togethers.',
-  parents_names: 'Mr. & Mrs. Rahman & Mr. & Mrs. Siddiqui',
+  bride_bio: '',
+  parents_names: '',
   invitation_message: 'With hearts full of love, we cordially invite you to celebrate the union of our families.',
-  is_published: true,
+  is_published: false,
   styling: {
-    invitation_id: 'mock-id-123',
+    invitation_id: '',
     primary_color: '#d4af37',
-    secondary_color: '#aa7c11',
+    secondary_color: '#6b0c1b',
     background_color: '#0d0d11',
-    text_color: '#f3f4f6',
-    font_heading: 'cinzel',
+    text_color: '#fcf8f2',
+    font_heading: 'playfair',
     font_body: 'inter',
     music_url: '',
-    section_order: ['hero', 'countdown', 'story', 'events', 'gallery', 'rsvp', 'gifts'],
+    section_order: [],
     animation_style: 'fade',
-    button_style: 'gold-border',
-    countdown_style: 'circles',
+    button_style: 'rounded',
+    countdown_style: 'flip',
     gallery_layout: 'grid',
-    background_type: 'gradient',
-    background_url: 'linear-gradient(135deg, #0d0d11 0%, #1a1a24 100%)',
+    background_type: 'video',
+    background_url: '/videos/bg-golden-particles.mp4',
   },
   events: [
     {
-      event_name: 'Wedding Ceremony (Nikah)',
-      event_date: '2026-10-24',
-      event_time: '11:00:00',
-      venue_name: 'The Royal Lawn & Banquet',
-      venue_address: '10 Palace Road, Bangalore, India',
-      google_maps_link: 'https://maps.google.com',
+      event_name: 'Nikah Ceremony',
+      event_date: '2025-09-14',
+      event_time: '11:00',
+      venue_name: 'Jamia Masjid, Tolichowki',
+      venue_address: 'Tolichowki, Hyderabad, India',
+      google_maps_link: '',
     },
     {
-      event_name: 'Reception (Valima)',
-      event_date: '2026-10-25',
-      event_time: '19:00:00',
-      venue_name: 'Emerald Garden Palace',
-      venue_address: 'High Street, Palace Road, Bangalore, India',
-      google_maps_link: 'https://maps.google.com',
+      event_name: 'Walima Reception',
+      event_date: '2025-09-15',
+      event_time: '19:00',
+      venue_name: 'Royal Palace Banquet Hall',
+      venue_address: 'Plot 42, MG Road, Hyderabad, India',
+      google_maps_link: '',
     },
   ],
   gift_collection: {
-    invitation_id: 'mock-id-123',
-    upi_id: 'shadi@okaxis',
+    invitation_id: '',
+    upi_id: 'wedding@upi',
     receiver_name: 'Abdul & Sana',
-    thank_you_message: 'Your blessings are our greatest gift. Thank you for your warm love!',
+    thank_you_message: 'Your blessings are enough, but if you wish to bless us further, you may send a digital shagun.',
   },
 };
+
+// Simple undo/redo history manager
+function useHistory<T>(initialState: T) {
+  const [history, setHistory] = useState<T[]>([initialState]);
+  const [pointer, setPointer] = useState(0);
+
+  const current = history[pointer];
+
+  const push = useCallback((newState: T) => {
+    setHistory(prev => {
+      const newHistory = prev.slice(0, pointer + 1);
+      newHistory.push(newState);
+      // Limit history to 50 entries
+      if (newHistory.length > 50) newHistory.shift();
+      return newHistory;
+    });
+    setPointer(prev => Math.min(prev + 1, 49));
+  }, [pointer]);
+
+  const undo = useCallback(() => {
+    setPointer(prev => Math.max(0, prev - 1));
+  }, []);
+
+  const redo = useCallback(() => {
+    setPointer(prev => Math.min(history.length - 1, prev + 1));
+  }, [history.length]);
+
+  const canUndo = pointer > 0;
+  const canRedo = pointer < history.length - 1;
+
+  return { current, push, undo, redo, canUndo, canRedo };
+}
 
 export default function EditorPage({ params }: PageProps) {
   const { slug } = use(params);
   
-  const [invitation, setInvitation] = useState<Partial<Invitation>>(mockInvitation);
+  const { current: invitation, push: pushHistory, undo, redo, canUndo, canRedo } = useHistory<Partial<Invitation>>(mockInvitation);
   const [isSaving, setIsSaving] = useState(false);
   const [saveStatus, setSaveStatus] = useState<'idle' | 'success' | 'error'>('idle');
   const [isSupabaseWorking, setIsSupabaseWorking] = useState(true);
   const [hasPaid, setHasPaid] = useState<boolean>(false);
   
-  // Canva-style mobile editor tab/sheet state
+  // Canva-style mobile bottom sheet state
   const [activeMobileTab, setActiveMobileTab] = useState<'details' | 'design' | 'events' | 'gifts' | null>(null);
   
-  // Share modal states
+  // Canvas zoom
+  const [zoom, setZoom] = useState(100);
+
+  // Share modal
   const [showShareModal, setShowShareModal] = useState(false);
   const [copied, setCopied] = useState(false);
+
+  // Debounce timer ref for history push
+  const updateTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const handlePaymentSuccess = () => {
     setHasPaid(true);
@@ -108,7 +143,6 @@ export default function EditorPage({ params }: PageProps) {
 
   useEffect(() => {
     async function loadData() {
-      // Check user session and bypass status
       const { data: { session } } = await supabase.auth.getSession();
       const userEmail = session?.user?.email || localStorage.getItem('mock_user_email') || '';
       
@@ -125,7 +159,7 @@ export default function EditorPage({ params }: PageProps) {
         try {
           const data = await getInvitationBySlug(slug);
           if (data) {
-            setInvitation(data);
+            pushHistory(data);
           }
         } catch (e) {
           console.error("Failed to load live invite data:", e);
@@ -133,15 +167,21 @@ export default function EditorPage({ params }: PageProps) {
       }
     }
     loadData();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [slug]);
 
   const handleUpdate = (updatedFields: Partial<Invitation>) => {
-    setInvitation((prev) => {
-      const nextVal = { ...prev, ...updatedFields };
-      // Keep it in sync locally
-      localStorage.setItem(`invite_${slug}`, JSON.stringify(nextVal));
-      return nextVal;
-    });
+    const nextVal = { ...invitation, ...updatedFields };
+    localStorage.setItem(`invite_${slug}`, JSON.stringify(nextVal));
+
+    // Debounce history push to avoid flooding undo stack on every keystroke
+    if (updateTimer.current) clearTimeout(updateTimer.current);
+    updateTimer.current = setTimeout(() => {
+      pushHistory(nextVal);
+    }, 600);
+
+    // Immediate push for non-debounced render
+    pushHistory(nextVal);
   };
 
   const handleSave = async () => {
@@ -156,7 +196,6 @@ export default function EditorPage({ params }: PageProps) {
         setSaveStatus('error');
       }
     } else {
-      // Mock save to local storage
       setTimeout(() => {
         localStorage.setItem(`invite_${slug}`, JSON.stringify(invitation));
         setSaveStatus('success');
@@ -169,68 +208,106 @@ export default function EditorPage({ params }: PageProps) {
     }, 3000);
   };
 
+  // Keyboard shortcuts for undo/redo
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'z') {
+        e.preventDefault();
+        if (e.shiftKey) { redo(); } else { undo(); }
+      }
+      if ((e.ctrlKey || e.metaKey) && e.key === 'y') {
+        e.preventDefault();
+        redo();
+      }
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [undo, redo]);
+
   return (
-    <div className="flex flex-col h-screen overflow-hidden bg-[#0d0d11]">
-      {/* Top Navbar */}
-      <div className="bg-[#161622] border-b border-[#26263b] px-4 py-3 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 z-20 shrink-0">
-        <div className="flex items-center gap-3 w-full sm:w-auto">
+    <div className="flex flex-col h-[100dvh] overflow-hidden bg-[#0d0d11]">
+      {/* ─── Top Navbar ─── */}
+      <header className="bg-[#161622] border-b border-[#26263b] px-3 md:px-5 py-2.5 flex items-center justify-between z-20 shrink-0 gap-2">
+        {/* Left: Back + Title */}
+        <div className="flex items-center gap-2 min-w-0">
           <Link 
             href="/dashboard" 
-            className="p-1.5 rounded hover:bg-[#26263b] text-gray-400 hover:text-white transition-all"
+            className="p-1.5 rounded hover:bg-[#26263b] text-gray-400 hover:text-white transition-all shrink-0"
           >
             <ArrowLeft className="w-4 h-4" />
           </Link>
-          <div className="h-4 w-[1px] bg-[#26263b]" />
-          <div className="min-w-0">
-            <div className="flex items-center gap-1.5 flex-wrap">
-              <span className="text-white font-semibold text-xs sm:text-sm">Editing Invite:</span>
-              <span className="text-[#d4af37] font-mono text-xs truncate max-w-[120px] sm:max-w-none">{slug}</span>
+          <div className="h-4 w-px bg-[#26263b] shrink-0 hidden sm:block" />
+          <div className="min-w-0 hidden sm:block">
+            <div className="flex items-center gap-1.5">
+              <span className="text-white font-semibold text-xs">Editing:</span>
+              <span className="text-[#d4af37] font-mono text-[10px] truncate max-w-[140px]">{slug}</span>
             </div>
-            <span className="text-[9px] text-gray-400 hidden md:block">Customizations update real-time in the preview canvas.</span>
           </div>
         </div>
 
-        {/* Save/Sync Status Alert */}
-        <div className="flex items-center gap-2 sm:gap-3 text-xs w-full sm:w-auto justify-end flex-wrap">
+        {/* Center: Undo / Redo */}
+        <div className="flex items-center gap-1 shrink-0">
+          <button
+            onClick={undo}
+            disabled={!canUndo}
+            title="Undo (Ctrl+Z)"
+            className="p-1.5 rounded hover:bg-[#26263b] text-gray-400 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+          >
+            <Undo2 className="w-4 h-4" />
+          </button>
+          <button
+            onClick={redo}
+            disabled={!canRedo}
+            title="Redo (Ctrl+Y)"
+            className="p-1.5 rounded hover:bg-[#26263b] text-gray-400 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+          >
+            <Redo2 className="w-4 h-4" />
+          </button>
+          <div className="h-4 w-px bg-[#26263b] mx-1 hidden sm:block" />
+          {/* Save status badges */}
           {!isSupabaseWorking && (
-            <div className="flex items-center gap-1 px-2 py-1 rounded bg-yellow-500/10 border border-yellow-500/20 text-yellow-500 text-[10px]">
+            <div className="flex items-center gap-1 px-2 py-1 rounded bg-yellow-500/10 border border-yellow-500/20 text-yellow-500 text-[9px] font-semibold">
               <AlertCircle className="w-3 h-3" />
-              <span>Offline</span>
+              <span className="hidden sm:inline">Offline</span>
             </div>
           )}
           {saveStatus === 'success' && (
-            <div className="flex items-center gap-1 px-2 py-1 rounded bg-green-500/10 border border-green-500/20 text-green-500 text-[10px]">
+            <div className="flex items-center gap-1 px-2 py-1 rounded bg-green-500/10 border border-green-500/20 text-green-500 text-[9px]">
               <Check className="w-3 h-3" />
-              <span>Saved</span>
+              <span className="hidden sm:inline">Saved</span>
             </div>
           )}
           {saveStatus === 'error' && (
-            <div className="flex items-center gap-1 px-2 py-1 rounded bg-red-500/10 border border-red-500/20 text-red-500 text-[10px]">
+            <div className="flex items-center gap-1 px-2 py-1 rounded bg-red-500/10 border border-red-500/20 text-red-500 text-[9px]">
               <AlertCircle className="w-3 h-3" />
-              <span>Err</span>
+              <span className="hidden sm:inline">Error</span>
             </div>
           )}
+        </div>
+
+        {/* Right: Action Buttons */}
+        <div className="flex items-center gap-2 shrink-0">
           <a
             href={`/invite/${slug}`}
             target="_blank"
             rel="noopener noreferrer"
-            className="px-2.5 py-1 sm:py-1.5 rounded bg-[#26263b] hover:bg-[#34344d] text-white text-[11px] font-semibold transition-all text-center"
+            className="px-2.5 py-1.5 rounded bg-[#26263b] hover:bg-[#34344d] text-white text-[10px] font-semibold transition-all hidden sm:block"
           >
             Open Live
           </a>
           <button
             onClick={handleShareClick}
-            className="px-3 py-1 sm:py-1.5 rounded bg-[#d4af37] hover:bg-[#b8962e] text-[#0d0d11] font-bold transition-all flex items-center gap-1 cursor-pointer text-[11px]"
+            className="px-3 py-1.5 rounded bg-[#d4af37] hover:bg-[#b8962e] text-[#0d0d11] font-bold transition-all text-[10px] cursor-pointer"
           >
             Share
           </button>
         </div>
-      </div>
+      </header>
 
-      {/* Main Workspace split */}
-      <div className="flex-1 flex overflow-hidden relative">
-        {/* Editor Sidebar (Always visible on desktop, hidden on mobile in favor of bottom sheet) */}
-        <div className="hidden md:flex md:w-96 h-full overflow-hidden shrink-0">
+      {/* ─── Main Workspace ─── */}
+      <div className="flex-1 flex overflow-hidden">
+        {/* Desktop Sidebar (hidden on mobile) */}
+        <aside className="hidden md:block w-96 h-full shrink-0 border-r border-[#26263b] overflow-hidden">
           <Sidebar 
             invitation={invitation} 
             onUpdate={handleUpdate} 
@@ -239,98 +316,131 @@ export default function EditorPage({ params }: PageProps) {
             hasPaid={hasPaid}
             onPaymentSuccess={handlePaymentSuccess}
           />
-        </div>
+        </aside>
 
-        {/* Live Canvas Preview (Always visible on desktop and mobile) */}
-        <div className="flex-1 h-full overflow-hidden pb-14 md:pb-0">
-          <Canvas invitation={invitation} />
+        {/* Canvas Area */}
+        <div className="flex-1 h-full overflow-hidden flex flex-col pb-14 md:pb-0">
+          <Canvas invitation={invitation} zoom={zoom} />
         </div>
       </div>
 
-      {/* Canva-style Bottom Navigation Bar (Visible only on mobile) */}
-      <div className="flex border-t border-[#26263b] bg-[#161622] md:hidden text-[9px] uppercase font-bold tracking-wider shrink-0 z-30 justify-around py-1.5 shadow-[0_-4px_10px_rgba(0,0,0,0.3)]">
+      {/* ─── Desktop Bottom Toolbar (zoom controls) ─── */}
+      <div className="hidden md:flex items-center justify-center gap-3 bg-[#161622] border-t border-[#26263b] py-1.5 px-4 shrink-0 text-xs">
         <button
-          onClick={() => setActiveMobileTab(activeMobileTab === 'details' ? null : 'details')}
-          className={`flex flex-col items-center gap-1 py-1 transition-all ${
-            activeMobileTab === 'details' ? 'text-[#d4af37]' : 'text-gray-400 hover:text-white'
-          }`}
+          onClick={() => setZoom(z => Math.max(25, z - 25))}
+          className="p-1 rounded hover:bg-[#26263b] text-gray-400 hover:text-white transition-all"
+          title="Zoom Out"
         >
-          <Heart className="w-4 h-4" />
-          <span>Details</span>
+          <ZoomOut className="w-4 h-4" />
+        </button>
+        <span className="text-gray-400 font-mono text-[10px] w-10 text-center select-none">{zoom}%</span>
+        <button
+          onClick={() => setZoom(z => Math.min(200, z + 25))}
+          className="p-1 rounded hover:bg-[#26263b] text-gray-400 hover:text-white transition-all"
+          title="Zoom In"
+        >
+          <ZoomIn className="w-4 h-4" />
         </button>
         <button
-          onClick={() => setActiveMobileTab(activeMobileTab === 'design' ? null : 'design')}
-          className={`flex flex-col items-center gap-1 py-1 transition-all ${
-            activeMobileTab === 'design' ? 'text-[#d4af37]' : 'text-gray-400 hover:text-white'
-          }`}
+          onClick={() => setZoom(100)}
+          className="px-2 py-0.5 rounded text-[9px] text-gray-500 hover:text-white hover:bg-[#26263b] transition-all font-semibold uppercase tracking-wider"
         >
-          <Palette className="w-4 h-4" />
-          <span>Design</span>
-        </button>
-        <button
-          onClick={() => setActiveMobileTab(activeMobileTab === 'events' ? null : 'events')}
-          className={`flex flex-col items-center gap-1 py-1 transition-all ${
-            activeMobileTab === 'events' ? 'text-[#d4af37]' : 'text-gray-400 hover:text-white'
-          }`}
-        >
-          <Calendar className="w-4 h-4" />
-          <span>Events</span>
-        </button>
-        <button
-          onClick={() => setActiveMobileTab(activeMobileTab === 'gifts' ? null : 'gifts')}
-          className={`flex flex-col items-center gap-1 py-1 transition-all ${
-            activeMobileTab === 'gifts' ? 'text-[#d4af37]' : 'text-gray-400 hover:text-white'
-          }`}
-        >
-          <Gift className="w-4 h-4" />
-          <span>Gifts</span>
+          Reset
         </button>
       </div>
 
-      {/* Canva-style Sliding Bottom Sheet Panel (Visible only on mobile when editing tab is active) */}
+      {/* ─── Mobile Bottom Navigation Bar ─── */}
+      <nav className="flex border-t border-[#26263b] bg-[#161622] md:hidden text-[9px] uppercase font-bold tracking-wider shrink-0 z-30 justify-around py-1.5 shadow-[0_-4px_12px_rgba(0,0,0,0.4)]">
+        {([
+          { key: 'details' as const, icon: Heart, label: 'Details' },
+          { key: 'design' as const, icon: Palette, label: 'Design' },
+          { key: 'events' as const, icon: Calendar, label: 'Events' },
+          { key: 'gifts' as const, icon: Gift, label: 'Gifts' },
+        ]).map(({ key, icon: Icon, label }) => (
+          <button
+            key={key}
+            onClick={() => setActiveMobileTab(activeMobileTab === key ? null : key)}
+            className={`flex flex-col items-center gap-0.5 py-1.5 px-3 rounded-lg transition-all ${
+              activeMobileTab === key 
+                ? 'text-[#d4af37] bg-[#d4af37]/10' 
+                : 'text-gray-500 active:text-white'
+            }`}
+          >
+            <Icon className="w-5 h-5" />
+            <span>{label}</span>
+          </button>
+        ))}
+      </nav>
+
+      {/* ─── Mobile Sliding Bottom Sheet ─── */}
+      {activeMobileTab && (
+        <div className="fixed inset-0 z-40 md:hidden" onClick={() => setActiveMobileTab(null)}>
+          {/* Dimmed backdrop */}
+          <div className="absolute inset-0 bg-black/40" />
+        </div>
+      )}
       <div 
-        className={`fixed inset-x-0 bottom-0 bg-[#161622] border-t border-[#d4af37]/30 rounded-t-[20px] shadow-[0_-8px_30px_rgba(0,0,0,0.6)] z-40 transition-all duration-300 ease-out transform md:hidden ${
-          activeMobileTab ? 'translate-y-0 opacity-100 visible' : 'translate-y-full opacity-0 invisible'
+        className={`fixed inset-x-0 bottom-0 bg-[#161622] border-t border-[#d4af37]/20 rounded-t-2xl shadow-[0_-8px_30px_rgba(0,0,0,0.6)] z-50 transition-transform duration-300 ease-out md:hidden ${
+          activeMobileTab ? 'translate-y-0' : 'translate-y-full'
         }`}
-        style={{ height: '55vh' }}
+        style={{ height: '60dvh' }}
       >
-        {activeMobileTab && (
-          <div className="flex flex-col h-full">
-            {/* Sheet Handle and Title bar */}
-            <div className="px-4 py-2.5 border-b border-[#26263b] flex items-center justify-between bg-[#1b1b2a] rounded-t-[20px] shrink-0">
-              <div className="flex items-center gap-1.5">
-                {activeMobileTab === 'details' && <Heart className="w-4 h-4 text-[#d4af37]" />}
-                {activeMobileTab === 'design' && <Palette className="w-4 h-4 text-[#d4af37]" />}
-                {activeMobileTab === 'events' && <Calendar className="w-4 h-4 text-[#d4af37]" />}
-                {activeMobileTab === 'gifts' && <Gift className="w-4 h-4 text-[#d4af37]" />}
-                <span className="font-semibold text-white font-cinzel capitalize text-xs tracking-wider">
-                  Edit {activeMobileTab}
-                </span>
-              </div>
-              <div className="flex items-center gap-3">
-                <button
-                  onClick={handleSave}
-                  disabled={isSaving}
-                  className="px-2.5 py-1 bg-[#d4af37] hover:bg-[#b8962e] text-[#0d0d11] font-bold rounded flex items-center gap-1 transition-all text-[9px] uppercase tracking-widest disabled:opacity-50"
-                >
-                  {isSaving ? (
-                    <div className="w-2.5 h-2.5 border-2 border-t-transparent border-[#0d0d11] rounded-full animate-spin" />
-                  ) : (
-                    <Save className="w-2.5 h-2.5" />
-                  )}
-                  <span>Save</span>
-                </button>
-                <button 
-                  onClick={() => setActiveMobileTab(null)}
-                  className="text-gray-400 hover:text-white text-base font-bold p-1 cursor-pointer"
-                >
-                  &times;
-                </button>
-              </div>
-            </div>
+        <div className="flex flex-col h-full">
+          {/* Sheet drag handle */}
+          <div className="flex justify-center pt-2 pb-1 shrink-0">
+            <div className="w-10 h-1 bg-gray-600 rounded-full" />
+          </div>
 
-            {/* Sheet Form Scroll Container */}
-            <div className="flex-grow overflow-y-auto">
+          {/* Sheet Title bar */}
+          <div className="px-4 py-2 border-b border-[#26263b] flex items-center justify-between shrink-0">
+            <div className="flex items-center gap-1.5">
+              {activeMobileTab === 'details' && <Heart className="w-4 h-4 text-[#d4af37]" />}
+              {activeMobileTab === 'design' && <Palette className="w-4 h-4 text-[#d4af37]" />}
+              {activeMobileTab === 'events' && <Calendar className="w-4 h-4 text-[#d4af37]" />}
+              {activeMobileTab === 'gifts' && <Gift className="w-4 h-4 text-[#d4af37]" />}
+              <span className="font-semibold text-white font-cinzel capitalize text-xs tracking-wider">
+                {activeMobileTab || ''}
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={undo}
+                disabled={!canUndo}
+                className="p-1.5 rounded hover:bg-[#26263b] text-gray-400 disabled:opacity-30 transition-all"
+              >
+                <Undo2 className="w-3.5 h-3.5" />
+              </button>
+              <button
+                onClick={redo}
+                disabled={!canRedo}
+                className="p-1.5 rounded hover:bg-[#26263b] text-gray-400 disabled:opacity-30 transition-all"
+              >
+                <Redo2 className="w-3.5 h-3.5" />
+              </button>
+              <button
+                onClick={handleSave}
+                disabled={isSaving}
+                className="px-2.5 py-1 bg-[#d4af37] hover:bg-[#b8962e] text-[#0d0d11] font-bold rounded flex items-center gap-1 transition-all text-[9px] uppercase tracking-widest disabled:opacity-50"
+              >
+                {isSaving ? (
+                  <div className="w-3 h-3 border-2 border-t-transparent border-[#0d0d11] rounded-full animate-spin" />
+                ) : (
+                  <Save className="w-3 h-3" />
+                )}
+                <span>Save</span>
+              </button>
+              <button 
+                onClick={() => setActiveMobileTab(null)}
+                className="text-gray-400 hover:text-white text-lg font-bold px-1 cursor-pointer"
+              >
+                &times;
+              </button>
+            </div>
+          </div>
+
+          {/* Scrollable Form Content */}
+          <div className="flex-1 overflow-y-auto overscroll-contain">
+            {activeMobileTab && (
               <Sidebar 
                 invitation={invitation} 
                 onUpdate={handleUpdate} 
@@ -342,13 +452,14 @@ export default function EditorPage({ params }: PageProps) {
                 onTabChange={setActiveMobileTab}
                 isMobileSheet={true}
               />
-            </div>
+            )}
           </div>
-        )}
+        </div>
       </div>
 
+      {/* ─── Share Modal ─── */}
       {showShareModal && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-[60] p-4">
           <div className="w-full max-w-[400px] bg-[#161622] border border-[#d4af37]/30 rounded-[20px] p-6 space-y-5 shadow-[0_4px_30px_rgba(212,175,55,0.15)] relative">
             <button
               onClick={() => setShowShareModal(false)}

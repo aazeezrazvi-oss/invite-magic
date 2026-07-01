@@ -391,7 +391,7 @@ export default function Sidebar({
 
 
   return (
-    <div className="w-full md:w-96 bg-[#161622] border-r border-[#26263b] h-full flex flex-col overflow-hidden text-sm">
+    <div className="w-full bg-[#161622] h-full flex flex-col overflow-hidden text-sm">
       {/* Sidebar Header - Hidden if rendering inside mobile Canva sheet */}
       {!isMobileSheet && (
         <div className="p-4 border-b border-[#26263b] flex items-center justify-between">
