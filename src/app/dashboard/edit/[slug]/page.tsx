@@ -219,6 +219,11 @@ export default function EditorPage({ params }: PageProps) {
           if (data) {
             setInvitation(data);
             resetHistory(data);
+            
+            // Sync subscription status from database owner_tier
+            if (data.owner_tier && data.owner_tier !== 'free') {
+              setHasPaid(true);
+            }
           }
         } catch (e) {
           console.error("Failed to load live invite data:", e);

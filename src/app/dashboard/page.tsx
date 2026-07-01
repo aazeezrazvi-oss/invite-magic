@@ -111,8 +111,21 @@ export default function Dashboard() {
           setReferralInput('');
         }
       } else {
-        // Safe fallback
+        // Auto create missing user profile row
         const isBypass = currentEmail === 'abdulazeezrazvi125@gmail.com' || currentEmail === 'abdulazeezrazvi97@gmail.com';
+        try {
+          await supabase
+            .from('users')
+            .insert({
+              id: currentUserId,
+              email: currentEmail,
+              role: (currentEmail === 'abdulazeezrazvi125@gmail.com') ? 'admin' : 'user',
+              subscription_tier: isBypass ? 'vip' : 'free',
+            });
+        } catch (err) {
+          console.error("Failed to auto-create missing user profile:", err);
+        }
+
         setSubscriptionTier(isBypass ? 'vip' : 'free');
         setIsAdmin(currentEmail === 'abdulazeezrazvi125@gmail.com');
         setIsVip(isBypass);

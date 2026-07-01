@@ -56,19 +56,36 @@ export default function AdminDashboard() {
       const email = session?.user?.email || localStorage.getItem('mock_user_email') || '';
       
       if (session?.user) {
-        const { data: userProfile } = await supabase
+        let { data: userProfile } = await supabase
           .from('users')
           .select('role')
           .eq('id', session.user.id)
           .maybeSingle();
 
-        if (userProfile?.role === 'admin' || email === 'abdulazeezrazvi125@gmail.com') {
+        const isBypassAdmin = email === 'abdulazeezrazvi125@gmail.com' || email === 'abdulazeezrazvi97@gmail.com';
+
+        // Auto create missing admin profile row
+        if (!userProfile && isBypassAdmin) {
+          try {
+            await supabase.from('users').insert({
+              id: session.user.id,
+              email: email,
+              role: 'admin',
+              subscription_tier: 'vip',
+            });
+            userProfile = { role: 'admin' };
+          } catch (err) {
+            console.error("Failed to auto-create admin profile row:", err);
+          }
+        }
+
+        if (userProfile?.role === 'admin' || isBypassAdmin) {
           setIsAdmin(true);
           loadAllData();
         } else {
           router.push('/dashboard');
         }
-      } else if (email === 'abdulazeezrazvi125@gmail.com') {
+      } else if (email === 'abdulazeezrazvi125@gmail.com' || email === 'abdulazeezrazvi97@gmail.com') {
         setIsAdmin(true);
         loadAllData();
       } else {

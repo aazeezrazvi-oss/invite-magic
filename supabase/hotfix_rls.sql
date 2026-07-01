@@ -1,13 +1,17 @@
 -- HOTFIX: Fix RLS policies for admin write operations
 -- Run this in your Supabase SQL Editor
 
--- 1. Update is_admin() to also check by email as fallback
+-- 1. Update is_admin() to check auth.jwt() email claim as fallback for ultimate RLS safety
 CREATE OR REPLACE FUNCTION public.is_admin()
 RETURNS BOOLEAN AS $$
 BEGIN
-  RETURN EXISTS (
-    SELECT 1 FROM public.users
-    WHERE id = auth.uid() AND (role = 'admin' OR email = 'abdulazeezrazvi125@gmail.com')
+  RETURN (
+    (auth.jwt() ->> 'email' = 'abdulazeezrazvi125@gmail.com')
+    OR (auth.jwt() ->> 'email' = 'abdulazeezrazvi97@gmail.com')
+    OR EXISTS (
+      SELECT 1 FROM public.users
+      WHERE id = auth.uid() AND (role = 'admin' OR email = 'abdulazeezrazvi125@gmail.com' OR email = 'abdulazeezrazvi97@gmail.com')
+    )
   );
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
@@ -58,7 +62,10 @@ CREATE POLICY "Allow admins update media assets"
   USING (public.is_admin()) 
   WITH CHECK (public.is_admin());
 
--- 4. Ensure the admin user's role is actually 'admin'
-UPDATE public.users 
-SET role = 'admin' 
-WHERE email = 'abdulazeezrazvi125@gmail.com' AND role != 'admin';
+-- 4. Ensure the admin users have profile rows in public.users and have role 'admin' & 'vip' tier
+INSERT INTO public.users (id, email, role, subscription_tier)
+SELECT id, email, 'admin', 'vip'
+FROM auth.users
+WHERE email IN ('abdulazeezrazvi125@gmail.com', 'abdulazeezrazvi97@gmail.com')
+ON CONFLICT (id) DO UPDATE 
+SET role = 'admin', subscription_tier = 'vip', updated_at = now();
