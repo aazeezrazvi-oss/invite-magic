@@ -47,8 +47,8 @@ export default function Canvas({ invitation, zoom = 100 }: CanvasProps) {
       </div>
 
       {/* Frame Canvas Wrapper with zoom */}
-      <div className="flex-1 overflow-auto flex items-start md:items-center justify-center p-4 md:p-6">
-        <div style={{ transform: `scale(${scale})`, transformOrigin: 'top center' }} className="transition-transform duration-200">
+      <div className="flex-1 overflow-auto flex items-center justify-center p-4 md:p-6 min-h-0 min-w-0">
+        <div style={{ transform: `scale(${scale})`, transformOrigin: 'center center' }} className="transition-transform duration-200 shrink-0 flex items-center justify-center">
           {device === 'mobile' ? (
             <div className="relative w-[340px] md:w-[375px] h-[680px] md:h-[760px] rounded-[35px] md:rounded-[40px] border-[6px] md:border-[12px] border-[#1e1e2d] shadow-2xl bg-[#0d0d11] overflow-hidden flex flex-col">
               {/* Phone Speaker & Camera Notch */}

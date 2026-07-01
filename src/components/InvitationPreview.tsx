@@ -1303,7 +1303,10 @@ export default function InvitationPreview({
 
       {/* Dynamic Section Ordering */}
       <div className="z-10 flex flex-col flex-grow">
-        {styling.section_order.map((section) => renderSection(section))}
+        {(styling.section_order && styling.section_order.length > 0
+          ? styling.section_order
+          : ['hero', 'countdown', 'story', 'events', 'gallery', 'rsvp', 'gifts']
+        ).map((section) => renderSection(section))}
       </div>
     </div>
   );

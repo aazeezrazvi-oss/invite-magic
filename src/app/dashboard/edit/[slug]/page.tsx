@@ -33,7 +33,7 @@ const mockInvitation: Partial<Invitation> = {
     font_heading: 'playfair',
     font_body: 'inter',
     music_url: '',
-    section_order: [],
+    section_order: ['hero', 'countdown', 'story', 'events', 'gallery', 'rsvp', 'gifts'],
     animation_style: 'fade',
     button_style: 'rounded',
     countdown_style: 'flip',
@@ -291,7 +291,7 @@ export default function EditorPage({ params }: PageProps) {
             href={`/invite/${slug}`}
             target="_blank"
             rel="noopener noreferrer"
-            className="px-2.5 py-1.5 rounded bg-[#26263b] hover:bg-[#34344d] text-white text-[10px] font-semibold transition-all hidden sm:block"
+            className="px-2.5 py-1.5 rounded bg-[#26263b] hover:bg-[#34344d] text-white text-[10px] font-semibold transition-all"
           >
             Open Live
           </a>
