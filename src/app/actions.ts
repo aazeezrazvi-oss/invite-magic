@@ -118,12 +118,23 @@ export async function upgradeUserSubscription(userId: string, tier: 'basic' | 'p
 }
 
 // Action to save/update full invitation data
-export async function saveInvitation(invitationData: Partial<Invitation>): Promise<boolean> {
-  if (!invitationData.id) return false;
+export async function saveInvitation(invitationData: Partial<Invitation>): Promise<{ success: boolean; error?: string }> {
+  if (!invitationData.id) return { success: false, error: 'No invitation ID provided' };
   const supabase = await getSupabase();
   
   try {
-    const { id, styling, events, gift_collection, slug, ...coreDetails } = invitationData;
+    const { 
+      id, 
+      styling, 
+      events, 
+      gift_collection, 
+      slug, 
+      owner_tier, 
+      owner, 
+      created_at, 
+      updated_at, 
+      ...coreDetails 
+    } = invitationData as any;
 
     // 1. Update Core Invitation Table
     const { error: inviteError } = await supabase
@@ -136,21 +147,23 @@ export async function saveInvitation(invitationData: Partial<Invitation>): Promi
 
     if (inviteError) {
       console.error('Error saving core invitation details:', inviteError);
-      return false;
+      return { success: false, error: inviteError.message };
     }
 
     // 2. Update Styling Preferences
     if (styling) {
+      // Discard created_at/updated_at from nested styling object
+      const { created_at: s_created, updated_at: s_updated, ...stylingProps } = styling;
       const { error: stylingError } = await supabase
         .from('styling_preferences')
         .upsert({
-          ...styling,
+          ...stylingProps,
           invitation_id: id,
           updated_at: new Date().toISOString(),
         });
       if (stylingError) {
         console.error('Error saving styling preferences:', stylingError);
-        return false;
+        return { success: false, error: stylingError.message };
       }
     }
 
@@ -163,11 +176,11 @@ export async function saveInvitation(invitationData: Partial<Invitation>): Promi
 
       if (deleteEventsError) {
         console.error('Error deleting prior events:', deleteEventsError);
-        return false;
+        return { success: false, error: deleteEventsError.message };
       }
 
       if (events.length > 0) {
-        const eventsToInsert = events.map(e => ({
+        const eventsToInsert = (events as any[]).map((e: any) => ({
           invitation_id: id,
           event_name: e.event_name,
           event_date: e.event_date,
@@ -183,24 +196,26 @@ export async function saveInvitation(invitationData: Partial<Invitation>): Promi
 
         if (insertEventsError) {
           console.error('Error inserting events:', insertEventsError);
-          return false;
+          return { success: false, error: insertEventsError.message };
         }
       }
     }
 
     // 4. Update Gift Details
     if (gift_collection) {
+      // Discard created_at/updated_at from nested gift_collection object
+      const { created_at: g_created, updated_at: g_updated, ...giftProps } = gift_collection;
       const { error: giftError } = await supabase
         .from('gift_collection_details')
         .upsert({
-          ...gift_collection,
+          ...giftProps,
           invitation_id: id,
           updated_at: new Date().toISOString(),
         });
 
       if (giftError) {
         console.error('Error saving gift collection details:', giftError);
-        return false;
+        return { success: false, error: giftError.message };
       }
     }
 
@@ -210,10 +225,10 @@ export async function saveInvitation(invitationData: Partial<Invitation>): Promi
       revalidatePath(`/dashboard/edit/${slug}`);
     }
 
-    return true;
-  } catch (error) {
+    return { success: true };
+  } catch (error: any) {
     console.error('Error in saveInvitation action:', error);
-    return false;
+    return { success: false, error: error?.message || 'Server Action execution error' };
   }
 }
 

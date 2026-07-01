@@ -246,11 +246,12 @@ export default function EditorPage({ params }: PageProps) {
     setSaveStatus('idle');
 
     if (isSupabaseWorking) {
-      const success = await saveInvitation(invitation);
-      if (success) {
+      const result = await saveInvitation(invitation);
+      if (result.success) {
         setSaveStatus('success');
       } else {
         setSaveStatus('error');
+        alert(`❌ Database Save Failed: ${result.error || 'Unknown database error'}`);
       }
     } else {
       setTimeout(() => {
