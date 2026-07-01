@@ -5,7 +5,7 @@ import { use } from 'react';
 import InvitationPreview from '@/components/InvitationPreview';
 import { Invitation, RSVP } from '@/types';
 import { getInvitationBySlug, submitRsvp } from '@/app/actions';
-import { AlertCircle, Heart } from 'lucide-react';
+import { AlertCircle, Heart, Globe } from 'lucide-react';
 import Link from 'next/link';
 import { supabase } from '@/utils/supabase';
 
@@ -77,6 +77,7 @@ export default function GuestInvitePage({ params }: PageProps) {
   const [error, setError] = useState(false);
   const [isSuspended, setIsSuspended] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
 
   useEffect(() => {
     async function loadData() {
@@ -86,6 +87,7 @@ export default function GuestInvitePage({ params }: PageProps) {
       try {
         const { data: { session } } = await supabase.auth.getSession();
         if (session?.user) {
+          setCurrentUserId(session.user.id);
           const { data: profile } = await supabase
             .from('users')
             .select('role')
@@ -187,7 +189,9 @@ export default function GuestInvitePage({ params }: PageProps) {
     );
   }
 
-  if (!isAdmin && (!invitation.owner_tier || invitation.owner_tier === 'free')) {
+  const isOwnerOrAdmin = isAdmin || (invitation?.user_id && currentUserId === invitation.user_id);
+
+  if (!isOwnerOrAdmin && (!invitation.owner_tier || invitation.owner_tier === 'free')) {
     return (
       <div className="min-h-screen bg-[#0d0d11] text-[#f3f4f6] flex flex-col justify-center items-center text-center p-8 relative font-sans">
         {/* Background ambient glow */}
@@ -214,6 +218,34 @@ export default function GuestInvitePage({ params }: PageProps) {
           <Link href="/login" className="inline-block px-6 py-2.5 bg-[#d4af37] hover:bg-[#b8962e] text-[#0d0d11] text-xs font-bold uppercase tracking-wider rounded transition-all shadow-[0_2px_15px_rgba(212,175,55,0.15)] cursor-pointer">
             Log in to Dashboard
           </Link>
+        </div>
+      </div>
+    );
+  }
+
+  if (!isOwnerOrAdmin && !invitation.is_published) {
+    return (
+      <div className="min-h-screen bg-[#0d0d11] text-[#f3f4f6] flex flex-col justify-center items-center text-center p-8 relative font-sans">
+        {/* Background ambient glow */}
+        <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[350px] h-[350px] bg-[#d4af37]/5 rounded-full blur-[100px] pointer-events-none" />
+        
+        <div className="w-full max-w-[480px] bg-[#161622]/40 backdrop-blur-md border border-[#26263b] rounded-[24px] p-8 shadow-[0_8px_32px_rgba(0,0,0,0.37)] z-10 space-y-6">
+          <div className="flex justify-center">
+            <div className="w-16 h-16 rounded-[20px] bg-[#d4af37]/10 border border-[#d4af37]/20 flex items-center justify-center">
+              <Globe className="w-8 h-8 text-[#d4af37] opacity-60" />
+            </div>
+          </div>
+          
+          <h2 className="text-2xl font-light text-white tracking-wider font-cinzel">Invitation Unpublished</h2>
+          <p className="text-sm text-gray-400 leading-relaxed">
+            This wedding invitation link has not been published live yet by the host.
+          </p>
+          
+          <div className="h-[1px] bg-[#26263b] w-full my-4" />
+          
+          <p className="text-xs text-gray-500">
+            Please check back later or contact the host for updates.
+          </p>
         </div>
       </div>
     );

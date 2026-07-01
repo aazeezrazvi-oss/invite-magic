@@ -6,7 +6,7 @@ import Sidebar from '@/components/Editor/Sidebar';
 import Canvas from '@/components/Editor/Canvas';
 import { Invitation } from '@/types';
 import { getInvitationBySlug, saveInvitation } from '@/app/actions';
-import { ArrowLeft, Check, AlertCircle, Heart, Palette, Calendar, Gift, Save, Undo2, Redo2, ZoomIn, ZoomOut } from 'lucide-react';
+import { ArrowLeft, Check, AlertCircle, Heart, Palette, Calendar, Gift, Save, Undo2, Redo2, ZoomIn, ZoomOut, Globe } from 'lucide-react';
 import Link from 'next/link';
 import { supabase } from '@/utils/supabase';
 
@@ -286,6 +286,43 @@ export default function EditorPage({ params }: PageProps) {
     }, 3000);
   };
 
+  const togglePublish = async () => {
+    if (!hasPaid) {
+      alert("⚠️ Upgrade Required: Please buy any upgrade plan in the editor sidebar to unlock publishing and share your live link with guests!");
+      return;
+    }
+    const newPublished = !invitation.is_published;
+    const nextVal = { ...invitation, is_published: newPublished };
+    
+    // Update local state and history immediately for responsive UI
+    setInvitation(nextVal);
+    pushHistory(nextVal);
+    localStorage.setItem(`invite_${slug}`, JSON.stringify(nextVal));
+
+    setIsSaving(true);
+    setSaveStatus('idle');
+
+    if (isSupabaseWorking) {
+      const result = await saveInvitation(nextVal);
+      if (result.success) {
+        setSaveStatus('success');
+      } else {
+        setSaveStatus('error');
+        alert(`❌ Failed to toggle publish: ${result.error || 'Unknown database error'}`);
+        // Revert local state
+        const reverted = { ...invitation, is_published: !newPublished };
+        setInvitation(reverted);
+        localStorage.setItem(`invite_${slug}`, JSON.stringify(reverted));
+      }
+    } else {
+      setSaveStatus('success');
+    }
+    setIsSaving(false);
+    setTimeout(() => {
+      setSaveStatus('idle');
+    }, 3000);
+  };
+
   // Keyboard shortcuts for undo/redo
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -400,6 +437,29 @@ export default function EditorPage({ params }: PageProps) {
 
         {/* Right: Action Buttons */}
         <div className="flex items-center gap-2 shrink-0">
+          {hasPaid ? (
+            <button
+              onClick={togglePublish}
+              className={`flex items-center gap-1.5 px-2 py-1.5 md:px-3 md:py-1.5 rounded text-[10px] font-semibold transition-all ${
+                invitation.is_published
+                  ? 'bg-green-500/20 text-green-400 border border-green-500/30 hover:bg-green-500/30'
+                  : 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/30 hover:bg-yellow-500/30'
+              }`}
+              title={invitation.is_published ? 'Click to unpublish invitation' : 'Click to publish invitation'}
+            >
+              <Globe className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">{invitation.is_published ? 'Published' : 'Draft'}</span>
+            </button>
+          ) : (
+            <button
+              onClick={() => alert("⚠️ Upgrade Required: Please buy any upgrade plan in the editor sidebar to unlock publishing and share your live link with guests!")}
+              className="flex items-center gap-1.5 px-2 py-1.5 md:px-3 md:py-1.5 rounded bg-gray-500/10 text-gray-400 border border-gray-500/20 text-[10px] font-semibold hover:bg-gray-500/20 transition-all"
+              title="Publishing locked (Upgrade required)"
+            >
+              <Globe className="w-3.5 h-3.5 opacity-50" />
+              <span className="hidden sm:inline">Draft (Locked)</span>
+            </button>
+          )}
           <a
             href={`/invite/${slug}`}
             target="_blank"

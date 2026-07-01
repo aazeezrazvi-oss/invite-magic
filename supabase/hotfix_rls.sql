@@ -78,3 +78,8 @@ CREATE POLICY "Allow public select users owning invitations" ON public.users
     SELECT 1 FROM public.invitations
     WHERE invitations.user_id = users.id
   ));
+
+-- 6. Allow public SELECT on all invitations by slug (so guests can see the custom "Unpublished" screen)
+DROP POLICY IF EXISTS "Allow public read invitations" ON public.invitations;
+CREATE POLICY "Allow public read invitations" ON public.invitations FOR SELECT USING (true);
+
