@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useReducer } from 'react';
 import { use } from 'react';
 import Sidebar from '@/components/Editor/Sidebar';
 import Canvas from '@/components/Editor/Canvas';
@@ -67,42 +67,93 @@ const mockInvitation: Partial<Invitation> = {
   },
 };
 
-// Simple undo/redo history manager
-function useHistory<T>(initialState: T) {
-  const [history, setHistory] = useState<T[]>([initialState]);
-  const [pointer, setPointer] = useState(0);
+interface HistoryState<T> {
+  history: T[];
+  pointer: number;
+}
 
-  const current = history[pointer];
+type HistoryAction<T> =
+  | { type: 'PUSH'; state: T }
+  | { type: 'UNDO' }
+  | { type: 'REDO' }
+  | { type: 'RESET'; state: T };
+
+function historyReducer<T>(state: HistoryState<T>, action: HistoryAction<T>): HistoryState<T> {
+  switch (action.type) {
+    case 'PUSH': {
+      const nextHistory = state.history.slice(0, state.pointer + 1);
+      nextHistory.push(action.state);
+      if (nextHistory.length > 50) {
+        nextHistory.shift();
+      }
+      return {
+        history: nextHistory,
+        pointer: nextHistory.length - 1,
+      };
+    }
+    case 'UNDO': {
+      return {
+        ...state,
+        pointer: Math.max(0, state.pointer - 1),
+      };
+    }
+    case 'REDO': {
+      return {
+        ...state,
+        pointer: Math.min(state.history.length - 1, state.pointer + 1),
+      };
+    }
+    case 'RESET': {
+      return {
+        history: [action.state],
+        pointer: 0,
+      };
+    }
+    default:
+      return state;
+  }
+}
+
+// Atomic useReducer-based undo/redo manager
+function useHistory<T>(initialState: T) {
+  const [state, dispatch] = useReducer(historyReducer, {
+    history: [initialState],
+    pointer: 0,
+  });
+
+  const current = state.history[state.pointer] as T;
 
   const push = useCallback((newState: T) => {
-    setHistory(prev => {
-      const newHistory = prev.slice(0, pointer + 1);
-      newHistory.push(newState);
-      // Limit history to 50 entries
-      if (newHistory.length > 50) newHistory.shift();
-      return newHistory;
-    });
-    setPointer(prev => Math.min(prev + 1, 49));
-  }, [pointer]);
+    dispatch({ type: 'PUSH', state: newState });
+  }, []);
 
   const undo = useCallback(() => {
-    setPointer(prev => Math.max(0, prev - 1));
+    dispatch({ type: 'UNDO' });
   }, []);
 
   const redo = useCallback(() => {
-    setPointer(prev => Math.min(history.length - 1, prev + 1));
-  }, [history.length]);
+    dispatch({ type: 'REDO' });
+  }, []);
 
-  const canUndo = pointer > 0;
-  const canRedo = pointer < history.length - 1;
+  const reset = useCallback((newState: T) => {
+    dispatch({ type: 'RESET', state: newState });
+  }, []);
 
-  return { current, push, undo, redo, canUndo, canRedo };
+  const canUndo = state.pointer > 0;
+  const canRedo = state.pointer < state.history.length - 1;
+
+  return { current, push, undo, redo, reset, canUndo, canRedo };
 }
 
 export default function EditorPage({ params }: PageProps) {
   const { slug } = use(params);
   
-  const { current: invitation, push: pushHistory, undo, redo, canUndo, canRedo } = useHistory<Partial<Invitation>>(mockInvitation);
+  // Local active draft state for high-frequency user updates
+  const [invitation, setInvitation] = useState<Partial<Invitation>>(mockInvitation);
+  
+  // History state for low-frequency undo/redo operations
+  const { current: historyState, push: pushHistory, undo, redo, reset: resetHistory, canUndo, canRedo } = useHistory<Partial<Invitation>>(mockInvitation);
+  
   const [isSaving, setIsSaving] = useState(false);
   const [saveStatus, setSaveStatus] = useState<'idle' | 'success' | 'error'>('idle');
   const [isSupabaseWorking, setIsSupabaseWorking] = useState(true);
@@ -120,6 +171,13 @@ export default function EditorPage({ params }: PageProps) {
 
   // Debounce timer ref for history push
   const updateTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Sync draft state with history changes
+  useEffect(() => {
+    if (historyState) {
+      setInvitation(historyState);
+    }
+  }, [historyState]);
 
   const handlePaymentSuccess = () => {
     setHasPaid(true);
@@ -159,7 +217,8 @@ export default function EditorPage({ params }: PageProps) {
         try {
           const data = await getInvitationBySlug(slug);
           if (data) {
-            pushHistory(data);
+            setInvitation(data);
+            resetHistory(data);
           }
         } catch (e) {
           console.error("Failed to load live invite data:", e);
@@ -172,6 +231,7 @@ export default function EditorPage({ params }: PageProps) {
 
   const handleUpdate = (updatedFields: Partial<Invitation>) => {
     const nextVal = { ...invitation, ...updatedFields };
+    setInvitation(nextVal);
     localStorage.setItem(`invite_${slug}`, JSON.stringify(nextVal));
 
     // Debounce history push to avoid flooding undo stack on every keystroke
@@ -179,9 +239,6 @@ export default function EditorPage({ params }: PageProps) {
     updateTimer.current = setTimeout(() => {
       pushHistory(nextVal);
     }, 600);
-
-    // Immediate push for non-debounced render
-    pushHistory(nextVal);
   };
 
   const handleSave = async () => {
