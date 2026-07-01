@@ -1,11 +1,49 @@
 'use server';
 
-import { supabase } from '@/utils/supabase';
+import { createClient } from '@supabase/supabase-js';
+import { cookies } from 'next/headers';
 import { Invitation, RSVP, ReferralCode, MediaAsset } from '@/types';
 import { revalidatePath } from 'next/cache';
 
+// Helper to construct a dynamic, authenticated Supabase client for Server Actions using cookies
+async function getSupabase() {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
+  
+  try {
+    const cookieStore = await cookies();
+    // Look for Supabase auth cookie (usually starting with 'sb-' and ending with '-auth-token')
+    const authCookie = cookieStore.getAll().find(
+      c => c.name.startsWith('sb-') && c.name.endsWith('-auth-token')
+    );
+
+    if (authCookie) {
+      const sessionData = JSON.parse(authCookie.value);
+      // Supabase cookie format is an array where the first element is the access_token: [access_token, refresh_token, ...]
+      const accessToken = Array.isArray(sessionData)
+        ? sessionData[0]
+        : sessionData?.access_token;
+
+      if (accessToken) {
+        return createClient(supabaseUrl, supabaseAnonKey, {
+          global: {
+            headers: {
+              Authorization: `Bearer ${accessToken}`,
+            },
+          },
+        });
+      }
+    }
+  } catch (e) {
+    console.error('Error creating server Supabase client:', e);
+  }
+  
+  return createClient(supabaseUrl, supabaseAnonKey);
+}
+
 // Helper to fetch full invitation by slug
 export async function getInvitationBySlug(slug: string): Promise<Partial<Invitation> | null> {
+  const supabase = await getSupabase();
   try {
     const { data: invitation, error: inviteError } = await supabase
       .from('invitations')
@@ -57,6 +95,7 @@ export async function getInvitationBySlug(slug: string): Promise<Partial<Invitat
 
 // Action to upgrade subscription tier in the database
 export async function upgradeUserSubscription(userId: string, tier: 'basic' | 'premium' | 'vip'): Promise<boolean> {
+  const supabase = await getSupabase();
   try {
     const { error } = await supabase
       .from('users')
@@ -81,6 +120,7 @@ export async function upgradeUserSubscription(userId: string, tier: 'basic' | 'p
 // Action to save/update full invitation data
 export async function saveInvitation(invitationData: Partial<Invitation>): Promise<boolean> {
   if (!invitationData.id) return false;
+  const supabase = await getSupabase();
   
   try {
     const { id, styling, events, gift_collection, slug, ...coreDetails } = invitationData;
@@ -179,6 +219,7 @@ export async function saveInvitation(invitationData: Partial<Invitation>): Promi
 
 // Action to submit RSVP
 export async function submitRsvp(rsvp: Omit<RSVP, 'id' | 'created_at'>): Promise<boolean> {
+  const supabase = await getSupabase();
   try {
     const { error } = await supabase
       .from('rsvp')
@@ -197,6 +238,7 @@ export async function submitRsvp(rsvp: Omit<RSVP, 'id' | 'created_at'>): Promise
 
 // Action to trigger a mock gift transaction click
 export async function registerGiftClick(invitationId: string, senderName: string, amount: number, message: string): Promise<boolean> {
+  const supabase = await getSupabase();
   try {
     const { error } = await supabase
       .from('gift_transactions')
@@ -231,6 +273,7 @@ export async function getAdminDashboardData(): Promise<{
   referrals: ReferralCode[];
   mediaAssets: MediaAsset[];
 } | null> {
+  const supabase = await getSupabase();
   try {
     // 1. Fetch Users
     const { data: users, error: usersErr } = await supabase
@@ -308,6 +351,7 @@ export async function getAdminDashboardData(): Promise<{
 
 // Admin action to change a user's subscription tier
 export async function updateUserTierAdmin(userId: string, tier: 'free' | 'basic' | 'premium' | 'vip'): Promise<boolean> {
+  const supabase = await getSupabase();
   try {
     const { error } = await supabase
       .from('users')
@@ -328,6 +372,7 @@ export async function updateUserTierAdmin(userId: string, tier: 'free' | 'basic'
 
 // Admin action to toggle suspended status of invitation link
 export async function toggleInvitationSuspensionAdmin(invitationId: string, isSuspended: boolean): Promise<boolean> {
+  const supabase = await getSupabase();
   try {
     const { error } = await supabase
       .from('invitations')
@@ -347,6 +392,7 @@ export async function toggleInvitationSuspensionAdmin(invitationId: string, isSu
 
 // Admin action to create new referral codes
 export async function createReferralCodeAdmin(code: string, discountPercent: number): Promise<boolean> {
+  const supabase = await getSupabase();
   try {
     const cleanCode = code.trim().toUpperCase();
     const { error } = await supabase
@@ -366,6 +412,7 @@ export async function createReferralCodeAdmin(code: string, discountPercent: num
 
 // Admin action to delete referral codes
 export async function deleteReferralCodeAdmin(code: string): Promise<boolean> {
+  const supabase = await getSupabase();
   try {
     const { error } = await supabase
       .from('referral_codes')
@@ -382,6 +429,7 @@ export async function deleteReferralCodeAdmin(code: string): Promise<boolean> {
 
 // Admin action to create backgrounds/music assets
 export async function createMediaAssetAdmin(url: string, mediaType: 'image' | 'video' | 'music', filename: string): Promise<boolean> {
+  const supabase = await getSupabase();
   try {
     const { error } = await supabase
       .from('media_assets')
@@ -401,6 +449,7 @@ export async function createMediaAssetAdmin(url: string, mediaType: 'image' | 'v
 
 // Admin action to delete media assets
 export async function deleteMediaAssetAdmin(id: string): Promise<boolean> {
+  const supabase = await getSupabase();
   try {
     const { error } = await supabase
       .from('media_assets')
@@ -417,6 +466,7 @@ export async function deleteMediaAssetAdmin(id: string): Promise<boolean> {
 
 // Fetch media assets for editor popup selection
 export async function getMediaAssets(type?: 'image' | 'video' | 'music'): Promise<MediaAsset[]> {
+  const supabase = await getSupabase();
   try {
     let query = supabase.from('media_assets').select('*');
     if (type) {
@@ -433,6 +483,7 @@ export async function getMediaAssets(type?: 'image' | 'video' | 'music'): Promis
 
 // User action to apply a referral code to profile settings
 export async function applyReferralCode(userId: string, code: string | null): Promise<{ success: boolean; message: string; discountPercent?: number }> {
+  const supabase = await getSupabase();
   try {
     if (!code) {
       const { error } = await supabase
@@ -480,6 +531,7 @@ export async function applyReferralCode(userId: string, code: string | null): Pr
 
 // User action to fetch their active applied referral details
 export async function getAppliedReferralCode(userId: string): Promise<{ code: string; discount_percent: number } | null> {
+  const supabase = await getSupabase();
   try {
     const { data: userProfile, error: userErr } = await supabase
       .from('users')
@@ -510,4 +562,3 @@ export async function getAppliedReferralCode(userId: string): Promise<{ code: st
     return null;
   }
 }
-
