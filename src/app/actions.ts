@@ -18,7 +18,10 @@ async function getSupabase() {
       .filter(c => c.name.startsWith('sb-') && c.name.includes('-auth-token'))
       .sort((a, b) => a.name.localeCompare(b.name));
 
+    console.log(`[getSupabase] Matching auth cookies count: ${authCookies.length}`);
+
     if (authCookies.length > 0) {
+      console.log(`[getSupabase] Found cookies:`, authCookies.map(c => c.name));
       // Concatenate values from all chunks (or use single cookie if not chunked)
       const combinedValue = authCookies.map(c => c.value).join('');
       
@@ -29,7 +32,7 @@ async function getSupabase() {
         try {
           sessionData = JSON.parse(decodeURIComponent(combinedValue));
         } catch (err2) {
-          console.error('Failed to parse Supabase session cookie:', err1, err2);
+          console.error('[getSupabase] Failed to parse Supabase session cookie:', err1, err2);
         }
       }
 
@@ -40,6 +43,7 @@ async function getSupabase() {
           : sessionData?.access_token;
 
         if (accessToken) {
+          console.log(`[getSupabase] Successfully found accessToken (length: ${accessToken.length})`);
           return createClient(supabaseUrl, supabaseAnonKey, {
             global: {
               headers: {
@@ -47,8 +51,12 @@ async function getSupabase() {
               },
             },
           });
+        } else {
+          console.log(`[getSupabase] No accessToken found in parsed sessionData`);
         }
       }
+    } else {
+      console.log(`[getSupabase] No matching cookies found. Available cookies:`, cookieStore.getAll().map(c => c.name));
     }
   } catch (e) {
     console.error('Error creating server Supabase client:', e);
@@ -59,6 +67,7 @@ async function getSupabase() {
 
 // Helper to fetch full invitation by slug
 export async function getInvitationBySlug(slug: string): Promise<Partial<Invitation> | null> {
+  console.log(`[getInvitationBySlug] Fetching invitation for slug: "${slug}"`);
   const supabase = await getSupabase();
   try {
     const { data: invitation, error: inviteError } = await supabase
@@ -68,9 +77,10 @@ export async function getInvitationBySlug(slug: string): Promise<Partial<Invitat
       .single();
 
     if (inviteError || !invitation) {
-      console.error('Error fetching invitation:', inviteError);
+      console.error(`[getInvitationBySlug] Error fetching invitation for slug "${slug}":`, inviteError);
       return null;
     }
+    console.log(`[getInvitationBySlug] Successfully fetched invitation (ID: ${invitation.id}) for slug "${slug}"`);
 
     // Fetch the owner's subscription tier
     const { data: owner } = await supabase

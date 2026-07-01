@@ -150,6 +150,8 @@ export default function EditorPage({ params }: PageProps) {
   
   // Local active draft state for high-frequency user updates
   const [invitation, setInvitation] = useState<Partial<Invitation>>(mockInvitation);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   
   // History state for low-frequency undo/redo operations
   const { current: historyState, push: pushHistory, undo, redo, reset: resetHistory, canUndo, canRedo } = useHistory<Partial<Invitation>>(mockInvitation);
@@ -201,20 +203,22 @@ export default function EditorPage({ params }: PageProps) {
 
   useEffect(() => {
     async function loadData() {
-      const { data: { session } } = await supabase.auth.getSession();
-      const userEmail = session?.user?.email || localStorage.getItem('mock_user_email') || '';
-      
-      const isBypassUser = userEmail === 'abdulazeezrazvi125@gmail.com' || userEmail === 'abdulazeezrazvi97@gmail.com';
-      
-      if (isBypassUser) {
-        setHasPaid(true);
-      } else {
-        const paidStatus = localStorage.getItem(`invite_${slug}_paid`);
-        setHasPaid(paidStatus === 'true');
-      }
+      setIsLoading(true);
+      setLoadError(null);
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        const userEmail = session?.user?.email || localStorage.getItem('mock_user_email') || '';
+        
+        const isBypassUser = userEmail === 'abdulazeezrazvi125@gmail.com' || userEmail === 'abdulazeezrazvi97@gmail.com';
+        
+        if (isBypassUser) {
+          setHasPaid(true);
+        } else {
+          const paidStatus = localStorage.getItem(`invite_${slug}_paid`);
+          setHasPaid(paidStatus === 'true');
+        }
 
-      if (isSupabaseWorking) {
-        try {
+        if (isSupabaseWorking) {
           const data = await getInvitationBySlug(slug);
           if (data) {
             setInvitation(data);
@@ -224,10 +228,16 @@ export default function EditorPage({ params }: PageProps) {
             if (data.owner_tier && data.owner_tier !== 'free') {
               setHasPaid(true);
             }
+          } else {
+            console.error(`[loadData] Invitation not found or access denied for slug: ${slug}`);
+            setLoadError(`Couldn't load this invitation — it may not exist, or you don't have access to it.`);
           }
-        } catch (e) {
-          console.error("Failed to load live invite data:", e);
         }
+      } catch (e: any) {
+        console.error("Failed to load live invite data:", e);
+        setLoadError(`Failed to load invitation: ${e?.message || 'Unknown error'}`);
+      } finally {
+        setIsLoading(false);
       }
     }
     loadData();
@@ -247,6 +257,11 @@ export default function EditorPage({ params }: PageProps) {
   };
 
   const handleSave = async () => {
+    if (!invitation?.id) {
+      alert("❌ Save Failed: No valid invitation ID found. This invitation may not exist or has not finished loading.");
+      return;
+    }
+
     setIsSaving(true);
     setSaveStatus('idle');
 
@@ -286,6 +301,41 @@ export default function EditorPage({ params }: PageProps) {
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
   }, [undo, redo]);
+
+  if (isLoading) {
+    return (
+      <div className="flex flex-col items-center justify-center h-screen bg-[#0d0d11] text-white">
+        <div className="w-8 h-8 border-4 border-[#d4af37] border-t-transparent rounded-full animate-spin mb-4"></div>
+        <p className="text-gray-400 font-medium animate-pulse text-sm">Loading invitation editor...</p>
+      </div>
+    );
+  }
+
+  if (loadError) {
+    return (
+      <div className="flex flex-col items-center justify-center h-screen bg-[#0d0d11] text-white px-4 text-center">
+        <div className="bg-[#161622] border border-[#26263b] p-8 rounded-xl shadow-xl max-w-md w-full flex flex-col items-center">
+          <AlertCircle className="w-16 h-16 text-[#ef4444] mb-4 animate-bounce" />
+          <h2 className="text-xl font-bold mb-2 text-white">Error Loading Editor</h2>
+          <p className="text-gray-400 mb-6 text-sm leading-relaxed">{loadError}</p>
+          <div className="flex gap-4 w-full">
+            <Link 
+              href="/dashboard"
+              className="flex-1 py-2.5 px-4 bg-[#26263b] hover:bg-[#32324e] text-white rounded-lg font-medium transition-all text-sm block"
+            >
+              Go to Dashboard
+            </Link>
+            <button 
+              onClick={() => window.location.reload()}
+              className="flex-1 py-2.5 px-4 bg-[#d4af37] hover:bg-[#bfa232] text-black rounded-lg font-semibold transition-all text-sm"
+            >
+              Retry
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col h-[100dvh] overflow-hidden bg-[#0d0d11]">
