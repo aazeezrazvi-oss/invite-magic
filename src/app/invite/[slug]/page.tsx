@@ -101,10 +101,10 @@ export default function GuestInvitePage({ params }: PageProps) {
 
       try {
         const data = await getInvitationBySlug(slug);
-        if (data && data.is_suspended) {
-          setIsSuspended(true);
-          setInvitation(data);
-        } else if (data && data.is_published) {
+        if (data) {
+          if (data.is_suspended) {
+            setIsSuspended(true);
+          }
           setInvitation(data);
         } else {
           // Fallback to local storage or mock template

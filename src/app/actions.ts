@@ -12,26 +12,42 @@ async function getSupabase() {
   
   try {
     const cookieStore = await cookies();
-    // Look for Supabase auth cookie (usually starting with 'sb-' and ending with '-auth-token')
-    const authCookie = cookieStore.getAll().find(
-      c => c.name.startsWith('sb-') && c.name.endsWith('-auth-token')
-    );
+    
+    // Find all cookies matching Supabase auth pattern (sb-<project-ref>-auth-token or sb-<project-ref>-auth-token.<index>)
+    const authCookies = cookieStore.getAll()
+      .filter(c => c.name.startsWith('sb-') && c.name.includes('-auth-token'))
+      .sort((a, b) => a.name.localeCompare(b.name));
 
-    if (authCookie) {
-      const sessionData = JSON.parse(authCookie.value);
-      // Supabase cookie format is an array where the first element is the access_token: [access_token, refresh_token, ...]
-      const accessToken = Array.isArray(sessionData)
-        ? sessionData[0]
-        : sessionData?.access_token;
+    if (authCookies.length > 0) {
+      // Concatenate values from all chunks (or use single cookie if not chunked)
+      const combinedValue = authCookies.map(c => c.value).join('');
+      
+      let sessionData: any = null;
+      try {
+        sessionData = JSON.parse(combinedValue);
+      } catch (err1) {
+        try {
+          sessionData = JSON.parse(decodeURIComponent(combinedValue));
+        } catch (err2) {
+          console.error('Failed to parse Supabase session cookie:', err1, err2);
+        }
+      }
 
-      if (accessToken) {
-        return createClient(supabaseUrl, supabaseAnonKey, {
-          global: {
-            headers: {
-              Authorization: `Bearer ${accessToken}`,
+      if (sessionData) {
+        // Supabase cookie value can be [access_token, refresh_token...] or { access_token: ... }
+        const accessToken = Array.isArray(sessionData)
+          ? sessionData[0]
+          : sessionData?.access_token;
+
+        if (accessToken) {
+          return createClient(supabaseUrl, supabaseAnonKey, {
+            global: {
+              headers: {
+                Authorization: `Bearer ${accessToken}`,
+              },
             },
-          },
-        });
+          });
+        }
       }
     }
   } catch (e) {
