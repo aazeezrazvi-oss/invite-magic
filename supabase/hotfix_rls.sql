@@ -69,3 +69,12 @@ FROM auth.users
 WHERE email IN ('abdulazeezrazvi125@gmail.com', 'abdulazeezrazvi97@gmail.com')
 ON CONFLICT (id) DO UPDATE 
 SET role = 'admin', subscription_tier = 'vip', updated_at = now();
+
+-- 5. Allow public SELECT on users table if they own an invitation (to read subscription_tier)
+DROP POLICY IF EXISTS "Allow public select users owning invitations" ON public.users;
+CREATE POLICY "Allow public select users owning invitations" ON public.users
+  FOR SELECT
+  USING (EXISTS (
+    SELECT 1 FROM public.invitations
+    WHERE invitations.user_id = users.id
+  ));
