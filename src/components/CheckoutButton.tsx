@@ -4,6 +4,7 @@
 
 import React, { useState } from 'react';
 import { CreditCard } from 'lucide-react';
+import { createRazorpayOrder, upgradeUserTierMock } from '@/app/actions';
 
 interface CheckoutButtonProps {
   amount: number;
@@ -45,21 +46,25 @@ export default function CheckoutButton({
     }
 
     try {
-      // Mock order generation from a Server Action or Route
-      // In a live system, we fetch this from /api/order route
-      const mockOrderId = `order_mock_${Math.random().toString(36).substring(2, 9)}`;
+      // 1. Generate Order ID from Server Action
+      const orderRes = await createRazorpayOrder(tier, amount, userId);
+      if (!orderRes.success) {
+        alert(`❌ Failed to start checkout: ${orderRes.error}`);
+        setLoading(false);
+        return;
+      }
 
       const options = {
-        key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || 'rzp_test_placeholder_key',
+        key: orderRes.keyId,
         amount: amount * 100, // in paisa
         currency: 'INR',
         name: 'InviteMagic',
         description: `Upgrade to ${tier.toUpperCase()} Plan`,
         image: '/images/favicon.ico',
-        order_id: mockOrderId,
+        order_id: orderRes.orderId,
         prefill: {
           email: userEmail,
-          contact: '9999999999',
+          contact: '',
         },
         notes: {
           user_id: userId,
@@ -68,10 +73,23 @@ export default function CheckoutButton({
         theme: {
           color: '#d4af37', // Gold matching style theme
         },
-        handler: function (response: any) {
+        handler: async function (response: any) {
           console.log('Razorpay Payment success callback:', response);
-          alert(`Congratulations! Payment of ₹${amount} completed successfully.\nPayment ID: ${response.razorpay_payment_id}`);
-          if (onSuccess) onSuccess();
+          
+          if (orderRes.isMock) {
+            // Simulator Mode: Directly update tier
+            const upgradeRes = await upgradeUserTierMock(userId, tier);
+            if (upgradeRes.success) {
+              alert(`🎉 [Demo Mode] Mock payment of ₹${amount} completed successfully!\nYour account has been upgraded to ${tier.toUpperCase()}!`);
+              if (onSuccess) onSuccess();
+            } else {
+              alert(`❌ [Demo Mode] Payment completed, but failed to upgrade account: ${upgradeRes.error}`);
+            }
+          } else {
+            // Live production mode: Webhook will captured status update
+            alert(`🎉 Payment of ₹${amount} completed successfully!\nWe are activating your ${tier.toUpperCase()} access now. Please refresh in a moment.`);
+            if (onSuccess) onSuccess();
+          }
         },
       };
 

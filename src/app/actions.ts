@@ -4,6 +4,7 @@ import { createClient } from '@supabase/supabase-js';
 import { cookies } from 'next/headers';
 import { Invitation, RSVP, ReferralCode, MediaAsset } from '@/types';
 import { revalidatePath } from 'next/cache';
+import Razorpay from 'razorpay';
 
 // Helper to construct a dynamic, authenticated Supabase client for Server Actions using cookies
 async function getSupabase() {
@@ -601,5 +602,85 @@ export async function getAppliedReferralCode(userId: string): Promise<{ code: st
   } catch (error) {
     console.error('Error in getAppliedReferralCode:', error);
     return null;
+  }
+}
+
+// Server Action to generate a real (or mock fallback) Razorpay Order ID securely
+export async function createRazorpayOrder(tier: 'basic' | 'premium' | 'vip', amount: number, userId: string) {
+  const keyId = process.env.RAZORPAY_KEY_ID || process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID;
+  const keySecret = process.env.RAZORPAY_KEY_SECRET;
+
+  if (!keyId || !keySecret) {
+    console.warn('[createRazorpayOrder] Razorpay credentials missing. Falling back to mock order.');
+    return {
+      success: true,
+      isMock: true,
+      orderId: `order_mock_${Math.random().toString(36).substring(2, 9)}`,
+      keyId: 'rzp_test_placeholder_key',
+    };
+  }
+
+  try {
+    const razorpayInstance = new Razorpay({
+      key_id: keyId,
+      key_secret: keySecret,
+    });
+
+    const order = await razorpayInstance.orders.create({
+      amount: amount * 100, // in paisa
+      currency: 'INR',
+      receipt: `receipt_${tier}_${userId.substring(0, 8)}_${Date.now()}`,
+      notes: {
+        user_id: userId,
+        tier: tier,
+      },
+    });
+
+    return {
+      success: true,
+      isMock: false,
+      orderId: order.id,
+      keyId,
+    };
+  } catch (error: any) {
+    console.error('[createRazorpayOrder] Failed to create Razorpay order:', error);
+    return {
+      success: false,
+      error: error.message || 'Failed to initialize payment order',
+    };
+  }
+}
+
+// Server Action to directly upgrade user tier for mock/demo checkouts
+export async function upgradeUserTierMock(userId: string, tier: 'basic' | 'premium' | 'vip') {
+  const supabase = await getSupabase();
+  try {
+    let expiryDate: string | null = null;
+    const now = new Date();
+    if (tier === 'basic') {
+      now.setMonth(now.getMonth() + 6);
+      expiryDate = now.toISOString();
+    } else if (tier === 'premium') {
+      now.setFullYear(now.getFullYear() + 1);
+      expiryDate = now.toISOString();
+    }
+
+    const { error } = await supabase
+      .from('users')
+      .update({
+        subscription_tier: tier,
+        subscription_expires_at: expiryDate,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', userId);
+
+    if (error) {
+      console.error('[upgradeUserTierMock] Error upgrading user:', error);
+      return { success: false, error: error.message };
+    }
+    return { success: true };
+  } catch (err: any) {
+    console.error('[upgradeUserTierMock] Exception:', err);
+    return { success: false, error: err.message };
   }
 }
