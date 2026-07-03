@@ -233,15 +233,9 @@ export default function Dashboard() {
 
   // Handle successful upgrade checkout
   const handleUpgradeSuccess = async (purchasedTier: 'basic' | 'premium' | 'vip') => {
-    if (userId) {
-      const ok = await upgradeUserSubscription(userId, purchasedTier);
-      if (ok) {
-        alert(`Upgrade to ${purchasedTier.toUpperCase()} plan active!`);
-        loadUserAndData();
-      } else {
-        alert('Payment completed, but database update failed. Please contact support.');
-      }
-    }
+    // The account upgrade is already verified and written to the database on the server.
+    // We only need to refresh our local dashboard state to reflect the upgrade.
+    loadUserAndData();
   };
 
   // Handle Profile Update (Fixed race condition by combining metadata and password calls)

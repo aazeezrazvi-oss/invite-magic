@@ -4,7 +4,7 @@
 
 import React, { useState } from 'react';
 import { CreditCard } from 'lucide-react';
-import { createRazorpayOrder, upgradeUserTierMock } from '@/app/actions';
+import { createRazorpayOrder, upgradeUserTierMock, verifyRazorpayPayment } from '@/app/actions';
 
 interface CheckoutButtonProps {
   amount: number;
@@ -86,9 +86,29 @@ export default function CheckoutButton({
               alert(`❌ [Demo Mode] Payment completed, but failed to upgrade account: ${upgradeRes.error}`);
             }
           } else {
-            // Live production mode: Webhook will captured status update
-            alert(`🎉 Payment of ₹${amount} completed successfully!\nWe are activating your ${tier.toUpperCase()} access now. Please refresh in a moment.`);
-            if (onSuccess) onSuccess();
+            // Live production mode: Verify payment signature securely on the server!
+            setLoading(true);
+            try {
+              const verifyRes = await verifyRazorpayPayment(
+                response.razorpay_payment_id,
+                response.razorpay_order_id,
+                response.razorpay_signature,
+                tier,
+                userId
+              );
+              
+              if (verifyRes.success) {
+                alert(`🎉 Payment of ₹${amount} verified successfully!\nYour account has been upgraded to ${tier.toUpperCase()}!`);
+                if (onSuccess) onSuccess();
+              } else {
+                alert(`❌ Payment completed, but verification failed: ${verifyRes.error || 'Invalid signature'}`);
+              }
+            } catch (err: any) {
+              console.error('Error verifying payment:', err);
+              alert('Error verifying payment. Please contact support.');
+            } finally {
+              setLoading(false);
+            }
           }
         },
       };

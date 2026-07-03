@@ -1,8 +1,41 @@
 import { NextRequest, NextResponse } from 'next/server';
 import crypto from 'crypto';
-import { supabase } from '@/utils/supabase';
+import { createClient } from '@supabase/supabase-js';
+import { rateLimitRequest } from '@/utils/rateLimiter';
+
+// Initialize a secure, server-side admin client using the service role key to bypass RLS
+function getServiceSupabase() {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
+  if (!serviceRoleKey) {
+    throw new Error('Critical Configuration Error: SUPABASE_SERVICE_ROLE_KEY is not set.');
+  }
+  return createClient(supabaseUrl, serviceRoleKey, {
+    auth: {
+      persistSession: false,
+      autoRefreshToken: false,
+    }
+  });
+}
+
+// Helper to get client IP for rate limiting
+function getClientIp(req: NextRequest): string {
+  const xForwardedFor = req.headers.get('x-forwarded-for');
+  if (xForwardedFor) {
+    return xForwardedFor.split(',')[0].trim();
+  }
+  return req.headers.get('x-real-ip') || '127.0.0.1';
+}
 
 export async function POST(req: NextRequest) {
+  const ip = getClientIp(req);
+  
+  // 1. Rate Limiting Check (protect against spamming webhook endpoints)
+  const rateLimit = await rateLimitRequest(`rate_limit:webhook_razorpay:${ip}`, 10, 0.5); // 10 burst, 1 refill per 2 sec
+  if (!rateLimit.success) {
+    return NextResponse.json({ error: 'Too many requests' }, { status: 429 });
+  }
+
   try {
     const rawBody = await req.text();
     const signature = req.headers.get('x-razorpay-signature');
@@ -13,7 +46,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Missing signature' }, { status: 400 });
     }
 
-    // 1. Verify Razorpay signature securely
+    // 2. Verify Razorpay webhook signature securely using HMAC SHA256
     const expectedSignature = crypto
       .createHmac('sha256', secret)
       .update(rawBody)
@@ -24,7 +57,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Invalid signature' }, { status: 400 });
     }
 
-    // 2. Parse payload event details
+    // 3. Parse payload event details
     const payload = JSON.parse(rawBody);
     const event = payload.event;
 
@@ -40,26 +73,28 @@ export async function POST(req: NextRequest) {
 
       console.log(`Payment captured: order_id=${orderId}, payment_id=${paymentId}, amount=${amount}, user_id=${userId}`);
 
-      // 3. Log transaction inside Payments log
       const tier = amount >= 999 ? 'vip' : amount >= 499 ? 'premium' : 'basic';
       
-      const { error: paymentInsertError } = await supabase
+      const supabaseAdmin = getServiceSupabase();
+
+      // 4. Log transaction inside Payments log (via service role client)
+      const { error: paymentInsertError } = await supabaseAdmin
         .from('payments')
         .upsert({
           order_id: orderId,
           payment_id: paymentId,
           amount,
           status: 'captured',
-          tier
+          tier,
+          user_id: userId,
         });
 
       if (paymentInsertError) {
         console.error('Database Error: Failed to insert payment log:', paymentInsertError);
       }
 
-      // 4. Update User Account subscription tier
+      // 5. Update User Account subscription tier (via service role client)
       if (userId) {
-        // Calculate subscription expiration time based on tier (Basic: 6 months, Premium: 1 year, VIP: Lifetime)
         let expiryDate: string | null = null;
         const now = new Date();
         if (tier === 'basic') {
@@ -70,7 +105,7 @@ export async function POST(req: NextRequest) {
           expiryDate = now.toISOString();
         }
 
-        const { error: userUpdateError } = await supabase
+        const { error: userUpdateError } = await supabaseAdmin
           .from('users')
           .update({
             subscription_tier: tier,

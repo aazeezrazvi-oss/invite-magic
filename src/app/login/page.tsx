@@ -180,21 +180,17 @@ export default function LoginPage() {
         // Try to ensure profile row exists (backup for when trigger doesn't exist)
         if (data?.user?.id) {
           try {
-            await supabase.from('users').upsert({
-              id: data.user.id,
-              email: data.user.email || email,
-              role: 'user',
-              subscription_tier: promoCode.toUpperCase() === 'LIFETIMEFREE' || promoCode.toUpperCase() === 'FREEVIP' ? 'vip' : 'free',
-            }, { onConflict: 'id' });
+            // Import and call secure Server Action to apply promo code if provided
+            if (promoCode.trim()) {
+              const { applySignupPromoCode } = await import('@/app/actions');
+              const promoRes = await applySignupPromoCode(data.user.id, promoCode);
+              if (promoRes.success) {
+                localStorage.setItem('invite_abdul-sana_paid', 'true');
+              }
+            }
           } catch (profileErr) {
-            // Not critical — trigger may have already created it, or table may not exist
-            console.log('Profile upsert note (non-critical):', profileErr);
+            console.log('Profile promo application note:', profileErr);
           }
-        }
-
-        // Handle promo code locally
-        if (promoCode.toUpperCase() === 'LIFETIMEFREE' || promoCode.toUpperCase() === 'FREEVIP') {
-          localStorage.setItem('invite_abdul-sana_paid', 'true');
         }
 
         setMessage({
@@ -213,7 +209,7 @@ export default function LoginPage() {
         console.log('Login response:', { data, error });
 
         if (error) {
-          throw new Error(error.message || 'Invalid email or password.');
+          throw new Error('Incorrect email or password.');
         }
 
         router.push('/dashboard');
@@ -221,9 +217,11 @@ export default function LoginPage() {
       }
     } catch (err: unknown) {
       console.error('Auth error (full):', err);
+      // For sign-in errors, show a secure, generic error message
+      const errMsg = !isSignUp ? 'Incorrect email or password.' : getErrorMessage(err);
       setMessage({
         type: 'error',
-        text: getErrorMessage(err),
+        text: errMsg,
       });
     } finally {
       setLoading(false);

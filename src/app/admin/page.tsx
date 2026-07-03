@@ -180,39 +180,24 @@ export default function AdminDashboard() {
 
   // Handle User Subscription Tier Change
   const handleUpdateUserTier = async (userId: string, tier: 'free' | 'basic' | 'premium' | 'vip') => {
-    const { error } = await supabase
-      .from('users')
-      .update({
-        subscription_tier: tier,
-        subscription_expires_at: tier === 'free' ? null : new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString(),
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', userId);
-
-    if (!error) {
+    const success = await updateUserTierAdmin(userId, tier);
+    if (success) {
       setUsers(prev => prev.map(u => u.id === userId ? { ...u, subscription_tier: tier } : u));
       alert('Customer tier updated successfully!');
     } else {
-      alert('Failed to update customer subscription tier: ' + error.message);
+      alert('Failed to update customer subscription tier (Unauthorized or server error).');
     }
   };
 
   // Handle Suspend/Activate Invitation link
   const handleToggleSuspension = async (invitationId: string, currentSuspended: boolean) => {
     const nextStatus = !currentSuspended;
-    const { error } = await supabase
-      .from('invitations')
-      .update({
-        is_suspended: nextStatus,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', invitationId);
-
-    if (!error) {
+    const success = await toggleInvitationSuspensionAdmin(invitationId, nextStatus);
+    if (success) {
       setInvitations(prev => prev.map(inv => inv.id === invitationId ? { ...inv, is_suspended: nextStatus } : inv));
       alert(`Invitation link ${nextStatus ? 'suspended' : 'activated'} successfully!`);
     } else {
-      alert('Failed to update suspension status: ' + error.message);
+      alert('Failed to update suspension status (Unauthorized or server error).');
     }
   };
 
@@ -223,21 +208,15 @@ export default function AdminDashboard() {
     setAddingReferral(true);
     
     const cleanCode = newRefCode.trim().toUpperCase();
-    const { error } = await supabase
-      .from('referral_codes')
-      .insert({
-        code: cleanCode,
-        discount_percent: newRefDiscount,
-      });
+    const success = await createReferralCodeAdmin(cleanCode, newRefDiscount);
 
-    if (!error) {
+    if (success) {
       setNewRefCode('');
       setNewRefDiscount(20);
       loadAllData();
       alert('Referral discount code created!');
     } else {
-      console.error("Error creating referral code:", error);
-      alert('Failed to create code: ' + error.message);
+      alert('Failed to create code (Validation failed, unauthorized, or duplicate).');
     }
     setAddingReferral(false);
   };
@@ -245,16 +224,13 @@ export default function AdminDashboard() {
   // Delete Referral Code
   const handleDeleteReferral = async (code: string) => {
     if (!confirm(`Are you sure you want to delete referral code "${code}"?`)) return;
-    const { error } = await supabase
-      .from('referral_codes')
-      .delete()
-      .eq('code', code);
+    const success = await deleteReferralCodeAdmin(code);
 
-    if (!error) {
+    if (success) {
       setReferrals(prev => prev.filter(ref => ref.code !== code));
       alert('Referral code deleted.');
     } else {
-      alert('Failed to delete referral code: ' + error.message);
+      alert('Failed to delete referral code (Unauthorized or server error).');
     }
   };
 
@@ -264,21 +240,15 @@ export default function AdminDashboard() {
     if (!newMediaUrl.trim() || !newMediaName.trim()) return;
     setAddingMedia(true);
 
-    const { error } = await supabase
-      .from('media_assets')
-      .insert({
-        url: newMediaUrl.trim(),
-        media_type: newMediaType,
-        filename: newMediaName.trim(),
-      });
+    const success = await createMediaAssetAdmin(newMediaUrl.trim(), newMediaType, newMediaName.trim());
 
-    if (!error) {
+    if (success) {
       setNewMediaUrl('');
       setNewMediaName('');
       loadAllData();
       alert('Media asset registered successfully!');
     } else {
-      alert('Failed to register media asset: ' + error.message);
+      alert('Failed to register media asset (Validation failed, unauthorized, or server error).');
     }
     setAddingMedia(false);
   };
@@ -306,19 +276,13 @@ export default function AdminDashboard() {
         .from('photos')
         .getPublicUrl(filePath);
 
-      const { error: dbErr } = await supabase
-        .from('media_assets')
-        .insert({
-          url: publicUrl,
-          media_type: type,
-          filename: file.name.split('.')[0],
-        });
+      const success = await createMediaAssetAdmin(publicUrl, type, file.name.split('.')[0]);
 
-      if (!dbErr) {
+      if (success) {
         loadAllData();
         alert('Media asset uploaded and registered!');
       } else {
-        alert('File uploaded, but database registration failed: ' + dbErr.message);
+        alert('File uploaded, but database registration failed (Unauthorized or server error).');
       }
     } catch (err: any) {
       console.error(err);
@@ -331,16 +295,13 @@ export default function AdminDashboard() {
   // Delete Media Asset
   const handleDeleteMedia = async (id: string) => {
     if (!confirm('Are you sure you want to remove this media asset?')) return;
-    const { error } = await supabase
-      .from('media_assets')
-      .delete()
-      .eq('id', id);
+    const success = await deleteMediaAssetAdmin(id);
 
-    if (!error) {
+    if (success) {
       setMediaAssets(prev => prev.filter(media => media.id !== id));
       alert('Media asset deleted.');
     } else {
-      alert('Failed to delete media asset: ' + error.message);
+      alert('Failed to delete media asset (Unauthorized or server error).');
     }
   };
 
