@@ -486,6 +486,12 @@ export default function LoginPage() {
                 </button>
               </p>
             </div>
+
+            <div className="text-center pt-4 border-t border-[#26263b]/30 mt-4 text-[10px] text-gray-500 flex justify-center gap-3">
+              <Link href="/terms" className="hover:text-gray-300 transition-colors">Terms of Service</Link>
+              <span>•</span>
+              <Link href="/privacy" className="hover:text-gray-300 transition-colors">Privacy Policy</Link>
+            </div>
           </>
         )}
 

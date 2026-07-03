@@ -417,6 +417,11 @@ export default function LandingPage() {
             <span className="font-bold font-cinzel text-white">InviteMagic</span>
           </div>
           <p>© 2026 InviteMagic. All rights reserved. Made for love and weddings.</p>
+          <div className="flex gap-4 mt-2 md:mt-0">
+            <Link href="/terms" className="hover:text-white transition-colors">Terms & Conditions</Link>
+            <span className="text-[#26263b]">|</span>
+            <Link href="/privacy" className="hover:text-white transition-colors">Privacy Policy</Link>
+          </div>
         </div>
       </footer>
 
