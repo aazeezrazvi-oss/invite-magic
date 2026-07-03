@@ -126,10 +126,10 @@ export async function populateBloomFilter(): Promise<void> {
   console.log('[BloomFilter] Initializing Bloom Filter from database...');
   try {
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
-    const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
+    const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
     
-    // We can use a direct anonymous query since SELECT on public invitations is permitted
-    const supabaseClient = createClient(supabaseUrl, supabaseAnonKey);
+    // We use the service role client so that draft/unpublished invitations are loaded too
+    const supabaseClient = createClient(supabaseUrl, serviceRoleKey);
     const { data: invitations, error } = await supabaseClient
       .from('invitations')
       .select('slug');

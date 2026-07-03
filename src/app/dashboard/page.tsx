@@ -9,7 +9,7 @@ import {
 import { RSVP, GiftTransaction } from '@/types';
 import CheckoutButton from '@/components/CheckoutButton';
 import { supabase } from '@/utils/supabase';
-import { upgradeUserSubscription, applyReferralCode, getAppliedReferralCode } from '@/app/actions';
+import { upgradeUserSubscription, applyReferralCode, getAppliedReferralCode, createDefaultInvitation } from '@/app/actions';
 
 export default function Dashboard() {
   const router = useRouter();
@@ -146,46 +146,10 @@ export default function Dashboard() {
           .maybeSingle();
 
         if (!userInvite) {
-          // Auto-create default invitation
-          const baseSlug = currentEmail ? currentEmail.split('@')[0].replace(/[^a-zA-Z0-9]/g, '') : 'wedding';
-          const newSlug = `${baseSlug}-${Math.random().toString(36).substring(2, 6)}`;
-          
-          const { data: createdInvite } = await supabase
-            .from('invitations')
-            .insert({
-              user_id: currentUserId,
-              slug: newSlug,
-              groom_name: 'Abdul',
-              bride_name: 'Sana',
-              is_published: false,
-            })
-            .select('*')
-            .single();
-            
+          // Auto-create default invitation securely on server (registers slug in Bloom Filter)
+          const createdInvite = await createDefaultInvitation(currentUserId, currentEmail);
           if (createdInvite) {
             userInvite = createdInvite;
-            // Create default styling
-            await supabase.from('styling_preferences').insert({
-              invitation_id: createdInvite.id,
-              primary_color: '#d4af37',
-              secondary_color: '#aa7c11',
-              background_color: '#0d0d11',
-              text_color: '#f3f4f6',
-              font_heading: 'cinzel',
-              font_body: 'inter',
-              section_order: ['hero', 'countdown', 'story', 'events', 'gallery', 'rsvp', 'gifts'],
-              animation_style: 'fade',
-              button_style: 'gold-border',
-              countdown_style: 'circles',
-              gallery_layout: 'grid',
-              background_type: 'gradient',
-            });
-            // Create default gift collection details
-            await supabase.from('gift_collection_details').insert({
-              invitation_id: createdInvite.id,
-              upi_id: 'shadi@okaxis',
-              receiver_name: 'Abdul & Sana',
-            });
           }
         }
 

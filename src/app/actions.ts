@@ -246,6 +246,73 @@ export async function getInvitationBySlug(slug: string): Promise<Partial<Invitat
   });
 }
 
+// Action to auto-create a default invitation securely on the server (adds slug to Bloom Filter)
+export async function createDefaultInvitation(userId: string, email: string): Promise<any> {
+  const ip = await getClientIp();
+  const rateLimit = await rateLimitRequest(`rate_limit:create_invite:${ip}`, 5, 0.1);
+  if (!rateLimit.success) {
+    console.warn(`[createDefaultInvitation] Rate limit exceeded for IP: ${ip}`);
+    return null;
+  }
+
+  const supabase = await getSupabase();
+  const baseSlug = email ? email.split('@')[0].replace(/[^a-zA-Z0-9]/g, '') : 'wedding';
+  const newSlug = `${baseSlug}-${Math.random().toString(36).substring(2, 6)}`.toLowerCase();
+
+  try {
+    const { data: createdInvite, error: inviteErr } = await supabase
+      .from('invitations')
+      .insert({
+        user_id: userId,
+        slug: newSlug,
+        groom_name: 'Abdul',
+        bride_name: 'Sana',
+        is_published: false,
+      })
+      .select('*')
+      .single();
+
+    if (inviteErr || !createdInvite) {
+      console.error('[createDefaultInvitation] Database error:', inviteErr);
+      return null;
+    }
+
+    // Add to Bloom Filter
+    await addSlugToFilter(newSlug);
+
+    // Styling preferences are created by DB defaults or we can insert them here
+    await supabase.from('styling_preferences').insert({
+      invitation_id: createdInvite.id,
+      primary_color: '#d4af37',
+      secondary_color: '#aa7c11',
+      background_color: '#0d0d11',
+      text_color: '#f3f4f6',
+      font_heading: 'cinzel',
+      font_body: 'inter',
+      section_order: ['hero', 'countdown', 'story', 'events', 'gallery', 'rsvp', 'gifts'],
+      animation_style: 'fade',
+      button_style: 'gold-border',
+      countdown_style: 'circles',
+      gallery_layout: 'grid',
+      background_type: 'gradient',
+    });
+
+    await supabase.from('gift_collection_details').insert({
+      invitation_id: createdInvite.id,
+      upi_id: 'shadi@okaxis',
+      receiver_name: 'Abdul & Sana',
+      thank_you_message: 'Your blessings are enough, but if you wish to bless us further, you may send a digital shagun.',
+    });
+
+    // Return the created invitation
+    const fullyLoaded = await getInvitationBySlug(newSlug);
+    return fullyLoaded;
+  } catch (err) {
+    console.error('[createDefaultInvitation] Exception:', err);
+    return null;
+  }
+}
+
 // Insecure direct upgrade action (Disabled in production for security, restricted to admin fallback)
 export async function upgradeUserSubscription(userId: string, tier: 'basic' | 'premium' | 'vip'): Promise<boolean> {
   const keySecret = process.env.RAZORPAY_KEY_SECRET;
