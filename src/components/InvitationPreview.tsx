@@ -65,6 +65,8 @@ export default function InvitationPreview({
   const [isCoverFading, setIsCoverFading] = useState(false);
   
   const isBurgundyTheme = styling.secondary_color === '#580b14' || styling.secondary_color === '#6b0c1b' || styling.secondary_color === '#5a1846';
+  const isKalyanam = styling.secondary_color === '#5c0c1b' || styling.font_heading === 'kannada';
+  const isRoyalWreath = styling.secondary_color === '#2e0854';
 
   // 35 Floating flower petals and gold blossoms for the inner page background (increased density)
   const innerPetals = [
@@ -651,6 +653,135 @@ export default function InvitationPreview({
 
     switch (sectionName) {
       case 'hero':
+        if (isKalyanam) {
+          return (
+            <motion.section 
+              key="hero"
+              initial="hidden"
+              whileInView="visible"
+              viewport={{ once: true }}
+              variants={animationVariants}
+              className="min-h-screen flex flex-col justify-center items-center text-center p-6 relative overflow-hidden bg-gradient-to-br from-[#4c0519] via-[#2b030d] to-[#120005]"
+            >
+              {/* Ornate Gold Gopuram (Temple Tower) SVG */}
+              <svg className="w-72 h-72 md:w-[420px] md:h-[420px] text-[#d4af37] opacity-[0.08] absolute right-[-40px] bottom-[-20px] pointer-events-none select-none" viewBox="0 0 100 120" fill="currentColor">
+                <path d="M 40,20 L 60,20 L 62,30 L 38,30 Z" />
+                <path d="M 36,30 L 64,30 L 66,45 L 34,45 Z" />
+                <path d="M 30,45 L 70,45 L 73,65 L 27,65 Z" />
+                <path d="M 22,65 L 78,65 L 82,90 L 18,90 Z" />
+                <path d="M 12,90 L 88,90 L 92,120 L 8,120 Z" />
+                <circle cx="50" cy="10" r="3" />
+                <path d="M 47,10 Q 50,2 53,10 Z" />
+              </svg>
+
+              {/* Lotus decorations */}
+              <div className="absolute top-0 left-0 w-full flex justify-between p-4 opacity-25 pointer-events-none">
+                <svg className="w-24 h-24 text-[#d4af37]" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M12,22C17.52,22 22,17.52 22,12C22,6.48 17.52,2 12,2C6.48,2 2,6.48 2,12C2,17.52 6.48,22 12,22M12,4C16.41,4 20,7.59 20,12C20,16.41 16.41,20 12,20C7.59,20 4,16.41 4,12C4,7.59 7.59,4 12,4Z" />
+                </svg>
+                <svg className="w-24 h-24 text-[#d4af37] scale-x-[-1]" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M12,22C17.52,22 22,17.52 22,12C22,6.48 17.52,2 12,2C6.48,2 2,6.48 2,12C2,17.52 6.48,22 12,22M12,4C16.41,4 20,7.59 20,12C20,16.41 16.41,20 12,20C7.59,20 4,16.41 4,12C4,7.59 7.59,4 12,4Z" />
+                </svg>
+              </div>
+
+              <div className="max-w-2xl z-10 px-4">
+                <span className="text-[var(--primary-color)] uppercase tracking-[0.3em] text-sm font-semibold block mb-4 select-none font-serif">
+                  Kalyanam
+                </span>
+                <h1 className={`${getHeadingFontClass()} text-5xl @lg:text-7xl text-[var(--primary-color)] my-6 text-center leading-tight drop-shadow-[0_2px_10px_rgba(212,175,55,0.3)]`}>
+                  <span className="block my-1">{invitation.groom_name || 'Groom'}</span>
+                  <span className="text-2xl font-serif block my-2 opacity-80">&</span>
+                  <span className="block my-1">{invitation.bride_name || 'Bride'}</span>
+                </h1>
+                
+                <p className="text-lg italic opacity-90 my-6 max-w-md mx-auto leading-relaxed text-[#fef08a]">
+                  {invitation.invitation_message || 'Please join us as we celebrate our love and begin our new journey together.'}
+                </p>
+
+                {events[0] && (
+                  <div className="mt-8 flex flex-col items-center gap-2 opacity-95 py-4 max-w-sm mx-auto">
+                    <span className="font-semibold text-xl text-[var(--primary-color)]">
+                      {new Date(events[0].event_date + 'T00:00:00').toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+                    </span>
+                    <span className="text-sm tracking-wider opacity-90 text-[#fef08a]">
+                      At {events[0].event_time.slice(0, 5)}
+                    </span>
+                    <div className="w-24 h-[1.5px] bg-gradient-to-r from-transparent via-[var(--primary-color)] to-transparent mt-4" />
+                  </div>
+                )}
+              </div>
+            </motion.section>
+          );
+        }
+
+        if (isRoyalWreath) {
+          return (
+            <motion.section 
+              key="hero"
+              initial="hidden"
+              whileInView="visible"
+              viewport={{ once: true }}
+              variants={animationVariants}
+              className="min-h-screen flex flex-col justify-center items-center text-center p-6 relative overflow-hidden"
+            >
+              <div className="absolute inset-0 opacity-10 pointer-events-none mix-blend-overlay" 
+                   style={{ backgroundImage: `url('/images/pattern-gold.png')`, backgroundSize: 'cover' }} />
+              
+              <div className="max-w-2xl z-10 px-4">
+                <span className="text-[var(--primary-color)] uppercase tracking-[0.25em] text-xs font-semibold block mb-8 select-none">
+                  Are Cordially Invited To Attend The Wedding Of
+                </span>
+
+                {/* Leaf Wreath SVG frame enclosing the couple names */}
+                <div className="relative mb-8 flex justify-center items-center">
+                  <svg className="w-64 h-64 md:w-80 md:h-80 text-[var(--primary-color)] drop-shadow-[0_0_15px_rgba(212,175,55,0.45)]" viewBox="0 0 100 100" fill="none" stroke="currentColor" strokeWidth="1.2">
+                    {/* Left wreath branch */}
+                    <path d="M 50,85 C 22,85 18,50 32,25" strokeLinecap="round" />
+                    <path d="M 32,25 Q 28,20 24,23 Q 28,27 32,25" fill="currentColor" />
+                    <path d="M 30,38 Q 24,34 20,37 Q 24,41 30,38" fill="currentColor" />
+                    <path d="M 28,52 Q 20,50 17,54 Q 21,57 28,52" fill="currentColor" />
+                    <path d="M 32,66 Q 26,67 24,72 Q 28,73 32,66" fill="currentColor" />
+                    <path d="M 40,78 Q 34,82 33,87 Q 38,86 40,78" fill="currentColor" />
+
+                    {/* Right wreath branch */}
+                    <path d="M 50,85 C 78,85 82,50 68,25" strokeLinecap="round" />
+                    <path d="M 68,25 Q 72,20 76,23 Q 72,27 68,25" fill="currentColor" />
+                    <path d="M 70,38 Q 76,34 80,37 Q 76,41 70,38" fill="currentColor" />
+                    <path d="M 72,52 Q 80,50 83,54 Q 79,57 72,52" fill="currentColor" />
+                    <path d="M 68,66 Q 74,67 76,72 Q 72,73 68,66" fill="currentColor" />
+                    <path d="M 60,78 Q 66,82 67,87 Q 62,86 60,78" fill="currentColor" />
+                    
+                    <circle cx="50" cy="85" r="2" fill="currentColor" />
+                  </svg>
+                  
+                  <div className="absolute inset-0 flex flex-col justify-center items-center text-center p-8 font-serif">
+                    <h1 className={`${getHeadingFontClass()} text-3xl md:text-4xl font-light text-[var(--primary-color)] max-w-[200px] leading-relaxed drop-shadow-md`}>
+                      <span className="block">{invitation.groom_name || 'Groom'}</span>
+                      <span className="text-xl font-serif opacity-75 block my-1">&</span>
+                      <span className="block">{invitation.bride_name || 'Bride'}</span>
+                    </h1>
+                  </div>
+                </div>
+
+                <p className="text-md opacity-90 my-4 max-w-md mx-auto leading-relaxed">
+                  {invitation.invitation_message || 'Please join us as we celebrate our love and begin our new journey together.'}
+                </p>
+
+                {events[0] && (
+                  <div className="mt-6 flex flex-col items-center gap-1.5 opacity-95">
+                    <span className="font-semibold text-lg text-[var(--primary-color)]">
+                      {new Date(events[0].event_date + 'T00:00:00').toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+                    </span>
+                    <span className="text-sm tracking-wider opacity-80">
+                      At {events[0].event_time.slice(0, 5)}
+                    </span>
+                  </div>
+                )}
+              </div>
+            </motion.section>
+          );
+        }
+
         return (
           <motion.section 
             key="hero"
@@ -729,7 +860,41 @@ export default function InvitationPreview({
                 Counting Down to the Big Day
               </h3>
               
-              {styling.countdown_style === 'circles' ? (
+              {isKalyanam ? (
+                <div className="flex justify-center gap-4 @lg:gap-10 flex-wrap mt-8">
+                  {Object.entries(timeLeft).map(([unit, value]) => (
+                    <div key={unit} className="flex flex-col items-center">
+                      <div className="relative w-24 h-24 flex flex-col justify-center items-center">
+                        {/* Diya Flame */}
+                        <div className="absolute top-2 w-4 h-6 bg-gradient-to-t from-orange-600 via-yellow-400 to-transparent rounded-full animate-pulse shadow-[0_-4px_12px_rgba(251,146,60,0.85)]" style={{ transformOrigin: 'bottom center' }} />
+                        {/* Diya Bowl */}
+                        <svg className="w-20 h-14 text-[#d4af37] drop-shadow-[0_5px_10px_rgba(0,0,0,0.55)]" viewBox="0 0 100 60" fill="currentColor">
+                          <path d="M10,20 Q50,60 90,20 Q50,30 10,20 Z" />
+                          <path d="M46,20 L54,20 L50,15 Z" />
+                        </svg>
+                        {/* Value */}
+                        <span className="absolute bottom-2 text-2xl font-bold text-white font-mono">{value}</span>
+                      </div>
+                      <span className="text-[10px] uppercase tracking-widest text-[#d4af37] font-semibold mt-2">{unit}</span>
+                    </div>
+                  ))}
+                </div>
+              ) : isRoyalWreath ? (
+                <div className="flex flex-col items-center max-w-md mx-auto">
+                  <div className="flex justify-center gap-6 md:gap-10 mb-6">
+                    {Object.entries(timeLeft).map(([unit, value]) => (
+                      <div key={unit} className="flex flex-col items-center">
+                        <span className="text-3xl md:text-5xl font-light text-[var(--primary-color)] font-mono">{value}</span>
+                        <span className="text-[9px] md:text-xs uppercase tracking-widest opacity-60 mt-1">{unit}</span>
+                      </div>
+                    ))}
+                  </div>
+                  {/* Linear gradient progress bar matching Image 1 */}
+                  <div className="w-full h-2.5 bg-slate-800 rounded-full overflow-hidden border border-slate-700/50">
+                    <div className="h-full bg-gradient-to-r from-purple-600 via-pink-500 to-orange-400 w-3/4 rounded-full animate-pulse" />
+                  </div>
+                </div>
+              ) : styling.countdown_style === 'circles' ? (
                 <div className="flex justify-center gap-4 @lg:gap-8 flex-wrap">
                   {Object.entries(timeLeft).map(([unit, value]) => (
                     <div key={unit} className="w-20 h-20 @lg:w-28 @lg:h-28 rounded-full border border-[rgba(212,175,55,0.3)] flex flex-col justify-center items-center bg-[rgba(0,0,0,0.4)]">
@@ -781,40 +946,136 @@ export default function InvitationPreview({
 
             <div className="grid grid-cols-1 @lg:grid-cols-2 gap-12 items-center">
               {/* Groom */}
-              <div className="flex flex-col items-center text-center p-6 bg-[rgba(22,22,34,0.35)] border border-[rgba(255,255,255,0.08)] backdrop-blur-md rounded-2xl shadow-xl hover:border-[var(--primary-color)]/30 transition-all duration-300">
-                <div className="w-48 h-48 rounded-full overflow-hidden border-4 border-double border-[var(--primary-color)] mb-6 bg-slate-800 flex items-center justify-center shadow-[0_0_20px_rgba(212,175,55,0.3)] transition-all hover:scale-105 duration-300">
-                  {invitation.groom_photo ? (
-                    <img src={invitation.groom_photo} alt={invitation.groom_name} className="w-full h-full object-cover" />
-                  ) : (
-                    <div className="text-[var(--primary-color)] text-xl font-cinzel">Groom Photo</div>
-                  )}
+              {isKalyanam ? (
+                <div className="flex flex-col items-center text-center p-6 bg-[rgba(22,22,34,0.3)] border border-[#d4af37]/20 rounded-2xl shadow-xl">
+                  <div className="relative p-2.5 bg-gradient-to-br from-[#d4af37] via-[#b8962e] to-[#e6bc55] rounded-lg shadow-lg mb-6 hover:scale-105 transition-all duration-300">
+                    <div className="w-48 h-48 border-4 border-double border-[#5c0c1b] rounded overflow-hidden bg-slate-800 flex items-center justify-center">
+                      {invitation.groom_photo ? (
+                        <img src={invitation.groom_photo} alt={invitation.groom_name} className="w-full h-full object-cover" />
+                      ) : (
+                        <div className="text-[#5c0c1b] text-xl font-serif">Groom Photo</div>
+                      )}
+                    </div>
+                    <div className="absolute top-1.5 left-1.5 w-3 h-3 border-t-2 border-l-2 border-[#5c0c1b]" />
+                    <div className="absolute top-1.5 right-1.5 w-3 h-3 border-t-2 border-r-2 border-[#5c0c1b]" />
+                    <div className="absolute bottom-1.5 left-1.5 w-3 h-3 border-b-2 border-l-2 border-[#5c0c1b]" />
+                    <div className="absolute bottom-1.5 right-1.5 w-3 h-3 border-b-2 border-r-2 border-[#5c0c1b]" />
+                  </div>
+                  <h3 className={`${getHeadingFontClass()} text-2xl text-[var(--primary-color)] mb-2`}>
+                    {invitation.groom_name || 'Groom Name'}
+                  </h3>
+                  <p className="text-sm italic opacity-85 mb-4 text-[#fef08a]">Son of the Parents</p>
+                  <p className="opacity-90 max-w-sm text-sm leading-relaxed text-[#fcf8f2]">
+                    {invitation.groom_bio || 'A short biography introducing the groom, his passions, and his perspective on the wedding day.'}
+                  </p>
                 </div>
-                <h3 className={`${getHeadingFontClass()} text-2xl text-[var(--primary-color)] mb-2`}>
-                  {invitation.groom_name || 'Groom Name'}
-                </h3>
-                <p className="text-sm italic opacity-70 mb-4">Son of the Parents</p>
-                <p className="opacity-80 max-w-sm text-sm leading-relaxed">
-                  {invitation.groom_bio || 'A short biography introducing the groom, his passions, and his perspective on the wedding day.'}
-                </p>
-              </div>
+              ) : isRoyalWreath ? (
+                <div className="flex flex-col items-center text-center p-6 bg-[rgba(22,22,34,0.35)] border border-[rgba(255,255,255,0.08)] backdrop-blur-md rounded-2xl shadow-xl">
+                  <div className="relative p-2 bg-[#2e0854]/45 border border-[#d4af37]/40 rounded-xl mb-6 shadow-md overflow-hidden">
+                    <div className="w-48 h-48 rounded-lg overflow-hidden border border-[#d4af37]/25 bg-slate-800 flex items-center justify-center">
+                      {invitation.groom_photo ? (
+                        <img src={invitation.groom_photo} alt={invitation.groom_name} className="w-full h-full object-cover" />
+                      ) : (
+                        <div className="text-[var(--primary-color)] text-xl font-cinzel">Groom Photo</div>
+                      )}
+                    </div>
+                    <div className="absolute top-0 left-0 w-4 h-4 border-t border-l border-[#d4af37]" />
+                    <div className="absolute top-0 right-0 w-4 h-4 border-t border-r border-[#d4af37]" />
+                    <div className="absolute bottom-0 left-0 w-4 h-4 border-b border-l border-[#d4af37]" />
+                    <div className="absolute bottom-0 right-0 w-4 h-4 border-b border-r border-[#d4af37]" />
+                  </div>
+                  <h3 className={`${getHeadingFontClass()} text-2xl text-[var(--primary-color)] mb-2`}>
+                    {invitation.groom_name || 'Groom Name'}
+                  </h3>
+                  <p className="text-sm italic opacity-70 mb-4">Son of the Parents</p>
+                  <p className="opacity-80 max-w-sm text-sm leading-relaxed">
+                    {invitation.groom_bio || 'A short biography introducing the groom, his passions, and his perspective on the wedding day.'}
+                  </p>
+                </div>
+              ) : (
+                <div className="flex flex-col items-center text-center p-6 bg-[rgba(22,22,34,0.35)] border border-[rgba(255,255,255,0.08)] backdrop-blur-md rounded-2xl shadow-xl hover:border-[var(--primary-color)]/30 transition-all duration-300">
+                  <div className="w-48 h-48 rounded-full overflow-hidden border-4 border-double border-[var(--primary-color)] mb-6 bg-slate-800 flex items-center justify-center shadow-[0_0_20px_rgba(212,175,55,0.3)] transition-all hover:scale-105 duration-300">
+                    {invitation.groom_photo ? (
+                      <img src={invitation.groom_photo} alt={invitation.groom_name} className="w-full h-full object-cover" />
+                    ) : (
+                      <div className="text-[var(--primary-color)] text-xl font-cinzel">Groom Photo</div>
+                    )}
+                  </div>
+                  <h3 className={`${getHeadingFontClass()} text-2xl text-[var(--primary-color)] mb-2`}>
+                    {invitation.groom_name || 'Groom Name'}
+                  </h3>
+                  <p className="text-sm italic opacity-70 mb-4">Son of the Parents</p>
+                  <p className="opacity-80 max-w-sm text-sm leading-relaxed">
+                    {invitation.groom_bio || 'A short biography introducing the groom, his passions, and his perspective on the wedding day.'}
+                  </p>
+                </div>
+              )}
 
               {/* Bride */}
-              <div className="flex flex-col items-center text-center p-6 bg-[rgba(22,22,34,0.35)] border border-[rgba(255,255,255,0.08)] backdrop-blur-md rounded-2xl shadow-xl hover:border-[var(--primary-color)]/30 transition-all duration-300">
-                <div className="w-48 h-48 rounded-full overflow-hidden border-4 border-double border-[var(--primary-color)] mb-6 bg-slate-800 flex items-center justify-center shadow-[0_0_20px_rgba(212,175,55,0.3)] transition-all hover:scale-105 duration-300">
-                  {invitation.bride_photo ? (
-                    <img src={invitation.bride_photo} alt={invitation.bride_name} className="w-full h-full object-cover" />
-                  ) : (
-                    <div className="text-[var(--primary-color)] text-xl font-cinzel">Bride Photo</div>
-                  )}
+              {isKalyanam ? (
+                <div className="flex flex-col items-center text-center p-6 bg-[rgba(22,22,34,0.3)] border border-[#d4af37]/20 rounded-2xl shadow-xl">
+                  <div className="relative p-2.5 bg-gradient-to-br from-[#d4af37] via-[#b8962e] to-[#e6bc55] rounded-lg shadow-lg mb-6 hover:scale-105 transition-all duration-300">
+                    <div className="w-48 h-48 border-4 border-double border-[#5c0c1b] rounded overflow-hidden bg-slate-800 flex items-center justify-center">
+                      {invitation.bride_photo ? (
+                        <img src={invitation.bride_photo} alt={invitation.bride_name} className="w-full h-full object-cover" />
+                      ) : (
+                        <div className="text-[#5c0c1b] text-xl font-serif">Bride Photo</div>
+                      )}
+                    </div>
+                    <div className="absolute top-1.5 left-1.5 w-3 h-3 border-t-2 border-l-2 border-[#5c0c1b]" />
+                    <div className="absolute top-1.5 right-1.5 w-3 h-3 border-t-2 border-r-2 border-[#5c0c1b]" />
+                    <div className="absolute bottom-1.5 left-1.5 w-3 h-3 border-b-2 border-l-2 border-[#5c0c1b]" />
+                    <div className="absolute bottom-1.5 right-1.5 w-3 h-3 border-b-2 border-r-2 border-[#5c0c1b]" />
+                  </div>
+                  <h3 className={`${getHeadingFontClass()} text-2xl text-[var(--primary-color)] mb-2`}>
+                    {invitation.bride_name || 'Bride Name'}
+                  </h3>
+                  <p className="text-sm italic opacity-85 mb-4 text-[#fef08a]">Daughter of the Parents</p>
+                  <p className="opacity-90 max-w-sm text-sm leading-relaxed text-[#fcf8f2]">
+                    {invitation.bride_bio || 'A short biography introducing the bride, her passions, and her perspective on the wedding day.'}
+                  </p>
                 </div>
-                <h3 className={`${getHeadingFontClass()} text-2xl text-[var(--primary-color)] mb-2`}>
-                  {invitation.bride_name || 'Bride Name'}
-                </h3>
-                <p className="text-sm italic opacity-70 mb-4">Daughter of the Parents</p>
-                <p className="opacity-80 max-w-sm text-sm leading-relaxed">
-                  {invitation.bride_bio || 'A short biography introducing the bride, her passions, and her perspective on the wedding day.'}
-                </p>
-              </div>
+              ) : isRoyalWreath ? (
+                <div className="flex flex-col items-center text-center p-6 bg-[rgba(22,22,34,0.35)] border border-[rgba(255,255,255,0.08)] backdrop-blur-md rounded-2xl shadow-xl">
+                  <div className="relative p-2 bg-[#2e0854]/45 border border-[#d4af37]/40 rounded-xl mb-6 shadow-md overflow-hidden">
+                    <div className="w-48 h-48 rounded-lg overflow-hidden border border-[#d4af37]/25 bg-slate-800 flex items-center justify-center">
+                      {invitation.bride_photo ? (
+                        <img src={invitation.bride_photo} alt={invitation.bride_name} className="w-full h-full object-cover" />
+                      ) : (
+                        <div className="text-[var(--primary-color)] text-xl font-cinzel">Bride Photo</div>
+                      )}
+                    </div>
+                    <div className="absolute top-0 left-0 w-4 h-4 border-t border-l border-[#d4af37]" />
+                    <div className="absolute top-0 right-0 w-4 h-4 border-t border-r border-[#d4af37]" />
+                    <div className="absolute bottom-0 left-0 w-4 h-4 border-b border-l border-[#d4af37]" />
+                    <div className="absolute bottom-0 right-0 w-4 h-4 border-b border-r border-[#d4af37]" />
+                  </div>
+                  <h3 className={`${getHeadingFontClass()} text-2xl text-[var(--primary-color)] mb-2`}>
+                    {invitation.bride_name || 'Bride Name'}
+                  </h3>
+                  <p className="text-sm italic opacity-70 mb-4">Daughter of the Parents</p>
+                  <p className="opacity-80 max-w-sm text-sm leading-relaxed">
+                    {invitation.bride_bio || 'A short biography introducing the bride, her passions, and her perspective on the wedding day.'}
+                  </p>
+                </div>
+              ) : (
+                <div className="flex flex-col items-center text-center p-6 bg-[rgba(22,22,34,0.35)] border border-[rgba(255,255,255,0.08)] backdrop-blur-md rounded-2xl shadow-xl hover:border-[var(--primary-color)]/30 transition-all duration-300">
+                  <div className="w-48 h-48 rounded-full overflow-hidden border-4 border-double border-[var(--primary-color)] mb-6 bg-slate-800 flex items-center justify-center shadow-[0_0_20px_rgba(212,175,55,0.3)] transition-all hover:scale-105 duration-300">
+                    {invitation.bride_photo ? (
+                      <img src={invitation.bride_photo} alt={invitation.bride_name} className="w-full h-full object-cover" />
+                    ) : (
+                      <div className="text-[var(--primary-color)] text-xl font-cinzel">Bride Photo</div>
+                    )}
+                  </div>
+                  <h3 className={`${getHeadingFontClass()} text-2xl text-[var(--primary-color)] mb-2`}>
+                    {invitation.bride_name || 'Bride Name'}
+                  </h3>
+                  <p className="text-sm italic opacity-70 mb-4">Daughter of the Parents</p>
+                  <p className="opacity-80 max-w-sm text-sm leading-relaxed">
+                    {invitation.bride_bio || 'A short biography introducing the bride, her passions, and her perspective on the wedding day.'}
+                  </p>
+                </div>
+              )}
             </div>
 
             {invitation.parents_names && (
@@ -847,51 +1108,102 @@ export default function InvitationPreview({
               </div>
 
               <div className="grid grid-cols-1 @md:grid-cols-2 @lg:grid-cols-3 gap-8">
-                {events.map((event, index) => (
-                  <div key={index} className="bg-[rgba(22,22,34,0.35)] border border-[rgba(255,255,255,0.08)] backdrop-blur-md rounded-2xl p-6 flex flex-col justify-between hover:border-[var(--primary-color)] transition-all duration-300 shadow-xl">
-                    <div>
-                      <div className="flex justify-between items-start mb-4">
-                        <h4 className={`${getHeadingFontClass()} text-xl text-[var(--primary-color)] font-medium`}>
-                          {event.event_name}
-                        </h4>
-                        <span className="p-2 rounded bg-[rgba(212,175,55,0.1)] text-[var(--primary-color)]">
-                          <Heart className="w-4 h-4 fill-[var(--primary-color)]" />
-                        </span>
+                {events.map((event, index) => {
+                  if (isKalyanam) {
+                    return (
+                      <div key={index} className="bg-[#fcf7ec] border-2 border-[#d4af37] rounded-2xl p-6 flex flex-col justify-between hover:border-[#b8962e] transition-all duration-300 shadow-2xl text-[#5c0c1b] relative overflow-hidden">
+                        <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-[#b91c1c] to-transparent opacity-40" />
+                        <div>
+                          <div className="flex justify-between items-start mb-4">
+                            <h4 className={`${getHeadingFontClass()} text-2xl text-[#5c0c1b] font-medium`}>
+                              {event.event_name}
+                            </h4>
+                            <span className="p-2 rounded bg-[#b91c1c]/10 text-[#b91c1c]">
+                              <Heart className="w-4 h-4 fill-[#b91c1c]" />
+                            </span>
+                          </div>
+                          
+                          <div className="space-y-3 my-6 text-sm opacity-90">
+                            <div className="flex items-center gap-3">
+                              <Calendar className="w-4 h-4 text-[#b91c1c] shrink-0" />
+                              <span className="font-semibold">{new Date(event.event_date + 'T00:00:00').toLocaleDateString(undefined, { dateStyle: 'medium' })}</span>
+                            </div>
+                            <div className="flex items-center gap-3">
+                              <Clock className="w-4 h-4 text-[#b91c1c] shrink-0" />
+                              <span className="font-semibold">{event.event_time.slice(0, 5)}</span>
+                            </div>
+                            <div className="flex items-start gap-3">
+                              <MapPin className="w-4 h-4 text-[#b91c1c] shrink-0 mt-0.5" />
+                              <div>
+                                <span className="font-bold block text-[#5c0c1b]">{event.venue_name}</span>
+                                <span className="text-xs opacity-80 block mt-0.5">{event.venue_address}</span>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+
+                        {event.google_maps_link && (
+                          <a 
+                            href={event.google_maps_link}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="mt-6 w-full py-2.5 rounded bg-[#b91c1c] hover:bg-[#961212] text-[#fffbeb] font-serif text-xs font-semibold tracking-wider transition-all duration-300 flex items-center justify-center gap-2 shadow-md hover:shadow-lg active:scale-95 cursor-pointer"
+                          >
+                            <MapPin className="w-4 h-4" />
+                            <span>VIEW ON MAP</span>
+                            <ExternalLink className="w-3.5 h-3.5" />
+                          </a>
+                        )}
                       </div>
-                      
-                      <div className="space-y-3 my-6 text-sm opacity-85">
-                        <div className="flex items-center gap-3">
-                          <Calendar className="w-4 h-4 text-[var(--primary-color)] shrink-0" />
-                          <span>{new Date(event.event_date).toLocaleDateString(undefined, { dateStyle: 'medium' })}</span>
+                    );
+                  }
+                  
+                  return (
+                    <div key={index} className="bg-[rgba(22,22,34,0.35)] border border-[rgba(255,255,255,0.08)] backdrop-blur-md rounded-2xl p-6 flex flex-col justify-between hover:border-[var(--primary-color)] transition-all duration-300 shadow-xl">
+                      <div>
+                        <div className="flex justify-between items-start mb-4">
+                          <h4 className={`${getHeadingFontClass()} text-xl text-[var(--primary-color)] font-medium`}>
+                            {event.event_name}
+                          </h4>
+                          <span className="p-2 rounded bg-[rgba(212,175,55,0.1)] text-[var(--primary-color)]">
+                            <Heart className="w-4 h-4 fill-[var(--primary-color)]" />
+                          </span>
                         </div>
-                        <div className="flex items-center gap-3">
-                          <Clock className="w-4 h-4 text-[var(--primary-color)] shrink-0" />
-                          <span>{event.event_time.slice(0, 5)}</span>
-                        </div>
-                        <div className="flex items-start gap-3">
-                          <MapPin className="w-4 h-4 text-[var(--primary-color)] shrink-0 mt-0.5" />
-                          <div>
-                            <span className="font-semibold block text-white">{event.venue_name}</span>
-                            <span className="text-xs opacity-75">{event.venue_address}</span>
+                        
+                        <div className="space-y-3 my-6 text-sm opacity-85">
+                          <div className="flex items-center gap-3">
+                            <Calendar className="w-4 h-4 text-[var(--primary-color)] shrink-0" />
+                            <span>{new Date(event.event_date + 'T00:00:00').toLocaleDateString(undefined, { dateStyle: 'medium' })}</span>
+                          </div>
+                          <div className="flex items-center gap-3">
+                            <Clock className="w-4 h-4 text-[var(--primary-color)] shrink-0" />
+                            <span>{event.event_time.slice(0, 5)}</span>
+                          </div>
+                          <div className="flex items-start gap-3">
+                            <MapPin className="w-4 h-4 text-[var(--primary-color)] shrink-0 mt-0.5" />
+                            <div>
+                              <span className="font-semibold block text-white">{event.venue_name}</span>
+                              <span className="text-xs opacity-75">{event.venue_address}</span>
+                            </div>
                           </div>
                         </div>
                       </div>
-                    </div>
 
-                    {event.google_maps_link && (
-                      <a 
-                        href={event.google_maps_link}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className={`w-full py-2.5 px-4 text-center rounded flex items-center justify-center gap-2 ${getButtonStyleClass()} mt-4 text-xs font-semibold`}
-                      >
-                        <MapPin className="w-4 h-4" />
-                        <span>Navigate in Maps</span>
-                        <ExternalLink className="w-3.5 h-3.5" />
-                      </a>
-                    )}
-                  </div>
-                ))}
+                      {event.google_maps_link && (
+                        <a 
+                          href={event.google_maps_link}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className={`w-full py-2.5 px-4 text-center rounded flex items-center justify-center gap-2 ${getButtonStyleClass()} mt-4 text-xs font-semibold`}
+                        >
+                          <MapPin className="w-4 h-4" />
+                          <span>Navigate in Maps</span>
+                          <ExternalLink className="w-3.5 h-3.5" />
+                        </a>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             </div>
           </motion.section>
@@ -1019,9 +1331,21 @@ export default function InvitationPreview({
             variants={animationVariants}
             className="py-24 px-6 max-w-2xl mx-auto relative z-10"
           >
-            <div className="bg-[rgba(22,22,34,0.35)] border border-[rgba(255,255,255,0.08)] rounded-2xl p-8 backdrop-blur-md shadow-xl">
+            <div className={`rounded-2xl p-8 shadow-xl ${
+              isKalyanam 
+                ? 'bg-[#fcf7ec] border-2 border-[#d4af37] text-[#5c0c1b]' 
+                : 'bg-[rgba(22,22,34,0.35)] border border-[rgba(255,255,255,0.08)] backdrop-blur-md text-white'
+            }`}>
               <div className="text-center mb-8">
-                <h2 className={`${getHeadingFontClass()} text-3xl text-[var(--primary-color)] mb-2`}>
+                {isKalyanam && (
+                  <svg className="w-12 h-12 text-[#b91c1c] mx-auto mb-3 drop-shadow-[0_2px_4px_rgba(0,0,0,0.15)]" viewBox="0 0 100 100" fill="currentColor">
+                    <path d="M50,15 C45,25 45,35 50,45 C55,35 55,25 50,15 Z" />
+                    <path d="M25,50 C25,40 75,40 75,50 C75,70 65,85 50,85 C35,85 25,70 25,50 Z" />
+                    <ellipse cx="50" cy="48" rx="20" ry="5" fill="#d4af37" />
+                    <circle cx="50" cy="12" r="3" fill="#d4af37" />
+                  </svg>
+                )}
+                <h2 className={`${getHeadingFontClass()} text-3xl mb-2 ${isKalyanam ? 'text-[#5c0c1b]' : 'text-[var(--primary-color)]'}`}>
                   Will You Attend?
                 </h2>
                 <p className="opacity-75 text-xs">Kindly respond before October 15, 2026</p>
@@ -1033,61 +1357,79 @@ export default function InvitationPreview({
                   animate={{ opacity: 1, scale: 1 }}
                   className="text-center py-8"
                 >
-                  <Heart className="w-16 h-16 text-[var(--primary-color)] fill-[var(--primary-color)] mx-auto mb-4" />
-                  <h4 className="text-xl font-bold text-[var(--primary-color)]">Thank You!</h4>
+                  <Heart className={`w-16 h-16 mx-auto mb-4 ${isKalyanam ? 'text-[#b91c1c] fill-[#b91c1c]' : 'text-[var(--primary-color)] fill-[var(--primary-color)]'}`} />
+                  <h4 className={`text-xl font-bold ${isKalyanam ? 'text-[#5c0c1b]' : 'text-[var(--primary-color)]'}`}>Thank You!</h4>
                   <p className="opacity-80 mt-2 text-sm">Your RSVP response has been successfully sent to the couple.</p>
                 </motion.div>
               ) : (
                 <form onSubmit={handleRsvpSubmit} className="space-y-4">
                   <div>
-                    <label className="block text-xs font-semibold uppercase tracking-wider mb-1.5 opacity-80">Full Name</label>
+                    <label className="block text-xs font-semibold uppercase tracking-wider mb-1.5 opacity-85">Full Name</label>
                     <input 
                       type="text" 
                       required
                       value={rsvpName}
                       onChange={(e) => setRsvpName(e.target.value)}
                       placeholder="Enter your name"
-                      className="w-full bg-[rgba(255,255,255,0.05)] border border-[rgba(255,255,255,0.1)] rounded px-3 py-2 text-sm outline-none focus:border-[var(--primary-color)] transition-all"
+                      className={`w-full rounded-lg px-3 py-2 text-sm outline-none transition-all ${
+                        isKalyanam 
+                          ? 'bg-[#fffbeb] border border-[#d4af37]/50 focus:border-[#b91c1c] text-[#5c0c1b]'
+                          : 'bg-[rgba(255,255,255,0.05)] border border-[rgba(255,255,255,0.1)] focus:border-[var(--primary-color)] text-white'
+                      }`}
                     />
                   </div>
 
                   <div className="grid grid-cols-1 @md:grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-xs font-semibold uppercase tracking-wider mb-1.5 opacity-80">Email Address (Optional)</label>
+                      <label className="block text-xs font-semibold uppercase tracking-wider mb-1.5 opacity-85">Email Address (Optional)</label>
                       <input 
                         type="email" 
                         value={rsvpEmail}
                         onChange={(e) => setRsvpEmail(e.target.value)}
                         placeholder="your@email.com"
-                        className="w-full bg-[rgba(255,255,255,0.05)] border border-[rgba(255,255,255,0.1)] rounded px-3 py-2 text-sm outline-none focus:border-[var(--primary-color)] transition-all"
+                        className={`w-full rounded-lg px-3 py-2 text-sm outline-none transition-all ${
+                          isKalyanam 
+                            ? 'bg-[#fffbeb] border border-[#d4af37]/50 focus:border-[#b91c1c] text-[#5c0c1b]'
+                            : 'bg-[rgba(255,255,255,0.05)] border border-[rgba(255,255,255,0.1)] focus:border-[var(--primary-color)] text-white'
+                        }`}
                       />
                     </div>
                     <div>
-                      <label className="block text-xs font-semibold uppercase tracking-wider mb-1.5 opacity-80">Number of Guests</label>
+                      <label className="block text-xs font-semibold uppercase tracking-wider mb-1.5 opacity-85">Number of Guests</label>
                       <select 
                         value={rsvpGuests}
                         onChange={(e) => setRsvpGuests(parseInt(e.target.value))}
-                        className="w-full bg-[rgba(255,255,255,0.05)] border border-[rgba(255,255,255,0.1)] rounded px-3 py-2 text-sm outline-none focus:border-[var(--primary-color)] transition-all"
+                        className={`w-full rounded-lg px-3 py-2 text-sm outline-none transition-all ${
+                          isKalyanam 
+                            ? 'bg-[#fffbeb] border border-[#d4af37]/50 focus:border-[#b91c1c] text-[#5c0c1b]'
+                            : 'bg-[rgba(255,255,255,0.05)] border border-[rgba(255,255,255,0.1)] focus:border-[var(--primary-color)] text-white'
+                        }`}
                       >
                         {[1, 2, 3, 4, 5, 6].map(n => (
-                          <option key={n} value={n} className="bg-[#161622]">{n} {n === 1 ? 'Guest' : 'Guests'}</option>
+                          <option key={n} value={n} className={isKalyanam ? 'bg-[#fffbeb] text-[#5c0c1b]' : 'bg-[#161622] text-white'}>
+                            {n} {n === 1 ? 'Guest' : 'Guests'}
+                          </option>
                         ))}
                       </select>
                     </div>
                   </div>
 
                   <div>
-                    <label className="block text-xs font-semibold uppercase tracking-wider mb-1.5 opacity-80">Attendance Status</label>
+                    <label className="block text-xs font-semibold uppercase tracking-wider mb-1.5 opacity-85">Attendance Status</label>
                     <div className="grid grid-cols-3 gap-2">
                       {(['going', 'not_going', 'pending'] as const).map((status) => (
                         <button
                           key={status}
                           type="button"
                           onClick={() => setRsvpStatus(status)}
-                          className={`py-2 px-3 text-xs font-semibold rounded capitalize transition-all border ${
+                          className={`py-2 px-3 text-xs font-semibold rounded-lg capitalize transition-all border ${
                             rsvpStatus === status 
-                              ? 'bg-[var(--primary-color)] text-[var(--bg-color)] border-[var(--primary-color)]' 
-                              : 'bg-[rgba(255,255,255,0.02)] border-[rgba(255,255,255,0.1)] text-white hover:border-[var(--primary-color)]'
+                              ? isKalyanam 
+                                ? 'bg-[#b91c1c] text-[#fffbeb] border-[#b91c1c] shadow-md' 
+                                : 'bg-[var(--primary-color)] text-[var(--bg-color)] border-[var(--primary-color)]' 
+                              : isKalyanam 
+                                ? 'bg-[#fffbeb] border-[#d4af37]/45 text-[#5c0c1b] hover:border-[#b91c1c]'
+                                : 'bg-[rgba(255,255,255,0.02)] border-[rgba(255,255,255,0.1)] text-white hover:border-[var(--primary-color)]'
                           }`}
                         >
                           {status.replace('_', ' ')}
@@ -1097,23 +1439,31 @@ export default function InvitationPreview({
                   </div>
 
                   <div>
-                    <label className="block text-xs font-semibold uppercase tracking-wider mb-1.5 opacity-80">Wishes / Message</label>
+                    <label className="block text-xs font-semibold uppercase tracking-wider mb-1.5 opacity-85">Wishes / Message</label>
                     <textarea 
                       rows={3}
                       value={rsvpWishes}
                       onChange={(e) => setRsvpWishes(e.target.value)}
                       placeholder="Leave a message for the couple..."
-                      className="w-full bg-[rgba(255,255,255,0.05)] border border-[rgba(255,255,255,0.1)] rounded px-3 py-2 text-sm outline-none focus:border-[var(--primary-color)] transition-all resize-none"
+                      className={`w-full rounded-lg px-3 py-2 text-sm outline-none transition-all resize-none ${
+                        isKalyanam 
+                          ? 'bg-[#fffbeb] border border-[#d4af37]/50 focus:border-[#b91c1c] text-[#5c0c1b]'
+                          : 'bg-[rgba(255,255,255,0.05)] border border-[rgba(255,255,255,0.1)] focus:border-[var(--primary-color)] text-white'
+                      }`}
                     />
                   </div>
 
                   <button 
                     type="submit"
                     disabled={rsvpLoading}
-                    className={`w-full py-3 font-semibold rounded flex items-center justify-center gap-2 ${getButtonStyleClass()}`}
+                    className={`w-full py-3 font-semibold rounded-lg flex items-center justify-center gap-2 shadow-md transition-all active:scale-95 cursor-pointer ${
+                      isKalyanam 
+                        ? 'bg-[#b91c1c] hover:bg-[#961212] text-[#fffbeb]' 
+                        : getButtonStyleClass()
+                    }`}
                   >
                     {rsvpLoading ? (
-                      <div className="w-5 h-5 border-2 border-t-transparent border-[var(--bg-color)] rounded-full animate-spin" />
+                      <div className="w-5 h-5 border-2 border-t-transparent border-white rounded-full animate-spin" />
                     ) : (
                       <>
                         <Send className="w-4 h-4" />
@@ -1139,9 +1489,13 @@ export default function InvitationPreview({
             variants={animationVariants}
             className="py-24 px-6 text-center max-w-2xl mx-auto relative z-10"
           >
-            <div className="bg-[rgba(22,22,34,0.35)] border border-[rgba(255,255,255,0.08)] rounded-2xl p-8 backdrop-blur-md shadow-xl">
-              <Gift className="w-12 h-12 text-[var(--primary-color)] mx-auto mb-4" />
-              <h2 className={`${getHeadingFontClass()} text-3xl text-[var(--primary-color)] mb-2`}>
+            <div className={`rounded-2xl p-8 shadow-xl ${
+              isKalyanam 
+                ? 'bg-[#fcf7ec] border-2 border-[#d4af37] text-[#5c0c1b]' 
+                : 'bg-[rgba(22,22,34,0.35)] border border-[rgba(255,255,255,0.08)] backdrop-blur-md text-white'
+            }`}>
+              <Gift className={`w-12 h-12 mx-auto mb-4 ${isKalyanam ? 'text-[#b91c1c]' : 'text-[var(--primary-color)]'}`} />
+              <h2 className={`${getHeadingFontClass()} text-3xl mb-2 ${isKalyanam ? 'text-[#5c0c1b]' : 'text-[var(--primary-color)]'}`}>
                 Wedding Gift / Shagun
               </h2>
               <p className="opacity-80 text-sm max-w-md mx-auto mb-6">
@@ -1166,19 +1520,28 @@ export default function InvitationPreview({
               </div>
 
               <div className="space-y-1 mb-6 text-sm">
-                <p className="font-semibold text-white">Receiver: {giftDetails.receiver_name || 'Groom & Bride'}</p>
-                <p className="font-mono text-xs text-[var(--primary-color)] select-all">{giftDetails.upi_id || 'example@upi'}</p>
+                <p className={`font-semibold ${isKalyanam ? 'text-[#5c0c1b]' : 'text-white'}`}>Receiver: {giftDetails.receiver_name || 'Groom & Bride'}</p>
+                <p className={`font-mono text-xs select-all ${isKalyanam ? 'text-[#b91c1c]' : 'text-[var(--primary-color)]'}`}>{giftDetails.upi_id || 'example@upi'}</p>
               </div>
 
-              <p className="text-xs italic opacity-75 border-t border-[rgba(255,255,255,0.05)] pt-4 max-w-xs mx-auto">
+              <p className={`text-xs italic pt-4 max-w-xs mx-auto border-t ${isKalyanam ? 'border-[#d4af37]/30 text-[#5c0c1b]/80' : 'border-[rgba(255,255,255,0.05)] opacity-75'}`}>
                 {giftDetails.thank_you_message}
               </p>
 
-              <div className="mt-6 flex flex-wrap justify-center gap-3 text-xs opacity-75">
-                <span className="px-2 py-1 rounded bg-[rgba(255,255,255,0.05)] border border-[rgba(255,255,255,0.1)]">Google Pay</span>
-                <span className="px-2 py-1 rounded bg-[rgba(255,255,255,0.05)] border border-[rgba(255,255,255,0.1)]">PhonePe</span>
-                <span className="px-2 py-1 rounded bg-[rgba(255,255,255,0.05)] border border-[rgba(255,255,255,0.1)]">Paytm</span>
-                <span className="px-2 py-1 rounded bg-[rgba(255,255,255,0.05)] border border-[rgba(255,255,255,0.1)]">BHIM UPI</span>
+              {/* UPI Logo Badges from mockups */}
+              <div className="mt-8 flex flex-wrap justify-center items-center gap-3.5 select-none opacity-95">
+                <div className="px-2.5 py-1 bg-white border border-slate-200 rounded shadow-sm text-[9px] font-bold text-slate-800 tracking-wider">
+                  GPay
+                </div>
+                <div className="px-2.5 py-1 bg-white border border-slate-200 rounded shadow-sm text-[9px] font-bold text-[#5f259f] tracking-wider">
+                  PhonePe
+                </div>
+                <div className="px-2.5 py-1 bg-white border border-slate-200 rounded shadow-sm text-[9px] font-bold text-[#00baf2] tracking-wider">
+                  Paytm
+                </div>
+                <div className="px-2.5 py-1 bg-white border border-slate-200 rounded shadow-sm text-[9px] font-bold text-slate-600 tracking-wider">
+                  BHIM UPI
+                </div>
               </div>
             </div>
           </motion.section>

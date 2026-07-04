@@ -94,23 +94,44 @@ export const TEMPLATE_PRESETS: TemplatePreset[] = [
   },
   {
     id: 'tpl-south-indian',
-    name: 'South Indian Traditional',
+    name: 'Kalyanam (Traditional South Indian)',
     slug: 'south-indian-traditional',
     styling: {
-      primary_color: '#eab308', // Traditional Yellow
-      secondary_color: '#b91c1c', // Kumkum Red
-      background_color: '#7f1d1d', // Deep maroon
+      primary_color: '#d4af37', // Gold
+      secondary_color: '#5c0c1b', // Traditional Maroon
+      background_color: '#4c0519', // Deep maroon red
       text_color: '#fef08a', // Pale yellow text
       font_heading: 'kannada',
       font_body: 'inter',
       music_url: '/music/traditional-nadaswaram.mp3',
       section_order: ['hero', 'countdown', 'story', 'events', 'gallery', 'rsvp', 'gifts'],
       animation_style: 'slide',
-      button_style: 'modern-flat',
-      countdown_style: 'boxed-numbers',
+      button_style: 'gold-border',
+      countdown_style: 'circles',
       gallery_layout: 'grid',
       background_type: 'gradient',
-      background_url: 'linear-gradient(135deg, #4c0519 0%, #7f1d1d 100%)',
+      background_url: 'linear-gradient(135deg, #4c0519 0%, #2b030d 100%)',
+    },
+  },
+  {
+    id: 'tpl-royal-wreath',
+    name: 'Royal Wreath (Violet & Gold)',
+    slug: 'royal-wreath',
+    styling: {
+      primary_color: '#d4af37', // Gold
+      secondary_color: '#2e0854', // Royal Purple/Violet
+      background_color: '#0d0d11', // Deep Black
+      text_color: '#fcf8f2', // Light cream
+      font_heading: 'cinzel',
+      font_body: 'inter',
+      music_url: '/music/romantic-violin.mp3',
+      section_order: ['hero', 'countdown', 'story', 'events', 'gallery', 'rsvp', 'gifts'],
+      animation_style: 'fade',
+      button_style: 'gold-border',
+      countdown_style: 'circles',
+      gallery_layout: 'grid',
+      background_type: 'video',
+      background_url: 'https://assets.mixkit.co/videos/preview/mixkit-starry-night-sky-over-mountains-and-trees-43093-large.mp4',
     },
   },
   {
