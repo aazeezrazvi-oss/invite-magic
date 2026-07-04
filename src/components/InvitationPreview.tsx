@@ -57,6 +57,7 @@ export default function InvitationPreview({
   // Music playback state
   const [isPlaying, setIsPlaying] = useState(false);
   const [carouselIndex, setCarouselIndex] = useState(0);
+  const [activeEventIndex, setActiveEventIndex] = useState(0);
   
   // Envelope interactive cover states
   const [isOpen, setIsOpen] = useState(isPreviewMode ? true : false);
@@ -67,6 +68,7 @@ export default function InvitationPreview({
   const isBurgundyTheme = styling.secondary_color === '#580b14' || styling.secondary_color === '#6b0c1b' || styling.secondary_color === '#5a1846';
   const isKalyanam = styling.secondary_color === '#5c0c1b' || styling.font_heading === 'kannada';
   const isRoyalWreath = styling.secondary_color === '#2e0854';
+  const isHexagonFrame = styling.secondary_color === '#5a1846';
 
   // 35 Floating flower petals and gold blossoms for the inner page background (increased density)
   const innerPetals = [
@@ -782,6 +784,47 @@ export default function InvitationPreview({
           );
         }
 
+        if (isHexagonFrame) {
+          return (
+            <motion.section 
+              key="hero"
+              initial="hidden"
+              whileInView="visible"
+              viewport={{ once: true }}
+              variants={animationVariants}
+              className="min-h-screen flex flex-col justify-center items-center text-center p-6 relative overflow-hidden bg-gradient-to-b from-[#0f021f] via-[#1a0033] to-[#0c0018]"
+            >
+              <div className="absolute inset-0 opacity-15 pointer-events-none mix-blend-screen" 
+                   style={{ backgroundImage: `url('/images/pattern-gold.png')`, backgroundSize: 'cover' }} />
+              
+              <div className="max-w-2xl z-10 px-4">
+                <span className="text-[#d4af37] uppercase tracking-[0.25em] text-xs font-semibold block mb-8 select-none font-sans opacity-95">
+                  Are Cordially Invited To Attend The Wedding Of
+                </span>
+                
+                <h1 className={`${getHeadingFontClass()} text-5xl @lg:text-7xl text-white font-medium my-6 text-center leading-normal drop-shadow-[0_0_15px_rgba(147,51,234,0.85)]`}>
+                  <span className="inline-block">{invitation.groom_name || 'Groom'}</span>
+                  <span className="inline-flex items-center justify-center mx-4 text-purple-400 animate-pulse align-middle drop-shadow-[0_0_12px_rgba(168,85,247,0.7)] text-3xl">💜</span>
+                  <span className="inline-block">{invitation.bride_name || 'Bride'}</span>
+                </h1>
+                
+                <p className="text-lg italic opacity-95 my-6 leading-relaxed text-[#fcf8f2] max-w-lg mx-auto font-serif">
+                  {invitation.invitation_message || 'Please join us as we celebrate our love and begin our new journey together.'}
+                </p>
+                
+                {events[0] && (
+                  <div className="mt-8 flex items-center justify-center gap-2.5 bg-yellow-950/20 border border-[#d4af37]/20 rounded-full px-6 py-2.5 max-w-sm mx-auto shadow-md">
+                    <Calendar className="w-4.5 h-4.5 text-[#d4af37]" />
+                    <span className="text-sm font-semibold tracking-wide text-[#d4af37]">
+                      {new Date(events[0].event_date + 'T00:00:00').toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}, At {events[0].event_time.slice(0, 5)}
+                    </span>
+                  </div>
+                )}
+              </div>
+            </motion.section>
+          );
+        }
+
         return (
           <motion.section 
             key="hero"
@@ -895,14 +938,57 @@ export default function InvitationPreview({
                   </div>
                 </div>
               ) : styling.countdown_style === 'circles' ? (
-                <div className="flex justify-center gap-4 @lg:gap-8 flex-wrap">
-                  {Object.entries(timeLeft).map(([unit, value]) => (
-                    <div key={unit} className="w-20 h-20 @lg:w-28 @lg:h-28 rounded-full border border-[rgba(212,175,55,0.3)] flex flex-col justify-center items-center bg-[rgba(0,0,0,0.4)]">
-                      <span className="text-2xl @lg:text-4xl font-light text-[var(--primary-color)] font-mono">{value}</span>
-                      <span className="text-[10px] @lg:text-xs uppercase tracking-widest opacity-60 mt-1">{unit}</span>
-                    </div>
-                  ))}
-                </div>
+                isHexagonFrame ? (
+                  <div className="flex justify-center gap-4 @lg:gap-10 flex-wrap mt-8">
+                    {Object.entries(timeLeft).map(([unit, value]) => {
+                      const max = unit === 'days' ? 365 : unit === 'hours' ? 24 : 60;
+                      const pct = Math.min(1, Math.max(0, value / max));
+                      
+                      const outerCirc = 263.89;
+                      const outerOffset = outerCirc - (outerCirc * pct);
+                      
+                      const innerCirc = 226.19;
+                      const innerOffset = innerCirc - (innerCirc * (1 - pct));
+                      
+                      return (
+                        <div key={unit} className="relative w-24 h-24 @lg:w-28 @lg:h-28 flex flex-col justify-center items-center">
+                          <svg className="absolute inset-0 w-full h-full -rotate-90" viewBox="0 0 100 100">
+                            <circle cx="50" cy="50" r="42" stroke="rgba(212, 175, 55, 0.12)" strokeWidth="2.5" fill="none" />
+                            <circle 
+                              cx="50" cy="50" r="42" 
+                              stroke="#d4af37" strokeWidth="2.5" fill="none"
+                              strokeDasharray={outerCirc}
+                              strokeDashoffset={outerOffset}
+                              strokeLinecap="round"
+                              className="drop-shadow-[0_0_5px_rgba(212,175,55,0.7)] transition-all duration-1000" 
+                            />
+                            
+                            <circle cx="50" cy="50" r="36" stroke="rgba(147, 51, 234, 0.12)" strokeWidth="2" fill="none" />
+                            <circle 
+                              cx="50" cy="50" r="36" 
+                              stroke="#9333ea" strokeWidth="2.5" fill="none"
+                              strokeDasharray={innerCirc}
+                              strokeDashoffset={innerOffset}
+                              strokeLinecap="round"
+                              className="drop-shadow-[0_0_5px_rgba(147,51,234,0.7)] transition-all duration-1000" 
+                            />
+                          </svg>
+                          <span className="text-2xl @lg:text-3xl font-bold text-white font-mono z-10">{value}</span>
+                          <span className="text-[9px] @lg:text-[10px] uppercase tracking-widest text-[#d4af37] font-semibold mt-1.5 z-10">{unit}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <div className="flex justify-center gap-4 @lg:gap-8 flex-wrap">
+                    {Object.entries(timeLeft).map(([unit, value]) => (
+                      <div key={unit} className="w-20 h-20 @lg:w-28 @lg:h-28 rounded-full border border-[rgba(212,175,55,0.3)] flex flex-col justify-center items-center bg-[rgba(0,0,0,0.4)]">
+                        <span className="text-2xl @lg:text-4xl font-light text-[var(--primary-color)] font-mono">{value}</span>
+                        <span className="text-[10px] @lg:text-xs uppercase tracking-widest opacity-60 mt-1">{unit}</span>
+                      </div>
+                    ))}
+                  </div>
+                )
               ) : styling.countdown_style === 'boxed-numbers' ? (
                 <div className="flex justify-center gap-2 @lg:gap-4">
                   {Object.entries(timeLeft).map(([unit, value]) => (
@@ -992,6 +1078,33 @@ export default function InvitationPreview({
                     {invitation.groom_bio || 'A short biography introducing the groom, his passions, and his perspective on the wedding day.'}
                   </p>
                 </div>
+              ) : isHexagonFrame ? (
+                <div className="flex flex-col items-center text-center p-6 bg-[rgba(22,22,34,0.3)] border border-[#d4af37]/20 rounded-2xl shadow-xl hover:border-[#9333ea]/40 transition-all duration-300">
+                  <div className="relative p-1 bg-gradient-to-b from-[#d4af37] via-[#aa7c11] to-[#9333ea] shadow-[0_0_20px_rgba(147,51,234,0.45)] transition-all hover:scale-105 duration-300 mb-6"
+                       style={{
+                         clipPath: 'polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)',
+                         width: '192px',
+                         height: '216px'
+                       }}>
+                    <div className="w-full h-full bg-slate-800 flex items-center justify-center overflow-hidden"
+                         style={{
+                           clipPath: 'polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)'
+                         }}>
+                      {invitation.groom_photo ? (
+                        <img src={invitation.groom_photo} alt={invitation.groom_name} className="w-full h-full object-cover" />
+                      ) : (
+                        <div className="text-[var(--primary-color)] text-xl font-cinzel">Groom Photo</div>
+                      )}
+                    </div>
+                  </div>
+                  <h3 className={`${getHeadingFontClass()} text-2xl text-[var(--primary-color)] mb-2`}>
+                    {invitation.groom_name || 'Groom Name'}
+                  </h3>
+                  <p className="text-sm italic opacity-70 mb-4">Son of the Parents</p>
+                  <p className="opacity-80 max-w-sm text-sm leading-relaxed">
+                    {invitation.groom_bio || 'A short biography introducing the groom, his passions, and his perspective on the wedding day.'}
+                  </p>
+                </div>
               ) : (
                 <div className="flex flex-col items-center text-center p-6 bg-[rgba(22,22,34,0.35)] border border-[rgba(255,255,255,0.08)] backdrop-blur-md rounded-2xl shadow-xl hover:border-[var(--primary-color)]/30 transition-all duration-300">
                   <div className="w-48 h-48 rounded-full overflow-hidden border-4 border-double border-[var(--primary-color)] mb-6 bg-slate-800 flex items-center justify-center shadow-[0_0_20px_rgba(212,175,55,0.3)] transition-all hover:scale-105 duration-300">
@@ -1058,6 +1171,33 @@ export default function InvitationPreview({
                     {invitation.bride_bio || 'A short biography introducing the bride, her passions, and her perspective on the wedding day.'}
                   </p>
                 </div>
+              ) : isHexagonFrame ? (
+                <div className="flex flex-col items-center text-center p-6 bg-[rgba(22,22,34,0.3)] border border-[#d4af37]/20 rounded-2xl shadow-xl hover:border-[#9333ea]/40 transition-all duration-300">
+                  <div className="relative p-1 bg-gradient-to-b from-[#d4af37] via-[#aa7c11] to-[#9333ea] shadow-[0_0_20px_rgba(147,51,234,0.45)] transition-all hover:scale-105 duration-300 mb-6"
+                       style={{
+                         clipPath: 'polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)',
+                         width: '192px',
+                         height: '216px'
+                       }}>
+                    <div className="w-full h-full bg-slate-800 flex items-center justify-center overflow-hidden"
+                         style={{
+                           clipPath: 'polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)'
+                         }}>
+                      {invitation.bride_photo ? (
+                        <img src={invitation.bride_photo} alt={invitation.bride_name} className="w-full h-full object-cover" />
+                      ) : (
+                        <div className="text-[var(--primary-color)] text-xl font-cinzel">Bride Photo</div>
+                      )}
+                    </div>
+                  </div>
+                  <h3 className={`${getHeadingFontClass()} text-2xl text-[var(--primary-color)] mb-2`}>
+                    {invitation.bride_name || 'Bride Name'}
+                  </h3>
+                  <p className="text-sm italic opacity-70 mb-4">Daughter of the Parents</p>
+                  <p className="opacity-80 max-w-sm text-sm leading-relaxed">
+                    {invitation.bride_bio || 'A short biography introducing the bride, her passions, and her perspective on the wedding day.'}
+                  </p>
+                </div>
               ) : (
                 <div className="flex flex-col items-center text-center p-6 bg-[rgba(22,22,34,0.35)] border border-[rgba(255,255,255,0.08)] backdrop-blur-md rounded-2xl shadow-xl hover:border-[var(--primary-color)]/30 transition-all duration-300">
                   <div className="w-48 h-48 rounded-full overflow-hidden border-4 border-double border-[var(--primary-color)] mb-6 bg-slate-800 flex items-center justify-center shadow-[0_0_20px_rgba(212,175,55,0.3)] transition-all hover:scale-105 duration-300">
@@ -1107,36 +1247,71 @@ export default function InvitationPreview({
                 <div className="w-24 h-[1px] bg-[var(--primary-color)] mx-auto opacity-50" />
               </div>
 
-              <div className="grid grid-cols-1 @md:grid-cols-2 @lg:grid-cols-3 gap-8">
-                {events.map((event, index) => {
-                  if (isKalyanam) {
+              {isHexagonFrame ? (
+                <div className="relative max-w-sm mx-auto h-[380px] flex items-center justify-center mt-12">
+                  {events.map((event, idx) => {
+                    const isActive = idx === activeEventIndex;
+                    const isPrev = idx === (activeEventIndex - 1 + events.length) % events.length;
+                    const isNext = idx === (activeEventIndex + 1) % events.length;
+                    
+                    let transform = 'scale(0.8) translate(0px, 0px) rotate(0deg)';
+                    let zIndex = 0;
+                    let opacity = 0;
+                    
+                    if (isActive) {
+                      transform = 'scale(1) translate(0px, 0px) rotate(0deg)';
+                      zIndex = 30;
+                      opacity = 1;
+                    } else if (isPrev) {
+                      transform = 'scale(0.9) translate(-70px, 0px) rotate(-8deg)';
+                      zIndex = 20;
+                      opacity = 0.6;
+                    } else if (isNext) {
+                      transform = 'scale(0.9) translate(70px, 0px) rotate(8deg)';
+                      zIndex = 20;
+                      opacity = 0.6;
+                    }
+                    
                     return (
-                      <div key={index} className="bg-[#fcf7ec] border-2 border-[#d4af37] rounded-2xl p-6 flex flex-col justify-between hover:border-[#b8962e] transition-all duration-300 shadow-2xl text-[#5c0c1b] relative overflow-hidden">
-                        <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-[#b91c1c] to-transparent opacity-40" />
-                        <div>
+                      <div
+                        key={idx}
+                        className="absolute w-72 h-[330px] bg-gradient-to-b from-[#2e0854]/95 to-[#1a0033]/95 border border-[#d4af37]/40 rounded-2xl p-6 shadow-2xl flex flex-col justify-between transition-all duration-500 ease-in-out cursor-pointer"
+                        style={{
+                          transform,
+                          zIndex,
+                          opacity,
+                          pointerEvents: isActive ? 'auto' : 'none'
+                        }}
+                        onClick={() => setActiveEventIndex(idx)}
+                      >
+                        {isActive && (
+                          <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(212,175,55,0.12)_0%,transparent_70%)] pointer-events-none rounded-2xl" />
+                        )}
+                        
+                        <div className="relative z-10">
                           <div className="flex justify-between items-start mb-4">
-                            <h4 className={`${getHeadingFontClass()} text-2xl text-[#5c0c1b] font-medium`}>
+                            <h4 className={`${getHeadingFontClass()} text-xl text-[#d4af37] font-medium`}>
                               {event.event_name}
                             </h4>
-                            <span className="p-2 rounded bg-[#b91c1c]/10 text-[#b91c1c]">
-                              <Heart className="w-4 h-4 fill-[#b91c1c]" />
+                            <span className="p-2 rounded bg-purple-900/30 text-[#d4af37]">
+                              <Heart className="w-4 h-4 fill-[#d4af37]" />
                             </span>
                           </div>
                           
-                          <div className="space-y-3 my-6 text-sm opacity-90">
+                          <div className="space-y-4 my-6 text-sm opacity-90 text-[#fcf8f2] font-sans">
                             <div className="flex items-center gap-3">
-                              <Calendar className="w-4 h-4 text-[#b91c1c] shrink-0" />
-                              <span className="font-semibold">{new Date(event.event_date + 'T00:00:00').toLocaleDateString(undefined, { dateStyle: 'medium' })}</span>
+                              <Calendar className="w-4 h-4 text-[#d4af37] shrink-0" />
+                              <span>{new Date(event.event_date + 'T00:00:00').toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}</span>
                             </div>
                             <div className="flex items-center gap-3">
-                              <Clock className="w-4 h-4 text-[#b91c1c] shrink-0" />
-                              <span className="font-semibold">{event.event_time.slice(0, 5)}</span>
+                              <Clock className="w-4 h-4 text-[#d4af37] shrink-0" />
+                              <span>{event.event_time.slice(0, 5)}</span>
                             </div>
                             <div className="flex items-start gap-3">
-                              <MapPin className="w-4 h-4 text-[#b91c1c] shrink-0 mt-0.5" />
+                              <MapPin className="w-4 h-4 text-[#d4af37] shrink-0 mt-0.5" />
                               <div>
-                                <span className="font-bold block text-[#5c0c1b]">{event.venue_name}</span>
-                                <span className="text-xs opacity-80 block mt-0.5">{event.venue_address}</span>
+                                <span className="font-semibold block text-white">{event.venue_name}</span>
+                                <span className="text-xs opacity-75">{event.venue_address}</span>
                               </div>
                             </div>
                           </div>
@@ -1147,64 +1322,133 @@ export default function InvitationPreview({
                             href={event.google_maps_link}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="mt-6 w-full py-2.5 rounded bg-[#b91c1c] hover:bg-[#961212] text-[#fffbeb] font-serif text-xs font-semibold tracking-wider transition-all duration-300 flex items-center justify-center gap-2 shadow-md hover:shadow-lg active:scale-95 cursor-pointer"
+                            className="relative z-10 w-full py-2.5 rounded bg-gradient-to-r from-[#d4af37] to-[#aa7c11] hover:from-[#aa7c11] hover:to-[#8a5d07] text-[#1a0033] font-bold text-xs flex items-center justify-center gap-1.5 shadow-lg active:scale-95 transition-all"
+                          >
+                            <MapPin className="w-3.5 h-3.5" />
+                            <span>VIEW ON MAP</span>
+                          </a>
+                        )}
+                      </div>
+                    );
+                  })}
+
+                  <button 
+                    onClick={(e) => { e.stopPropagation(); setActiveEventIndex((prev) => (prev - 1 + events.length) % events.length); }}
+                    className="absolute left-[-45px] z-40 bg-purple-950/80 border border-[#d4af37]/35 hover:border-[#d4af37] text-[#d4af37] p-2.5 rounded-full transition-all hover:scale-105 active:scale-95 cursor-pointer shadow-lg"
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+                    </svg>
+                  </button>
+                  <button 
+                    onClick={(e) => { e.stopPropagation(); setActiveEventIndex((prev) => (prev + 1) % events.length); }}
+                    className="absolute right-[-45px] z-40 bg-purple-950/80 border border-[#d4af37]/35 hover:border-[#d4af37] text-[#d4af37] p-2.5 rounded-full transition-all hover:scale-105 active:scale-95 cursor-pointer shadow-lg"
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                    </svg>
+                  </button>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 @md:grid-cols-2 @lg:grid-cols-3 gap-8">
+                  {events.map((event, index) => {
+                    if (isKalyanam) {
+                      return (
+                        <div key={index} className="bg-[#fcf7ec] border-2 border-[#d4af37] rounded-2xl p-6 flex flex-col justify-between hover:border-[#b8962e] transition-all duration-300 shadow-2xl text-[#5c0c1b] relative overflow-hidden">
+                          <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-[#b91c1c] to-transparent opacity-40" />
+                          <div>
+                            <div className="flex justify-between items-start mb-4">
+                              <h4 className={`${getHeadingFontClass()} text-2xl text-[#5c0c1b] font-medium`}>
+                                {event.event_name}
+                              </h4>
+                              <span className="p-2 rounded bg-[#b91c1c]/10 text-[#b91c1c]">
+                                <Heart className="w-4 h-4 fill-[#b91c1c]" />
+                              </span>
+                            </div>
+                            
+                            <div className="space-y-3 my-6 text-sm opacity-90">
+                              <div className="flex items-center gap-3">
+                                <Calendar className="w-4 h-4 text-[#b91c1c] shrink-0" />
+                                <span className="font-semibold">{new Date(event.event_date + 'T00:00:00').toLocaleDateString(undefined, { dateStyle: 'medium' })}</span>
+                              </div>
+                              <div className="flex items-center gap-3">
+                                <Clock className="w-4 h-4 text-[#b91c1c] shrink-0" />
+                                <span className="font-semibold">{event.event_time.slice(0, 5)}</span>
+                              </div>
+                              <div className="flex items-start gap-3">
+                                <MapPin className="w-4 h-4 text-[#b91c1c] shrink-0 mt-0.5" />
+                                <div>
+                                  <span className="font-bold block text-[#5c0c1b]">{event.venue_name}</span>
+                                  <span className="text-xs opacity-80 block mt-0.5">{event.venue_address}</span>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+
+                          {event.google_maps_link && (
+                            <a 
+                              href={event.google_maps_link}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="mt-6 w-full py-2.5 rounded bg-[#b91c1c] hover:bg-[#961212] text-[#fffbeb] font-serif text-xs font-semibold tracking-wider transition-all duration-300 flex items-center justify-center gap-2 shadow-md hover:shadow-lg active:scale-95 cursor-pointer"
+                            >
+                              <MapPin className="w-4 h-4" />
+                              <span>VIEW ON MAP</span>
+                              <ExternalLink className="w-3.5 h-3.5" />
+                            </a>
+                          )}
+                        </div>
+                      );
+                    }
+                    
+                    return (
+                      <div key={index} className="bg-[rgba(22,22,34,0.35)] border border-[rgba(255,255,255,0.08)] backdrop-blur-md rounded-2xl p-6 flex flex-col justify-between hover:border-[var(--primary-color)] transition-all duration-300 shadow-xl">
+                        <div>
+                          <div className="flex justify-between items-start mb-4">
+                            <h4 className={`${getHeadingFontClass()} text-xl text-[var(--primary-color)] font-medium`}>
+                              {event.event_name}
+                            </h4>
+                            <span className="p-2 rounded bg-[rgba(212,175,55,0.1)] text-[var(--primary-color)]">
+                              <Heart className="w-4 h-4 fill-[var(--primary-color)]" />
+                            </span>
+                          </div>
+                          
+                          <div className="space-y-3 my-6 text-sm opacity-85">
+                            <div className="flex items-center gap-3">
+                              <Calendar className="w-4 h-4 text-[var(--primary-color)] shrink-0" />
+                              <span>{new Date(event.event_date + 'T00:00:00').toLocaleDateString(undefined, { dateStyle: 'medium' })}</span>
+                            </div>
+                            <div className="flex items-center gap-3">
+                              <Clock className="w-4 h-4 text-[var(--primary-color)] shrink-0" />
+                              <span>{event.event_time.slice(0, 5)}</span>
+                            </div>
+                            <div className="flex items-start gap-3">
+                              <MapPin className="w-4 h-4 text-[var(--primary-color)] shrink-0 mt-0.5" />
+                              <div>
+                                <span className="font-semibold block text-white">{event.venue_name}</span>
+                                <span className="text-xs opacity-75">{event.venue_address}</span>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+
+                        {event.google_maps_link && (
+                          <a 
+                            href={event.google_maps_link}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className={`w-full py-2.5 px-4 text-center rounded flex items-center justify-center gap-2 ${getButtonStyleClass()} mt-4 text-xs font-semibold`}
                           >
                             <MapPin className="w-4 h-4" />
-                            <span>VIEW ON MAP</span>
+                            <span>Navigate in Maps</span>
                             <ExternalLink className="w-3.5 h-3.5" />
                           </a>
                         )}
                       </div>
                     );
-                  }
-                  
-                  return (
-                    <div key={index} className="bg-[rgba(22,22,34,0.35)] border border-[rgba(255,255,255,0.08)] backdrop-blur-md rounded-2xl p-6 flex flex-col justify-between hover:border-[var(--primary-color)] transition-all duration-300 shadow-xl">
-                      <div>
-                        <div className="flex justify-between items-start mb-4">
-                          <h4 className={`${getHeadingFontClass()} text-xl text-[var(--primary-color)] font-medium`}>
-                            {event.event_name}
-                          </h4>
-                          <span className="p-2 rounded bg-[rgba(212,175,55,0.1)] text-[var(--primary-color)]">
-                            <Heart className="w-4 h-4 fill-[var(--primary-color)]" />
-                          </span>
-                        </div>
-                        
-                        <div className="space-y-3 my-6 text-sm opacity-85">
-                          <div className="flex items-center gap-3">
-                            <Calendar className="w-4 h-4 text-[var(--primary-color)] shrink-0" />
-                            <span>{new Date(event.event_date + 'T00:00:00').toLocaleDateString(undefined, { dateStyle: 'medium' })}</span>
-                          </div>
-                          <div className="flex items-center gap-3">
-                            <Clock className="w-4 h-4 text-[var(--primary-color)] shrink-0" />
-                            <span>{event.event_time.slice(0, 5)}</span>
-                          </div>
-                          <div className="flex items-start gap-3">
-                            <MapPin className="w-4 h-4 text-[var(--primary-color)] shrink-0 mt-0.5" />
-                            <div>
-                              <span className="font-semibold block text-white">{event.venue_name}</span>
-                              <span className="text-xs opacity-75">{event.venue_address}</span>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-
-                      {event.google_maps_link && (
-                        <a 
-                          href={event.google_maps_link}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className={`w-full py-2.5 px-4 text-center rounded flex items-center justify-center gap-2 ${getButtonStyleClass()} mt-4 text-xs font-semibold`}
-                        >
-                          <MapPin className="w-4 h-4" />
-                          <span>Navigate in Maps</span>
-                          <ExternalLink className="w-3.5 h-3.5" />
-                        </a>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
+                  })}
+                </div>
+              )}
             </div>
           </motion.section>
         );
