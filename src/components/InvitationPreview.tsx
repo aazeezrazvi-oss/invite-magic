@@ -665,24 +665,32 @@ export default function InvitationPreview({
               variants={animationVariants}
               className="min-h-screen flex flex-col justify-center items-center text-center p-6 relative overflow-hidden bg-gradient-to-br from-[#4c0519] via-[#2b030d] to-[#120005]"
             >
-              {/* Ornate Gold Gopuram (Temple Tower) SVG */}
-              <svg className="w-72 h-72 md:w-[420px] md:h-[420px] text-[#d4af37] opacity-[0.08] absolute right-[-40px] bottom-[-20px] pointer-events-none select-none" viewBox="0 0 100 120" fill="currentColor">
-                <path d="M 40,20 L 60,20 L 62,30 L 38,30 Z" />
-                <path d="M 36,30 L 64,30 L 66,45 L 34,45 Z" />
-                <path d="M 30,45 L 70,45 L 73,65 L 27,65 Z" />
-                <path d="M 22,65 L 78,65 L 82,90 L 18,90 Z" />
-                <path d="M 12,90 L 88,90 L 92,120 L 8,120 Z" />
-                <circle cx="50" cy="10" r="3" />
-                <path d="M 47,10 Q 50,2 53,10 Z" />
-              </svg>
+              {/* Ornate Gold Gopuram (Temple Tower) Backdrop Image */}
+              <div className="absolute right-0 bottom-0 top-0 w-full md:w-[50%] opacity-35 md:opacity-50 pointer-events-none select-none z-0">
+                <img 
+                  src="/gopuram.png" 
+                  alt="South Indian Temple Gopuram" 
+                  className="w-full h-full object-contain object-bottom md:object-right-bottom filter brightness-110 sepia-[20%] drop-shadow-[0_0_15px_rgba(212,175,55,0.25)]"
+                />
+              </div>
 
-              {/* Lotus decorations */}
-              <div className="absolute top-0 left-0 w-full flex justify-between p-4 opacity-25 pointer-events-none">
-                <svg className="w-24 h-24 text-[#d4af37]" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M12,22C17.52,22 22,17.52 22,12C22,6.48 17.52,2 12,2C6.48,2 2,6.48 2,12C2,17.52 6.48,22 12,22M12,4C16.41,4 20,7.59 20,12C20,16.41 16.41,20 12,20C7.59,20 4,16.41 4,12C4,7.59 7.59,4 12,4Z" />
+              {/* Ornate Gold Mandala Art at top left */}
+              <div className="absolute -top-16 -left-16 w-56 h-56 border-8 border-double border-[#d4af37]/30 rounded-full opacity-35 pointer-events-none select-none z-0" />
+              <div className="absolute -top-8 -left-8 w-40 h-40 border border-dashed border-[#d4af37]/20 rounded-full opacity-25 pointer-events-none select-none z-0" />
+
+              {/* Lotus decorations on the left */}
+              <div className="absolute left-6 top-1/4 flex flex-col gap-6 opacity-30 pointer-events-none select-none z-0">
+                <svg className="w-12 h-12 text-[#d4af37]" viewBox="0 0 100 100" fill="currentColor">
+                  <path d="M50,10 C45,35 15,45 15,65 C15,80 35,90 50,90 C65,90 85,80 85,65 C85,45 55,35 50,10 Z" />
+                  <ellipse cx="50" cy="70" rx="30" ry="10" fill="#2b030d" />
                 </svg>
-                <svg className="w-24 h-24 text-[#d4af37] scale-x-[-1]" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M12,22C17.52,22 22,17.52 22,12C22,6.48 17.52,2 12,2C6.48,2 2,6.48 2,12C2,17.52 6.48,22 12,22M12,4C16.41,4 20,7.59 20,12C20,16.41 16.41,20 12,20C7.59,20 4,16.41 4,12C4,7.59 7.59,4 12,4Z" />
+                <svg className="w-16 h-16 text-[#d4af37] opacity-80" viewBox="0 0 100 100" fill="currentColor">
+                  <path d="M50,10 C45,35 15,45 15,65 C15,80 35,90 50,90 C65,90 85,80 85,65 C85,45 55,35 50,10 Z" />
+                  <ellipse cx="50" cy="70" rx="30" ry="10" fill="#2b030d" />
+                </svg>
+                <svg className="w-10 h-10 text-[#d4af37]" viewBox="0 0 100 100" fill="currentColor">
+                  <path d="M50,10 C45,35 15,45 15,65 C15,80 35,90 50,90 C65,90 85,80 85,65 C85,45 55,35 50,10 Z" />
+                  <ellipse cx="50" cy="70" rx="30" ry="10" fill="#2b030d" />
                 </svg>
               </div>
 
@@ -1354,8 +1362,19 @@ export default function InvitationPreview({
                   {events.map((event, index) => {
                     if (isKalyanam) {
                       return (
-                        <div key={index} className="bg-[#fcf7ec] border-2 border-[#d4af37] rounded-2xl p-6 flex flex-col justify-between hover:border-[#b8962e] transition-all duration-300 shadow-2xl text-[#5c0c1b] relative overflow-hidden">
-                          <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-[#b91c1c] to-transparent opacity-40" />
+                        <div key={index} className="bg-[#fcf7ec] border-2 border-[#d4af37] rounded-2xl p-6 pl-8 pr-8 flex flex-col justify-between hover:border-[#b8962e] transition-all duration-300 shadow-2xl text-[#5c0c1b] relative overflow-hidden">
+                          <div className="absolute left-1.5 top-3 bottom-3 flex flex-col justify-between items-center opacity-75 pointer-events-none w-2">
+                            {[...Array(9)].map((_, i) => (
+                              <span key={i} className={`w-1.5 h-1.5 rounded-full ${i % 2 === 0 ? 'bg-orange-500' : 'bg-yellow-400'} shadow-sm`} />
+                            ))}
+                          </div>
+                          <div className="absolute right-1.5 top-3 bottom-3 flex flex-col justify-between items-center opacity-75 pointer-events-none w-2">
+                            {[...Array(9)].map((_, i) => (
+                              <span key={i} className={`w-1.5 h-1.5 rounded-full ${i % 2 === 0 ? 'bg-orange-500' : 'bg-yellow-400'} shadow-sm`} />
+                            ))}
+                          </div>
+                          
+                          <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-transparent via-[#b91c1c] to-transparent opacity-50" />
                           <div>
                             <div className="flex justify-between items-start mb-4">
                               <h4 className={`${getHeadingFontClass()} text-2xl text-[#5c0c1b] font-medium`}>
@@ -1806,7 +1825,37 @@ export default function InvitationPreview({
       className="min-h-screen text-[var(--text-color)] relative flex flex-col overflow-hidden @container"
     >
       {/* Background Layer */}
-      {styling.background_type === 'video' ? (
+      {isRoyalWreath ? (
+        <>
+          <div 
+            className="fixed inset-0 bg-cover bg-center z-0 pointer-events-none opacity-45"
+            style={{ backgroundImage: `url('/wreath_mountain.png')` }}
+          />
+          {styling.background_type === 'video' && (
+            <video 
+              key={styling.background_url}
+              autoPlay 
+              loop 
+              muted 
+              playsInline 
+              className="fixed inset-0 w-full h-full object-cover z-0 pointer-events-none opacity-20 mix-blend-screen"
+            >
+              <source src={styling.background_url} type="video/mp4" />
+            </video>
+          )}
+        </>
+      ) : isKalyanam ? (
+        <>
+          <div 
+            className="fixed right-0 bottom-0 w-[55%] h-[80%] bg-contain bg-no-repeat bg-bottom z-0 pointer-events-none opacity-[0.12] filter sepia-[40%]"
+            style={{ backgroundImage: `url('/gopuram.png')` }}
+          />
+          <div 
+            className="fixed inset-0 z-0 pointer-events-none opacity-100"
+            style={{ background: styling.background_url }}
+          />
+        </>
+      ) : styling.background_type === 'video' ? (
         <video 
           key={styling.background_url}
           autoPlay 
