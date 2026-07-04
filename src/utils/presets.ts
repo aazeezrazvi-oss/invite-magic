@@ -31,23 +31,23 @@ export const TEMPLATE_PRESETS: TemplatePreset[] = [
   },
   {
     id: 'tpl-muslim-nikah',
-    name: 'Muslim Nikah (Royal Burgundy)',
+    name: 'Muslim Nikah (Royal Purple & Gold)',
     slug: 'muslim-nikah',
     styling: {
       primary_color: '#d4af37', // Gold
-      secondary_color: '#580b14', // Burgundy
-      background_color: '#fbf6ef', // Cream
-      text_color: '#2e050c', // Dark burgundy-black
-      font_heading: 'playfair',
+      secondary_color: '#5a1846', // Royal Purple
+      background_color: '#0d0d11', // Deep Black
+      text_color: '#fcf8f2', // Light cream
+      font_heading: 'alex',
       font_body: 'inter',
       music_url: '/music/islamic-nasheed.mp3',
-      section_order: ['hero', 'countdown', 'story', 'events', 'gallery', 'livestream', 'rsvp', 'gifts'],
-      animation_style: 'slide',
+      section_order: ['hero', 'countdown', 'story', 'events', 'gallery', 'rsvp', 'gifts'],
+      animation_style: 'fade',
       button_style: 'gold-border',
-      countdown_style: 'boxed-numbers',
-      gallery_layout: 'masonry',
-      background_type: 'gradient',
-      background_url: 'linear-gradient(135deg, #fbf6ef 0%, #f3eae1 100%)',
+      countdown_style: 'circles',
+      gallery_layout: 'grid',
+      background_type: 'video',
+      background_url: 'https://assets.mixkit.co/videos/preview/mixkit-mysterious-misty-mountain-pines-1173-large.mp4',
     },
   },
   {

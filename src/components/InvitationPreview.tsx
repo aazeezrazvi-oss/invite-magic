@@ -64,7 +64,7 @@ export default function InvitationPreview({
   const [isCardOut, setIsCardOut] = useState(false);
   const [isCoverFading, setIsCoverFading] = useState(false);
   
-  const isBurgundyTheme = styling.secondary_color === '#580b14' || styling.secondary_color === '#6b0c1b';
+  const isBurgundyTheme = styling.secondary_color === '#580b14' || styling.secondary_color === '#6b0c1b' || styling.secondary_color === '#5a1846';
 
   // 35 Floating flower petals and gold blossoms for the inner page background (increased density)
   const innerPetals = [
@@ -262,6 +262,7 @@ export default function InvitationPreview({
   const renderEnvelopeCover = () => {
     const envelopeColor = styling.secondary_color || '#580b14';
     const accentColor = styling.primary_color || '#d4af37';
+    const isPurpleOrBurgundy = envelopeColor === '#5a1846' || envelopeColor === '#580b14' || envelopeColor === '#6b0c1b';
     
     // Increased cover floating elements (20 items: mix of 3D rose petals and gold blossoms)
     const petals = [
@@ -414,21 +415,44 @@ export default function InvitationPreview({
             />
           </div>
 
-          {/* Horizontal Gold Twines (4 detailed strands wrapping envelope) */}
-          <div className="absolute top-[50%] -translate-y-[50%] left-0 w-full h-[12px] flex flex-col justify-between pointer-events-none z-25 opacity-95">
-            <div className="w-full h-[1.2px] bg-gradient-to-r from-[#aa7c11] via-[#f5d682] to-[#aa7c11] shadow-[0_1px_1px_rgba(0,0,0,0.35)]" />
-            <div className="w-full h-[1.2px] bg-gradient-to-r from-[#8a5d07] via-[#e6bc55] to-[#8a5d07] shadow-[0_1px_1px_rgba(0,0,0,0.35)]" />
-            <div className="w-full h-[1.2px] bg-gradient-to-r from-[#aa7c11] via-[#f5d682] to-[#aa7c11] shadow-[0_1px_1px_rgba(0,0,0,0.35)]" />
-            <div className="w-full h-[1.2px] bg-gradient-to-r from-[#8a5d07] via-[#e6bc55] to-[#8a5d07] shadow-[0_1px_1px_rgba(0,0,0,0.35)]" />
-          </div>
+          {/* Horizontal and Vertical Gold Twines or Geometric Patterns depending on theme */}
+          {isPurpleOrBurgundy ? (
+            <svg className="absolute inset-0 w-full h-full pointer-events-none z-22" viewBox="0 0 100 100" preserveAspectRatio="none">
+              {/* Gold trim along the bottom fold edges */}
+              <line x1="0" y1="100" x2="50" y2="50" stroke="#d4af37" strokeWidth="1.5" />
+              <line x1="100" y1="100" x2="50" y2="50" stroke="#d4af37" strokeWidth="1.5" />
+              <line x1="5" y1="100" x2="50" y2="55" stroke="#d4af37" strokeWidth="0.8" opacity="0.7" />
+              <line x1="95" y1="100" x2="50" y2="55" stroke="#d4af37" strokeWidth="0.8" opacity="0.7" />
 
-          {/* Vertical Gold Twines (4 detailed strands wrapping envelope) */}
-          <div className="absolute left-[50%] -translate-x-[50%] top-0 h-full w-[12px] flex justify-between pointer-events-none z-25 opacity-95">
-            <div className="h-full w-[1.2px] bg-gradient-to-b from-[#aa7c11] via-[#f5d682] to-[#aa7c11] shadow-[1px_0_1px_rgba(0,0,0,0.35)]" />
-            <div className="h-full w-[1.2px] bg-gradient-to-b from-[#8a5d07] via-[#e6bc55] to-[#8a5d07] shadow-[1px_0_1px_rgba(0,0,0,0.35)]" />
-            <div className="h-full w-[1.2px] bg-gradient-to-b from-[#aa7c11] via-[#f5d682] to-[#aa7c11] shadow-[1px_0_1px_rgba(0,0,0,0.35)]" />
-            <div className="h-full w-[1.2px] bg-gradient-to-b from-[#8a5d07] via-[#e6bc55] to-[#8a5d07] shadow-[1px_0_1px_rgba(0,0,0,0.35)]" />
-          </div>
+              {/* Gold trim along the side fold edges */}
+              <line x1="0" y1="0" x2="50" y2="50" stroke="#d4af37" strokeWidth="1.2" opacity="0.8" />
+              <line x1="100" y1="0" x2="50" y2="50" stroke="#d4af37" strokeWidth="1.2" opacity="0.8" />
+
+              {/* Criss-cross geometric lines inside bottom and sides to match mockup */}
+              <line x1="0" y1="80" x2="50" y2="30" stroke="#d4af37" strokeWidth="0.5" opacity="0.5" />
+              <line x1="100" y1="80" x2="50" y2="30" stroke="#d4af37" strokeWidth="0.5" opacity="0.5" />
+              <line x1="0" y1="60" x2="50" y2="10" stroke="#d4af37" strokeWidth="0.5" opacity="0.3" />
+              <line x1="100" y1="60" x2="50" y2="10" stroke="#d4af37" strokeWidth="0.5" opacity="0.3" />
+            </svg>
+          ) : (
+            <>
+              {/* Horizontal Gold Twines (4 detailed strands wrapping envelope) */}
+              <div className="absolute top-[50%] -translate-y-[50%] left-0 w-full h-[12px] flex flex-col justify-between pointer-events-none z-25 opacity-95">
+                <div className="w-full h-[1.2px] bg-gradient-to-r from-[#aa7c11] via-[#f5d682] to-[#aa7c11] shadow-[0_1px_1px_rgba(0,0,0,0.35)]" />
+                <div className="w-full h-[1.2px] bg-gradient-to-r from-[#8a5d07] via-[#e6bc55] to-[#8a5d07] shadow-[0_1px_1px_rgba(0,0,0,0.35)]" />
+                <div className="w-full h-[1.2px] bg-gradient-to-r from-[#aa7c11] via-[#f5d682] to-[#aa7c11] shadow-[0_1px_1px_rgba(0,0,0,0.35)]" />
+                <div className="w-full h-[1.2px] bg-gradient-to-r from-[#8a5d07] via-[#e6bc55] to-[#8a5d07] shadow-[0_1px_1px_rgba(0,0,0,0.35)]" />
+              </div>
+
+              {/* Vertical Gold Twines (4 detailed strands wrapping envelope) */}
+              <div className="absolute left-[50%] -translate-x-[50%] top-0 h-full w-[12px] flex justify-between pointer-events-none z-25 opacity-95">
+                <div className="h-full w-[1.2px] bg-gradient-to-b from-[#aa7c11] via-[#f5d682] to-[#aa7c11] shadow-[1px_0_1px_rgba(0,0,0,0.35)]" />
+                <div className="h-full w-[1.2px] bg-gradient-to-b from-[#8a5d07] via-[#e6bc55] to-[#8a5d07] shadow-[1px_0_1px_rgba(0,0,0,0.35)]" />
+                <div className="h-full w-[1.2px] bg-gradient-to-b from-[#aa7c11] via-[#f5d682] to-[#aa7c11] shadow-[1px_0_1px_rgba(0,0,0,0.35)]" />
+                <div className="h-full w-[1.2px] bg-gradient-to-b from-[#8a5d07] via-[#e6bc55] to-[#8a5d07] shadow-[1px_0_1px_rgba(0,0,0,0.35)]" />
+              </div>
+            </>
+          )}
 
           {/* Radiating frayed thread ends underneath the wax seal */}
           <div className={`absolute top-[50%] left-[50%] -translate-x-[50%] -translate-y-[50%] w-36 h-36 pointer-events-none z-35 overflow-visible transition-all duration-[600ms] ${
@@ -528,12 +552,29 @@ export default function InvitationPreview({
             }`}
           >
             <div 
-              className="w-full h-full"
+              className="w-full h-full relative"
               style={{ 
                 backgroundColor: envelopeColor,
                 clipPath: 'polygon(0 0, 100% 0, 50% 100%)'
               }}
-            />
+            >
+              {isPurpleOrBurgundy && (
+                <svg className="absolute inset-0 w-full h-full pointer-events-none" viewBox="0 0 100 100" preserveAspectRatio="none">
+                  {/* Double gold trim on left edge */}
+                  <line x1="0" y1="0" x2="50" y2="100" stroke="#d4af37" strokeWidth="1.5" />
+                  <line x1="5" y1="0" x2="50" y2="90" stroke="#d4af37" strokeWidth="0.8" opacity="0.7" />
+                  {/* Double gold trim on right edge */}
+                  <line x1="100" y1="0" x2="50" y2="100" stroke="#d4af37" strokeWidth="1.5" />
+                  <line x1="95" y1="0" x2="50" y2="90" stroke="#d4af37" strokeWidth="0.8" opacity="0.7" />
+                  
+                  {/* Criss-cross gold lines inside the flap to match the geometric design in 2nd pic */}
+                  <line x1="15" y1="0" x2="50" y2="70" stroke="#d4af37" strokeWidth="0.5" opacity="0.5" />
+                  <line x1="85" y1="0" x2="50" y2="70" stroke="#d4af37" strokeWidth="0.5" opacity="0.5" />
+                  <line x1="30" y1="0" x2="50" y2="40" stroke="#d4af37" strokeWidth="0.5" opacity="0.3" />
+                  <line x1="70" y1="0" x2="50" y2="40" stroke="#d4af37" strokeWidth="0.5" opacity="0.3" />
+                </svg>
+              )}
+            </div>
           </div>
 
           {/* Organic Wax Seal with concentric gold NIKAH stamp */}
@@ -559,9 +600,15 @@ export default function InvitationPreview({
                 <circle cx="50" cy="50" r="38" strokeWidth="1" />
                 <path d="M50,18 L50,82 M18,50 L82,50" strokeWidth="0.8" opacity="0.25" />
                 <circle cx="50" cy="50" r="12" strokeWidth="1.2" />
-                <text x="50" y="54" textAnchor="middle" fill="#d4af37" fontSize="13" fontFamily="Cinzel, Georgia, serif" fontWeight="bold" letterSpacing="1.5">
-                  NIKAH
-                </text>
+                {isPurpleOrBurgundy ? (
+                  <text x="50" y="58" textAnchor="middle" fill="#d4af37" fontSize="26" fontFamily="Georgia, serif">
+                    ﷽
+                  </text>
+                ) : (
+                  <text x="50" y="54" textAnchor="middle" fill="#d4af37" fontSize="13" fontFamily="Cinzel, Georgia, serif" fontWeight="bold" letterSpacing="1.5">
+                    NIKAH
+                  </text>
+                )}
                 <path d="M35,32 Q50,22 65,32" strokeWidth="1.2" strokeLinecap="round" />
                 <path d="M35,68 Q50,78 65,68" strokeWidth="1.2" strokeLinecap="round" />
                 <circle cx="50" cy="23" r="1.2" fill="#d4af37" />
@@ -577,7 +624,11 @@ export default function InvitationPreview({
           <button 
             onClick={handleOpen}
             disabled={isOpening}
-            className="px-8 py-3 bg-[#580b14] hover:bg-[#42050d] text-[#d4af37] hover:text-[#fffbeb] border border-[#d4af37] rounded font-cinzel tracking-widest text-xs font-semibold shadow-[0_4px_12px_rgba(88,11,20,0.2)] hover:shadow-[0_4px_20px_rgba(212,175,55,0.3)] transition-all duration-300 transform active:scale-95 disabled:opacity-50 cursor-pointer animate-pulse"
+            className={`px-8 py-3 rounded tracking-widest font-semibold shadow-[0_4px_12px_rgba(0,0,0,0.35)] transition-all duration-300 transform active:scale-95 disabled:opacity-50 cursor-pointer animate-pulse ${
+              isPurpleOrBurgundy 
+                ? 'bg-[#4c0519] hover:bg-[#5c061e] text-[#eab308] hover:text-[#fffbeb] border-4 border-double border-[#eab308] font-serif text-sm px-10 py-3.5 font-bold'
+                : 'bg-[#580b14] hover:bg-[#42050d] text-[#d4af37] hover:text-[#fffbeb] border border-[#d4af37] font-cinzel text-xs'
+            }`}
           >
             {isOpening ? 'OPENING...' : 'OPEN INVITATION'}
           </button>
@@ -600,93 +651,6 @@ export default function InvitationPreview({
 
     switch (sectionName) {
       case 'hero':
-        if (isBurgundyTheme) {
-          return (
-            <motion.section 
-              key="hero"
-              initial="hidden"
-              whileInView="visible"
-              viewport={{ once: true }}
-              variants={animationVariants}
-              className="min-h-screen flex flex-col justify-center items-center text-center p-6 relative overflow-hidden bg-[#580b14]"
-            >
-              {/* Background gold pattern overlay */}
-              <div className="absolute inset-0 opacity-[0.03] pointer-events-none mix-blend-overlay" 
-                   style={{ backgroundImage: `url('/images/pattern-gold.png')`, backgroundSize: 'cover' }} />
-              
-              {/* Gold Arched Frame */}
-              <div className="relative w-full max-w-[350px] md:max-w-md h-[85vh] border-2 border-[#d4af37] rounded-t-[180px] px-6 py-10 flex flex-col justify-between items-center text-center overflow-hidden bg-[#580b14] shadow-2xl">
-                
-                {/* Gold Chandelier Vector */}
-                <div className="mt-2 select-none">
-                  <svg className="w-20 h-20 text-[#d4af37] mx-auto opacity-95 drop-shadow-[0_2px_8px_rgba(212,175,55,0.4)]" viewBox="0 0 100 100" fill="none" stroke="currentColor" strokeWidth="1.5">
-                    <line x1="50" y1="0" x2="50" y2="30" />
-                    <line x1="50" y1="30" x2="50" y2="70" />
-                    <path d="M50,45 C35,45 25,60 25,70" />
-                    <path d="M50,45 C65,45 75,60 75,70" />
-                    <path d="M50,35 C20,35 10,55 10,70" />
-                    <path d="M50,35 C80,35 90,55 90,70" />
-                    <circle cx="50" cy="70" r="1.5" fill="currentColor" />
-                    <path d="M50,70 L50,65" />
-                    <path d="M48,65 C48,60 52,60 52,65" fill="currentColor" />
-                    <circle cx="25" cy="70" r="1.5" fill="currentColor" />
-                    <path d="M25,70 L25,65" />
-                    <path d="M23,65 C23,60 27,60 27,65" fill="currentColor" />
-                    <circle cx="75" cy="70" r="1.5" fill="currentColor" />
-                    <path d="M75,70 L75,65" />
-                    <path d="M73,65 C73,60 77,60 77,65" fill="currentColor" />
-                    <circle cx="10" cy="70" r="1.5" fill="currentColor" />
-                    <path d="M10,70 L10,63" />
-                    <path d="M8,63 C8,58 12,58 12,63" fill="currentColor" />
-                    <circle cx="90" cy="70" r="1.5" fill="currentColor" />
-                    <path d="M90,70 L90,63" />
-                    <path d="M88,63 C88,58 92,58 92,63" fill="currentColor" />
-                    <path d="M25,70 L25,75 L28,78 L25,75" />
-                    <path d="M75,70 L75,75 L72,78 L75,75" />
-                    <path d="M50,70 L50,78" />
-                  </svg>
-                </div>
-
-                {/* Arched Content */}
-                <div className="my-auto space-y-4">
-                  <span className="text-[#d4af37] uppercase tracking-[0.25em] text-[9px] font-bold block mb-1 select-none">
-                    Together With Their Families
-                  </span>
-                  
-                  <h1 className={`${getHeadingFontClass()} text-4xl md:text-5xl font-light text-[#d4af37] leading-tight select-none`}>
-                    <span className="block my-1">{invitation.groom_name || 'Groom'}</span>
-                    <span className="text-lg font-serif block my-1 opacity-70">&</span>
-                    <span className="block my-1">{invitation.bride_name || 'Bride'}</span>
-                  </h1>
-
-                  <div className="w-16 h-[1px] bg-[#d4af37] mx-auto opacity-50 my-2" />
-                  
-                  <p className="text-[10px] uppercase tracking-[0.2em] text-[#d4af37] font-semibold select-none leading-relaxed">
-                    Invite You To Celebrate<br/>Their Wedding
-                  </p>
-                </div>
-
-                {/* Corner Red Roses (using high-quality floral corner overlays) */}
-                <div className="absolute -bottom-4 -left-4 w-20 h-20 pointer-events-none select-none overflow-hidden rounded-full">
-                  <img 
-                    src="https://images.unsplash.com/photo-1533616688419-b7a585564566?q=80&w=200&auto=format&fit=crop" 
-                    className="w-full h-full object-cover opacity-90 scale-x-[-1]" 
-                    alt="roses decor" 
-                  />
-                </div>
-                <div className="absolute -bottom-4 -right-4 w-20 h-20 pointer-events-none select-none overflow-hidden rounded-full">
-                  <img 
-                    src="https://images.unsplash.com/photo-1533616688419-b7a585564566?q=80&w=200&auto=format&fit=crop" 
-                    className="w-full h-full object-cover opacity-90" 
-                    alt="roses decor" 
-                  />
-                </div>
-
-              </div>
-            </motion.section>
-          );
-        }
-
         return (
           <motion.section 
             key="hero"
@@ -701,30 +665,49 @@ export default function InvitationPreview({
                  style={{ backgroundImage: `url('/images/pattern-gold.png')`, backgroundSize: 'cover' }} />
             
             <div className="max-w-2xl z-10 px-4">
-              <span className="text-[var(--primary-color)] uppercase tracking-[0.2em] text-xs font-semibold block mb-4">
+              <span className="text-[var(--primary-color)] uppercase tracking-[0.2em] text-xs font-semibold block mb-4 select-none">
                 Are Cordially Invited To Attend The Wedding Of
               </span>
-              <h1 className={`${getHeadingFontClass()} text-5xl @lg:text-7xl font-light text-[var(--primary-color)] my-6 flex flex-col @lg:flex-row justify-center items-center gap-2 @lg:gap-6`}>
-                <span>{invitation.groom_name || 'Groom'}</span>
-                <Heart className="w-8 h-8 text-[var(--primary-color)] fill-[var(--primary-color)] animate-pulse inline-block my-2" />
-                <span>{invitation.bride_name || 'Bride'}</span>
+              <h1 className={`${getHeadingFontClass()} text-4xl @lg:text-6xl font-light text-[var(--primary-color)] my-6 text-center leading-normal`}>
+                <span className="inline-block">{invitation.groom_name || 'Groom'}</span>
+                {styling.font_heading === 'alex' ? (
+                  <span className="inline-block mx-3 text-2xl font-serif opacity-75">&</span>
+                ) : (
+                  <Heart className="w-6 h-6 text-[var(--primary-color)] fill-[var(--primary-color)] animate-pulse inline-block mx-3 align-middle" />
+                )}
+                <span className="inline-block">{invitation.bride_name || 'Bride'}</span>
               </h1>
-              <p className="text-lg italic opacity-85 my-4">
+              <p className="text-lg italic opacity-85 my-4 leading-relaxed">
                 {invitation.invitation_message || 'Please join us as we celebrate our love and begin our new journey together.'}
               </p>
               
               {events[0] && (
-                <div className="mt-8 flex flex-col items-center gap-2 opacity-90 border-t border-b border-[rgba(255,255,255,0.1)] py-4 max-w-sm mx-auto">
-                  <div className="flex items-center gap-2">
-                    <Calendar className="w-5 h-5 text-[var(--primary-color)]" />
-                    <span className="font-semibold text-lg">
-                      {new Date(events[0].event_date).toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Clock className="w-4 h-4 text-[var(--primary-color)]" />
-                    <span>At {events[0].event_time.slice(0, 5)}</span>
-                  </div>
+                <div className="mt-8 flex flex-col items-center gap-1.5 opacity-95 py-4 max-w-sm mx-auto">
+                  {styling.font_heading === 'alex' ? (
+                    <>
+                      <span className="font-semibold text-lg text-[var(--primary-color)]">
+                        {new Date(events[0].event_date + 'T00:00:00').toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+                      </span>
+                      <span className="text-sm tracking-wider opacity-90">
+                        At {events[0].event_time.slice(0, 5)}
+                      </span>
+                      {/* Elegant gold divider ornament */}
+                      <div className="w-24 h-[1px] bg-gradient-to-r from-transparent via-[var(--primary-color)] to-transparent mt-4" />
+                    </>
+                  ) : (
+                    <>
+                      <div className="flex items-center gap-2">
+                        <Calendar className="w-5 h-5 text-[var(--primary-color)]" />
+                        <span className="font-semibold text-lg">
+                          {new Date(events[0].event_date + 'T00:00:00').toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Clock className="w-4 h-4 text-[var(--primary-color)]" />
+                        <span>At {events[0].event_time.slice(0, 5)}</span>
+                      </div>
+                    </>
+                  )}
                 </div>
               )}
             </div>
@@ -798,8 +781,8 @@ export default function InvitationPreview({
 
             <div className="grid grid-cols-1 @lg:grid-cols-2 gap-12 items-center">
               {/* Groom */}
-              <div className="flex flex-col items-center text-center p-6 bg-[rgba(255,255,255,0.02)] border border-[rgba(255,255,255,0.03)] rounded-lg">
-                <div className="w-48 h-48 rounded-full overflow-hidden border-2 border-[var(--primary-color)] mb-6 bg-slate-800 flex items-center justify-center">
+              <div className="flex flex-col items-center text-center p-6 bg-[rgba(22,22,34,0.35)] border border-[rgba(255,255,255,0.08)] backdrop-blur-md rounded-2xl shadow-xl hover:border-[var(--primary-color)]/30 transition-all duration-300">
+                <div className="w-48 h-48 rounded-full overflow-hidden border-4 border-double border-[var(--primary-color)] mb-6 bg-slate-800 flex items-center justify-center shadow-[0_0_20px_rgba(212,175,55,0.3)] transition-all hover:scale-105 duration-300">
                   {invitation.groom_photo ? (
                     <img src={invitation.groom_photo} alt={invitation.groom_name} className="w-full h-full object-cover" />
                   ) : (
@@ -816,8 +799,8 @@ export default function InvitationPreview({
               </div>
 
               {/* Bride */}
-              <div className="flex flex-col items-center text-center p-6 bg-[rgba(255,255,255,0.02)] border border-[rgba(255,255,255,0.03)] rounded-lg">
-                <div className="w-48 h-48 rounded-full overflow-hidden border-2 border-[var(--primary-color)] mb-6 bg-slate-800 flex items-center justify-center">
+              <div className="flex flex-col items-center text-center p-6 bg-[rgba(22,22,34,0.35)] border border-[rgba(255,255,255,0.08)] backdrop-blur-md rounded-2xl shadow-xl hover:border-[var(--primary-color)]/30 transition-all duration-300">
+                <div className="w-48 h-48 rounded-full overflow-hidden border-4 border-double border-[var(--primary-color)] mb-6 bg-slate-800 flex items-center justify-center shadow-[0_0_20px_rgba(212,175,55,0.3)] transition-all hover:scale-105 duration-300">
                   {invitation.bride_photo ? (
                     <img src={invitation.bride_photo} alt={invitation.bride_name} className="w-full h-full object-cover" />
                   ) : (
@@ -865,7 +848,7 @@ export default function InvitationPreview({
 
               <div className="grid grid-cols-1 @md:grid-cols-2 @lg:grid-cols-3 gap-8">
                 {events.map((event, index) => (
-                  <div key={index} className="bg-[rgba(255,255,255,0.02)] border border-[rgba(255,255,255,0.05)] rounded-lg p-6 flex flex-col justify-between hover:border-[var(--primary-color)] transition-all duration-300">
+                  <div key={index} className="bg-[rgba(22,22,34,0.35)] border border-[rgba(255,255,255,0.08)] backdrop-blur-md rounded-2xl p-6 flex flex-col justify-between hover:border-[var(--primary-color)] transition-all duration-300 shadow-xl">
                     <div>
                       <div className="flex justify-between items-start mb-4">
                         <h4 className={`${getHeadingFontClass()} text-xl text-[var(--primary-color)] font-medium`}>
@@ -1036,7 +1019,7 @@ export default function InvitationPreview({
             variants={animationVariants}
             className="py-24 px-6 max-w-2xl mx-auto relative z-10"
           >
-            <div className="bg-[rgba(255,255,255,0.02)] border border-[rgba(255,255,255,0.05)] rounded-lg p-8 backdrop-blur-md">
+            <div className="bg-[rgba(22,22,34,0.35)] border border-[rgba(255,255,255,0.08)] rounded-2xl p-8 backdrop-blur-md shadow-xl">
               <div className="text-center mb-8">
                 <h2 className={`${getHeadingFontClass()} text-3xl text-[var(--primary-color)] mb-2`}>
                   Will You Attend?
@@ -1156,7 +1139,7 @@ export default function InvitationPreview({
             variants={animationVariants}
             className="py-24 px-6 text-center max-w-2xl mx-auto relative z-10"
           >
-            <div className="bg-[rgba(255,255,255,0.02)] border border-[rgba(255,255,255,0.05)] rounded-lg p-8 backdrop-blur-md">
+            <div className="bg-[rgba(22,22,34,0.35)] border border-[rgba(255,255,255,0.08)] rounded-2xl p-8 backdrop-blur-md shadow-xl">
               <Gift className="w-12 h-12 text-[var(--primary-color)] mx-auto mb-4" />
               <h2 className={`${getHeadingFontClass()} text-3xl text-[var(--primary-color)] mb-2`}>
                 Wedding Gift / Shagun
