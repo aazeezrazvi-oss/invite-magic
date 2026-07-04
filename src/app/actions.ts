@@ -103,7 +103,8 @@ function getServiceSupabase() {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
   if (!serviceRoleKey) {
-    throw new Error('Critical Configuration Error: SUPABASE_SERVICE_ROLE_KEY is not set.');
+    console.warn('[getServiceSupabase] Warning: SUPABASE_SERVICE_ROLE_KEY is not set.');
+    return null;
   }
   return createClient(supabaseUrl, serviceRoleKey, {
     auth: {
@@ -152,10 +153,20 @@ export async function getInvitationBySlug(slug: string): Promise<Partial<Invitat
   const cleanSlug = slug.trim().toLowerCase();
 
   // 1. Bloom Filter Protection (reject non-existent slugs instantly without DB query)
-  const mightExist = await checkSlugExists(cleanSlug);
-  if (!mightExist) {
-    console.log(`[Bloom Filter Blocked] Slug "${cleanSlug}" does not exist.`);
-    return null;
+  // We only enforce the Bloom Filter if the service role key is configured (meaning we could load draft/unpublished slugs)
+  // and we are not in a multi-container environment without Redis (which would cause desync on dynamic inserts).
+  const hasServiceKey = !!process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const isDev = process.env.NODE_ENV === 'development';
+  const shouldEnforceBloomFilter = hasServiceKey && (redis || isDev);
+
+  if (shouldEnforceBloomFilter) {
+    const mightExist = await checkSlugExists(cleanSlug);
+    if (!mightExist) {
+      console.log(`[Bloom Filter Blocked] Slug "${cleanSlug}" does not exist.`);
+      return null;
+    }
+  } else {
+    console.log(`[Bloom Filter Bypassed] Skipping Bloom Filter check. (hasServiceKey=${hasServiceKey}, hasRedis=${!!redis}, isDev=${isDev})`);
   }
 
   const cacheKey = INVITATION_CACHE_KEY_PREFIX + cleanSlug;
@@ -193,13 +204,28 @@ export async function getInvitationBySlug(slug: string): Promise<Partial<Invitat
         return null;
       }
 
-      // Fetch the owner's subscription tier using service role client to avoid data disclosure
+      // Fetch the owner's subscription tier using service role client if available
       const supabaseAdmin = getServiceSupabase();
-      const { data: owner } = await supabaseAdmin
-        .from('users')
-        .select('subscription_tier')
-        .eq('id', invitation.user_id)
-        .single();
+      let owner = null;
+      if (supabaseAdmin) {
+        const { data: ownerData } = await supabaseAdmin
+          .from('users')
+          .select('subscription_tier')
+          .eq('id', invitation.user_id)
+          .single();
+        owner = ownerData;
+      } else {
+        try {
+          const { data: ownerData } = await supabase
+            .from('users')
+            .select('subscription_tier')
+            .eq('id', invitation.user_id)
+            .single();
+          owner = ownerData;
+        } catch (e) {
+          console.warn('[getInvitationBySlug] Failed to fetch user subscription tier with client SDK:', e);
+        }
+      }
 
       const { data: styling } = await supabase
         .from('styling_preferences')
@@ -601,6 +627,9 @@ export async function applySignupPromoCode(userId: string, promoCode: string): P
   const code = promoCode.trim().toUpperCase();
   if (code === 'LIFETIMEFREE' || code === 'FREEVIP') {
     const supabaseAdmin = getServiceSupabase();
+    if (!supabaseAdmin) {
+      return { success: false, message: 'Configuration error: Service role key is missing.' };
+    }
     try {
       const { error } = await supabaseAdmin
         .from('users')
@@ -735,6 +764,9 @@ export async function verifyRazorpayPayment(
 
   // 2. Perform Database Upgrades using Server-side Service client (bypasses RLS triggers)
   const supabaseAdmin = getServiceSupabase();
+  if (!supabaseAdmin) {
+    return { success: false, error: 'Database configuration missing (SUPABASE_SERVICE_ROLE_KEY).' };
+  }
   try {
     const amount = tier === 'vip' ? 999 : tier === 'premium' ? 499 : 299; // baseline pricing config
 
@@ -799,6 +831,37 @@ export async function upgradeUserTierMock(userId: string, tier: 'basic' | 'premi
 // Internal mock upgrade helper using the service client
 async function upgradeUserTierMockInternal(userId: string, tier: 'basic' | 'premium' | 'vip') {
   const supabaseAdmin = getServiceSupabase();
+  if (!supabaseAdmin) {
+    // If service role is missing, try updating using the normal supabase client.
+    // It might be blocked by database trigger/RLS for non-admin users, but in local mock dev it is a helpful fallback.
+    const supabase = await getSupabase();
+    try {
+      let expiryDate: string | null = null;
+      const now = new Date();
+      if (tier === 'basic') {
+        now.setMonth(now.getMonth() + 6);
+        expiryDate = now.toISOString();
+      } else if (tier === 'premium') {
+        now.setFullYear(now.getFullYear() + 1);
+        expiryDate = now.toISOString();
+      }
+
+      const { error } = await supabase
+        .from('users')
+        .update({
+          subscription_tier: tier,
+          subscription_expires_at: expiryDate,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', userId);
+
+      if (error) throw error;
+      return { success: true };
+    } catch (e: any) {
+      console.warn('[upgradeUserTierMockInternal] Failed to upgrade user tier using client SDK:', e);
+      return { success: false, error: e.message || 'Failed to update user tier without service role key.' };
+    }
+  }
   try {
     let expiryDate: string | null = null;
     const now = new Date();

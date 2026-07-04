@@ -8,7 +8,8 @@ function getServiceSupabase() {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
   if (!serviceRoleKey) {
-    throw new Error('Critical Configuration Error: SUPABASE_SERVICE_ROLE_KEY is not set.');
+    console.warn('[getServiceSupabase] Warning: SUPABASE_SERVICE_ROLE_KEY is not set.');
+    return null;
   }
   return createClient(supabaseUrl, serviceRoleKey, {
     auth: {
@@ -76,6 +77,10 @@ export async function POST(req: NextRequest) {
       const tier = amount >= 999 ? 'vip' : amount >= 499 ? 'premium' : 'basic';
       
       const supabaseAdmin = getServiceSupabase();
+      if (!supabaseAdmin) {
+        console.error('Critical Error: SUPABASE_SERVICE_ROLE_KEY is not configured. Cannot log payment or upgrade subscription.');
+        return NextResponse.json({ error: 'Database configuration missing' }, { status: 500 });
+      }
 
       // 4. Log transaction inside Payments log (via service role client)
       const { error: paymentInsertError } = await supabaseAdmin
