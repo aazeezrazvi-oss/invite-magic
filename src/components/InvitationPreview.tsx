@@ -742,36 +742,11 @@ export default function InvitationPreview({
                   Are Cordially Invited To Attend The Wedding Of
                 </span>
 
-                {/* Leaf Wreath SVG frame enclosing the couple names */}
-                <div className="relative mb-8 flex justify-center items-center">
-                  <svg className="w-64 h-64 md:w-80 md:h-80 text-[var(--primary-color)] drop-shadow-[0_0_15px_rgba(212,175,55,0.45)]" viewBox="0 0 100 100" fill="none" stroke="currentColor" strokeWidth="1.2">
-                    {/* Left wreath branch */}
-                    <path d="M 50,85 C 22,85 18,50 32,25" strokeLinecap="round" />
-                    <path d="M 32,25 Q 28,20 24,23 Q 28,27 32,25" fill="currentColor" />
-                    <path d="M 30,38 Q 24,34 20,37 Q 24,41 30,38" fill="currentColor" />
-                    <path d="M 28,52 Q 20,50 17,54 Q 21,57 28,52" fill="currentColor" />
-                    <path d="M 32,66 Q 26,67 24,72 Q 28,73 32,66" fill="currentColor" />
-                    <path d="M 40,78 Q 34,82 33,87 Q 38,86 40,78" fill="currentColor" />
-
-                    {/* Right wreath branch */}
-                    <path d="M 50,85 C 78,85 82,50 68,25" strokeLinecap="round" />
-                    <path d="M 68,25 Q 72,20 76,23 Q 72,27 68,25" fill="currentColor" />
-                    <path d="M 70,38 Q 76,34 80,37 Q 76,41 70,38" fill="currentColor" />
-                    <path d="M 72,52 Q 80,50 83,54 Q 79,57 72,52" fill="currentColor" />
-                    <path d="M 68,66 Q 74,67 76,72 Q 72,73 68,66" fill="currentColor" />
-                    <path d="M 60,78 Q 66,82 67,87 Q 62,86 60,78" fill="currentColor" />
-                    
-                    <circle cx="50" cy="85" r="2" fill="currentColor" />
-                  </svg>
-                  
-                  <div className="absolute inset-0 flex flex-col justify-center items-center text-center p-8 font-serif">
-                    <h1 className={`${getHeadingFontClass()} text-3xl md:text-4xl font-light text-[var(--primary-color)] max-w-[200px] leading-relaxed drop-shadow-md`}>
-                      <span className="block">{invitation.groom_name || 'Groom'}</span>
-                      <span className="text-xl font-serif opacity-75 block my-1">&</span>
-                      <span className="block">{invitation.bride_name || 'Bride'}</span>
-                    </h1>
-                  </div>
-                </div>
+                <h1 className={`${getHeadingFontClass()} text-5xl md:text-7xl font-light text-[var(--primary-color)] my-8 leading-tight drop-shadow-[0_2px_10px_rgba(212,175,55,0.3)]`}>
+                  <span className="block md:inline-block">{invitation.groom_name || 'Groom'}</span>
+                  <span className="text-2xl font-serif block md:inline-block md:mx-4 opacity-75 my-2 md:my-0">&</span>
+                  <span className="block md:inline-block">{invitation.bride_name || 'Bride'}</span>
+                </h1>
 
                 <p className="text-md opacity-90 my-4 max-w-md mx-auto leading-relaxed">
                   {invitation.invitation_message || 'Please join us as we celebrate our love and begin our new journey together.'}
