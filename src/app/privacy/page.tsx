@@ -123,6 +123,31 @@ export default function PrivacyPage() {
               You own your data. You can delete individual events, gallery images, or draft invitations directly from your dashboard. If you wish to delete your entire user profile and remove all associated invitations, guest RSVPs, and payments logs from our database, please contact us.
             </p>
           </section>
+
+          {/* Section 7 */}
+          <section className="space-y-3">
+            <h2 className="text-lg font-bold text-white font-cinzel tracking-wider flex items-center gap-2">
+              <span className="text-[#d4af37] font-mono">7.</span> Compliance & Log Retention (Indian IT Act & CERT-In)
+            </h2>
+            <p className="text-xs text-gray-300 leading-relaxed">
+              Pursuant to the Cyber Security Directions issued under Section 70B of the Indian IT Act, 2000 and CERT-In rules, we maintain system security access and activity logs (including user ID, transaction action details, source IP address, and browser user-agents) for a rolling retention period of 180 days. This information is processed strictly for security audits, legal compliance, and preventing fraud. These compliance logs are stored securely and deleted automatically upon expiry of the retention duration.
+            </p>
+          </section>
+
+          {/* Section 8 */}
+          <section className="space-y-3">
+            <h2 className="text-lg font-bold text-white font-cinzel tracking-wider flex items-center gap-2">
+              <span className="text-[#d4af37] font-mono">8.</span> Grievance Officer
+            </h2>
+            <p className="text-xs text-gray-300 leading-relaxed">
+              In accordance with Section 43A and Section 72A of the IT Act, 2000, and rules made thereunder, any grievances or concerns regarding our privacy practices and data processing can be addressed to the designated Grievance Officer:
+            </p>
+            <div className="bg-[#0d0d11]/80 border border-[#26263b] rounded-lg p-4 space-y-1 text-xs text-gray-300">
+              <p><span className="font-semibold text-white">Name:</span> Abdul Azeez Razvi</p>
+              <p><span className="font-semibold text-white">Designation:</span> Grievance Officer & Co-founder</p>
+              <p><span className="font-semibold text-white">Email:</span> grievance@invitemagic.co</p>
+            </div>
+          </section>
         </div>
 
         {/* Support Section */}

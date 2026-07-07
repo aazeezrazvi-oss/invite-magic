@@ -16,6 +16,7 @@ import {
   InvitationCoreSchema, 
   ReferralCodeSchema, 
   MediaAssetSchema, 
+  BespokeRequestSchema,
   sanitizeText, 
   sanitizeUrl 
 } from '@/utils/sanitizer';
@@ -112,6 +113,85 @@ function getServiceSupabase() {
       autoRefreshToken: false,
     }
   });
+}
+
+// Write to public.audit_logs (satisfies Indian IT Act log-retention compliance)
+export async function logAuditEvent(action: string, payload: any, userId?: string): Promise<boolean> {
+  const ipAddress = await getClientIp();
+  let userAgent = '';
+  try {
+    const headerList = await headers();
+    userAgent = headerList.get('user-agent') || '';
+  } catch (e) {}
+
+  const supabaseAdmin = getServiceSupabase();
+  if (!supabaseAdmin) {
+    console.error('[logAuditEvent] Missing service role key to log event');
+    return false;
+  }
+
+  const { error } = await supabaseAdmin
+    .from('audit_logs')
+    .insert({
+      user_id: userId || null,
+      action,
+      ip_address: ipAddress,
+      user_agent: userAgent,
+      payload,
+    });
+
+  if (error) {
+    console.error('[logAuditEvent] Failed to write audit log:', error);
+    return false;
+  }
+  return true;
+}
+
+// Server Action to submit a custom luxury bespoke invitation request
+export async function submitBespokeRequest(formData: any): Promise<{ success: boolean; error?: string }> {
+  // 1. Rate Limiting Check
+  const ip = await getClientIp();
+  const rateLimit = await rateLimitRequest(`rate_limit:bespoke_request:${ip}`, 3, 0.2); // 3 burst, 1 refill per 5 sec
+  if (!rateLimit.success) {
+    return { success: false, error: 'Too many requests. Please wait before submitting again.' };
+  }
+
+  // 2. Validate input schema
+  const parsed = BespokeRequestSchema.safeParse(formData);
+  if (!parsed.success) {
+    return { success: false, error: `Validation error: ${parsed.error.issues[0].message}` };
+  }
+
+  const supabaseAdmin = getServiceSupabase();
+  if (!supabaseAdmin) {
+    return { success: false, error: 'Database service is temporarily unavailable.' };
+  }
+
+  try {
+    const { error } = await supabaseAdmin
+      .from('bespoke_requests')
+      .insert({
+        name: parsed.data.name,
+        email: parsed.data.email,
+        phone: parsed.data.phone,
+        wedding_date: parsed.data.wedding_date || null,
+        estimated_budget: parsed.data.estimated_budget,
+        details: parsed.data.details || null,
+      });
+
+    if (error) {
+      console.error('[submitBespokeRequest] Database error:', error);
+      return { success: false, error: 'Failed to save request. Please try again later.' };
+    }
+
+    // Write to compliance audit log
+    await logAuditEvent('bespoke_inquiry_submit', { email: parsed.data.email });
+
+    return { success: true };
+  } catch (err: any) {
+    console.error('[submitBespokeRequest] Exception:', err);
+    return { success: false, error: err.message || 'Server error submitting inquiry form' };
+  }
 }
 
 // Helper to invalidate the cached invitation data
@@ -493,6 +573,14 @@ export async function saveInvitation(invitationData: Partial<Invitation>): Promi
       revalidatePath(`/dashboard/edit/${slug}`);
     }
 
+    // Write compliance audit log
+    let currentUserId = undefined;
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) currentUserId = user.id;
+    } catch (e) {}
+    await logAuditEvent('invitation_save', { invitation_id: invitationData.id, slug: slug }, currentUserId);
+
     return { success: true };
   } catch (error: any) {
     console.error('Error in saveInvitation action:', error);
@@ -611,6 +699,8 @@ export async function applyReferralCode(userId: string, code: string | null): Pr
 
     if (userErr) throw userErr;
 
+    await logAuditEvent('referral_code_apply', { code: cleanCode }, userId);
+
     return {
       success: true,
       message: `Code applied successfully! ${refCode.discount_percent}% discount is now active.`,
@@ -642,6 +732,9 @@ export async function applySignupPromoCode(userId: string, promoCode: string): P
       if (error) {
         return { success: false, message: error.message };
       }
+
+      await logAuditEvent('promo_signup_apply', { code: code }, userId);
+
       return { success: true, message: 'VIP access granted successfully!' };
     } catch (e: any) {
       return { success: false, message: e.message || 'Server error applying promo code' };
@@ -810,6 +903,8 @@ export async function verifyRazorpayPayment(
       return { success: false, error: userErr.message };
     }
 
+    await logAuditEvent('payment_verify_success', { order_id: orderId, payment_id: paymentId, tier, amount }, userId);
+
     return { success: true };
   } catch (err: any) {
     console.error('Exception verifying payment:', err);
@@ -856,6 +951,7 @@ async function upgradeUserTierMockInternal(userId: string, tier: 'basic' | 'prem
         .eq('id', userId);
 
       if (error) throw error;
+      await logAuditEvent('payment_mock_success_client', { tier }, userId);
       return { success: true };
     } catch (e: any) {
       console.warn('[upgradeUserTierMockInternal] Failed to upgrade user tier using client SDK:', e);
@@ -885,6 +981,7 @@ async function upgradeUserTierMockInternal(userId: string, tier: 'basic' | 'prem
     if (error) {
       return { success: false, error: error.message };
     }
+    await logAuditEvent('payment_mock_success_admin', { tier }, userId);
     return { success: true };
   } catch (err: any) {
     return { success: false, error: err.message };

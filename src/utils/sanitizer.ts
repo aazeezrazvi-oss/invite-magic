@@ -72,3 +72,12 @@ export const MediaAssetSchema = z.object({
   media_type: z.enum(['image', 'video', 'music']),
   filename: z.string().min(1).max(200).transform(sanitizeText),
 });
+
+export const BespokeRequestSchema = z.object({
+  name: z.string().min(1, 'Name is required').max(100, 'Name is too long').transform(sanitizeText),
+  email: z.string().email('Invalid email address').transform(val => val.trim().toLowerCase()),
+  phone: z.string().min(10, 'Phone must be at least 10 digits').max(15, 'Phone is too long').transform(sanitizeText),
+  wedding_date: z.string().optional().nullable().or(z.literal('')),
+  estimated_budget: z.string().min(1, 'Budget selection is required').transform(sanitizeText),
+  details: z.string().max(2000, 'Details must be under 2000 characters').optional().nullable().or(z.literal('')).transform(val => val ? sanitizeText(val) : ''),
+});

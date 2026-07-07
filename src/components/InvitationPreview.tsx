@@ -1916,11 +1916,28 @@ export default function InvitationPreview({
       })}
 
       {/* Dynamic Section Ordering */}
-      <div className="z-10 flex flex-col flex-grow">
+      <div className="z-10 flex flex-col flex-grow pb-16">
         {(styling.section_order && styling.section_order.length > 0
           ? styling.section_order
           : ['hero', 'countdown', 'story', 'events', 'gallery', 'rsvp', 'gifts']
         ).map((section) => renderSection(section))}
+
+        {/* Elegant Redirect Footer */}
+        <div className="mt-16 mb-8 text-center px-4 z-10 flex flex-col items-center">
+          <div className="w-16 h-[1.5px] bg-[var(--primary-color)] opacity-30 mb-6" />
+          <a 
+            href="/" 
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-2 px-6 py-2.5 rounded-full bg-black/40 hover:bg-black/60 border border-[var(--primary-color)]/30 hover:border-[var(--primary-color)] text-[10px] sm:text-xs font-semibold tracking-widest uppercase text-[var(--primary-color)] transition-all hover:scale-105 shadow-md font-sans"
+          >
+            <Heart className="w-4 h-4 fill-[var(--primary-color)] animate-pulse" />
+            <span>Create Your Own Invitation Website</span>
+          </a>
+          <span className="block text-[10px] text-gray-500 font-serif mt-2 opacity-60 tracking-wider">
+            Powered by InviteMagic
+          </span>
+        </div>
       </div>
     </div>
   );

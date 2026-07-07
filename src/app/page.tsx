@@ -100,6 +100,7 @@ export default function LandingPage() {
             <a href="#features" className="hover:text-white transition-all">Features</a>
             <a href="#templates" className="hover:text-white transition-all">Templates</a>
             <a href="#pricing" className="hover:text-white transition-all">Pricing</a>
+            <Link href="/bespoke" className="hover:text-[#d4af37] text-[#d4af37] transition-all font-semibold">Bespoke Designs</Link>
             <a href="#faqs" className="hover:text-white transition-all">FAQs</a>
           </nav>
           <div className="flex items-center gap-4">
@@ -375,6 +376,23 @@ export default function LandingPage() {
                 Choose VIP
               </Link>
             </div>
+          </div>
+
+          {/* Custom Bespoke Callout */}
+          <div className="mt-16 bg-gradient-to-r from-[#161622] via-[#1a1a2b] to-[#161622] border border-[#d4af37]/25 rounded-2xl p-8 max-w-4xl mx-auto flex flex-col md:flex-row justify-between items-center gap-6 shadow-lg">
+            <div className="space-y-2 text-center md:text-left">
+              <span className="inline-block px-2.5 py-0.5 bg-[#d4af37]/10 border border-[#d4af37]/25 text-[#d4af37] text-[10px] font-bold uppercase tracking-wider rounded-full">Bespoke Design Service</span>
+              <h4 className="text-xl font-bold text-white font-cinzel">Need a fully customized luxury design?</h4>
+              <p className="text-xs text-gray-400 max-w-xl">
+                Get a one-of-a-kind, handcrafted wedding portal styled to perfectly match your physical wedding invites, custom colors, animations, and elements.
+              </p>
+            </div>
+            <Link 
+              href="/bespoke" 
+              className="px-6 py-3 rounded bg-[#d4af37] hover:bg-[#b8962e] text-[#0d0d11] text-xs font-bold uppercase tracking-wider transition-all shrink-0 shadow-md"
+            >
+              Request Custom Design
+            </Link>
           </div>
         </div>
       </section>

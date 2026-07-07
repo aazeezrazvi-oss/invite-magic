@@ -37,19 +37,33 @@ export default function CheckoutButton({
 
   const handleCheckout = async () => {
     setLoading(true);
-    const isLoaded = await loadRazorpayScript();
-
-    if (!isLoaded) {
-      alert('Razorpay SDK failed to load. Please check your internet connection.');
-      setLoading(false);
-      return;
-    }
 
     try {
       // 1. Generate Order ID from Server Action
       const orderRes = await createRazorpayOrder(tier, amount, userId);
       if (!orderRes.success) {
         alert(`❌ Failed to start checkout: ${orderRes.error}`);
+        setLoading(false);
+        return;
+      }
+
+      if (orderRes.isMock) {
+        // Simulator Mode: Directly update tier without loading Razorpay widget
+        const upgradeRes = await upgradeUserTierMock(userId, tier);
+        if (upgradeRes.success) {
+          alert(`🎉 [Demo Mode] Mock payment of ₹${amount} completed successfully!\nYour account has been upgraded to ${tier.toUpperCase()}!`);
+          if (onSuccess) onSuccess();
+        } else {
+          alert(`❌ [Demo Mode] Payment completed, but failed to upgrade account: ${upgradeRes.error}`);
+        }
+        setLoading(false);
+        return;
+      }
+
+      // 2. Load Razorpay script only for real checkout gateway
+      const isLoaded = await loadRazorpayScript();
+      if (!isLoaded) {
+        alert('Razorpay SDK failed to load. Please check your internet connection.');
         setLoading(false);
         return;
       }

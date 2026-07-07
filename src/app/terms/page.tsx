@@ -125,6 +125,26 @@ export default function TermsPage() {
               To the maximum extent permitted by law, InviteMagic and its creators shall not be liable for any indirect, incidental, special, consequential, or punitive damages, or any loss of profits or revenues, whether incurred directly or indirectly, or any loss of data, use, goodwill, or other intangible losses resulting from your access to or use of the services.
             </p>
           </section>
+
+          {/* Section 8 */}
+          <section className="space-y-3">
+            <h2 className="text-lg font-bold text-white font-cinzel tracking-wider flex items-center gap-2">
+              <span className="text-[#d4af37] font-mono">8.</span> Dispute Resolution & Governing Law
+            </h2>
+            <p className="text-xs text-gray-300 leading-relaxed">
+              These Terms and Conditions shall be governed by, and construed in accordance with, the laws of India. Any disputes, claims, or controversies arising out of or in connection with these Terms, including their validity, breach, or termination, shall be subject to the exclusive jurisdiction of the competent courts located in Bengaluru, Karnataka, India.
+            </p>
+          </section>
+
+          {/* Section 9 */}
+          <section className="space-y-3">
+            <h2 className="text-lg font-bold text-white font-cinzel tracking-wider flex items-center gap-2">
+              <span className="text-[#d4af37] font-mono">9.</span> Taxes & GST Disclosures
+            </h2>
+            <p className="text-xs text-gray-300 leading-relaxed">
+              All prices and subscription tiers displayed on InviteMagic are listed in Indian Rupees (INR) and are inclusive of all applicable local service taxes and GST, unless explicitly stated otherwise. Customers are solely responsible for their own local tax declaration obligations.
+            </p>
+          </section>
         </div>
 
         {/* Support Section */}
