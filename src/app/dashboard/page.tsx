@@ -9,7 +9,7 @@ import {
 import { RSVP, GiftTransaction } from '@/types';
 import CheckoutButton from '@/components/CheckoutButton';
 import { supabase } from '@/utils/supabase';
-import { upgradeUserSubscription, applyReferralCode, getAppliedReferralCode, createDefaultInvitation } from '@/app/actions';
+import { upgradeUserSubscription, applyReferralCode, getAppliedReferralCode, createDefaultInvitation, updateInvitationSlug } from '@/app/actions';
 
 export default function Dashboard() {
   const router = useRouter();
@@ -41,6 +41,7 @@ export default function Dashboard() {
   const [profileConfirmPassword, setProfileConfirmPassword] = useState('');
   const [profileMessage, setProfileMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [profileLoading, setProfileLoading] = useState(false);
+  const [profileSlug, setProfileSlug] = useState('');
   
   // Referral States
   const [appliedReferral, setAppliedReferral] = useState<{ code: string; discount_percent: number } | null>(null);
@@ -156,6 +157,7 @@ export default function Dashboard() {
         if (userInvite) {
           setInvitationId(userInvite.id);
           setSlug(userInvite.slug);
+          setProfileSlug(userInvite.slug);
           setGroomName(userInvite.groom_name || 'Abdul');
           setBrideName(userInvite.bride_name || 'Sana');
 
@@ -209,6 +211,9 @@ export default function Dashboard() {
     setProfileMessage(null);
 
     try {
+      let profileUpdated = false;
+      let slugUpdated = false;
+
       const updateData: any = {};
       if (profileName.trim() && profileName !== fullName) {
         updateData.data = { full_name: profileName };
@@ -233,7 +238,31 @@ export default function Dashboard() {
           setProfilePassword('');
           setProfileConfirmPassword('');
         }
-        setProfileMessage({ type: 'success', text: 'Profile updated successfully!' });
+        profileUpdated = true;
+      }
+
+      // Update Invitation Slug if changed
+      const cleanProfileSlug = profileSlug.trim().toLowerCase().replace(/[^a-z0-9-]/g, '');
+      if (cleanProfileSlug && cleanProfileSlug !== slug && invitationId) {
+        const res = await updateInvitationSlug(invitationId, cleanProfileSlug, userId);
+        if (!res.success) {
+          setProfileMessage({ type: 'error', text: res.error || 'Failed to update invitation link.' });
+          setProfileLoading(false);
+          return;
+        }
+        setSlug(cleanProfileSlug);
+        setProfileSlug(cleanProfileSlug);
+        slugUpdated = true;
+      }
+
+      if (profileUpdated || slugUpdated) {
+        let msg = 'Profile updated successfully!';
+        if (slugUpdated && !profileUpdated) {
+          msg = 'Invitation link updated successfully!';
+        } else if (slugUpdated && profileUpdated) {
+          msg = 'Profile and invitation link updated successfully!';
+        }
+        setProfileMessage({ type: 'success', text: msg });
       } else {
         setProfileMessage({ type: 'error', text: 'No changes detected.' });
       }
@@ -422,6 +451,24 @@ export default function Dashboard() {
                     placeholder="Enter your name"
                     className="w-full bg-[#0d0d11]/80 border border-[#26263b] rounded-lg px-3.5 py-2.5 text-sm text-white placeholder-gray-600 outline-none focus:border-[#d4af37] focus:ring-1 focus:ring-[#d4af37] transition-all"
                   />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-gray-400 mb-1.5 uppercase tracking-wider">Custom Invite Link (Slug)</label>
+                  <div className="flex flex-col sm:flex-row items-stretch sm:items-center">
+                    <span className="bg-[#0d0d11]/80 border border-[#26263b] sm:border-r-0 rounded-t-lg sm:rounded-t-none sm:rounded-l-lg px-3 py-2.5 text-xs text-gray-500 font-mono select-none flex items-center justify-center sm:justify-start">
+                      https://www.bknexus.in/invite/
+                    </span>
+                    <input
+                      type="text"
+                      required
+                      value={profileSlug}
+                      onChange={(e) => setProfileSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ''))}
+                      placeholder="couples-names"
+                      className="flex-1 bg-[#0d0d11]/80 border border-[#26263b] rounded-b-lg sm:rounded-b-none sm:rounded-r-lg px-3.5 py-2.5 text-sm text-white placeholder-gray-600 outline-none focus:border-[#d4af37] focus:ring-1 focus:ring-[#d4af37] transition-all font-mono"
+                    />
+                  </div>
+                  <p className="text-[10px] text-gray-500 mt-1">This defines your public wedding card link. Only lowercase letters, numbers, and hyphens (-) are allowed.</p>
                 </div>
 
                 <div className="h-[1px] bg-[#26263b] my-6" />

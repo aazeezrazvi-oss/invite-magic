@@ -1241,3 +1241,64 @@ export async function getMediaAssets(type?: 'image' | 'video' | 'music'): Promis
     return [];
   }
 }
+
+// Server Action to update the invitation slug securely
+export async function updateInvitationSlug(invitationId: string, newSlug: string, userId: string): Promise<{ success: boolean; error?: string }> {
+  // 1. Rate Limiting Check
+  const ip = await getClientIp();
+  const rateLimit = await rateLimitRequest(`rate_limit:update_slug:${ip}`, 5, 0.2);
+  if (!rateLimit.success) {
+    return { success: false, error: 'Too many requests. Please wait.' };
+  }
+
+  // 2. Validate new slug format
+  const cleanSlug = newSlug.trim().toLowerCase().replace(/[^a-z0-9-]/g, '');
+  if (cleanSlug.length < 3 || cleanSlug.length > 50) {
+    return { success: false, error: 'Slug must be between 3 and 50 characters.' };
+  }
+
+  const supabase = await getSupabase();
+  try {
+    // 3. Check if slug is already taken (excluding current invitation)
+    const { data: existing, error: checkError } = await supabase
+      .from('invitations')
+      .select('id')
+      .eq('slug', cleanSlug)
+      .maybeSingle();
+
+    if (existing && existing.id !== invitationId) {
+      return { success: false, error: 'This invitation link (slug) is already taken. Please try another one.' };
+    }
+
+    // 4. Update the slug in database
+    const { error: updateError } = await supabase
+      .from('invitations')
+      .update({
+        slug: cleanSlug,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', invitationId)
+      .eq('user_id', userId);
+
+    if (updateError) {
+      if (updateError.code === '23505') {
+        return { success: false, error: 'This invitation link (slug) is already taken. Please try another one.' };
+      }
+      return { success: false, error: updateError.message };
+    }
+
+    // 5. Invalidate old caches and add new slug to Bloom Filter
+    await invalidateInvitationCache(cleanSlug);
+    await addSlugToFilter(cleanSlug);
+    
+    // Revalidate paths for dynamic slugs
+    revalidatePath(`/invite/${cleanSlug}`);
+    revalidatePath(`/dashboard/edit/${cleanSlug}`);
+
+    return { success: true };
+  } catch (err: any) {
+    console.error('[updateInvitationSlug] Exception:', err);
+    return { success: false, error: err.message || 'Server error updating invitation link' };
+  }
+}
+
