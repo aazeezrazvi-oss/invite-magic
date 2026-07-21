@@ -197,7 +197,7 @@ export default function Sidebar({
     }
   };
 
-  const styling = invitation.styling || {
+  const styling = (invitation.styling || {
     primary_color: '#d4af37',
     secondary_color: '#b8962e',
     background_color: '#0d0d11',
@@ -212,7 +212,7 @@ export default function Sidebar({
     gallery_layout: 'grid',
     background_type: 'gradient',
     background_url: 'linear-gradient(135deg, #0d0d11 0%, #1a1a24 100%)',
-  };
+  }) as StylingPreferences;
 
   const giftDetails = invitation.gift_collection || {
     upi_id: '',
@@ -642,6 +642,81 @@ export default function Sidebar({
                   </button>
                 ))}
               </div>
+            </div>
+            {/* Cover Page Customization */}
+            <div className="space-y-3 bg-[#0d0d11] p-3 rounded border border-[#26263b]">
+              <span className="font-semibold text-[#d4af37] block">✉️ Cover Page</span>
+              
+              <div className="space-y-2 text-xs">
+                <div>
+                  <label className="block text-gray-400 mb-1">Cover Heading</label>
+                  <input
+                    type="text"
+                    value={styling.cover_title || ''}
+                    onChange={(e) => handleStylingChange('cover_title', e.target.value)}
+                    placeholder="e.g., بِسْمِ اللَّهِ / ॐ श्री गणेशाय नमः / With God's Blessings"
+                    className="w-full p-2 rounded bg-[#161622] border border-[#26263b] text-white placeholder-gray-500 focus:border-[#d4af37] outline-none transition-colors"
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-gray-400 mb-1">Cover Subtitle</label>
+                  <input
+                    type="text"
+                    value={styling.cover_subtitle || ''}
+                    onChange={(e) => handleStylingChange('cover_subtitle', e.target.value)}
+                    placeholder="e.g., In The Name of God, The Most Gracious"
+                    className="w-full p-2 rounded bg-[#161622] border border-[#26263b] text-white placeholder-gray-500 focus:border-[#d4af37] outline-none transition-colors"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-gray-400 mb-1">Custom Text (above heading)</label>
+                  <textarea
+                    value={styling.cover_custom_text || ''}
+                    onChange={(e) => handleStylingChange('cover_custom_text', e.target.value)}
+                    placeholder="Add any custom text or message..."
+                    rows={2}
+                    className="w-full p-2 rounded bg-[#161622] border border-[#26263b] text-white placeholder-gray-500 focus:border-[#d4af37] outline-none transition-colors resize-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-gray-400 mb-1">Wax Seal Text</label>
+                  <div className="flex gap-2">
+                    <select
+                      value={['NIKAH', 'WEDDING', 'VIVAH', 'SHUBH VIVAH', 'MARRIAGE', '﷽'].includes(styling.wax_seal_text || '') ? (styling.wax_seal_text || '') : '__custom__'}
+                      onChange={(e) => {
+                        if (e.target.value !== '__custom__') {
+                          handleStylingChange('wax_seal_text', e.target.value);
+                        }
+                      }}
+                      className="flex-1 p-2 rounded bg-[#161622] border border-[#26263b] text-white focus:border-[#d4af37] outline-none transition-colors"
+                    >
+                      <option value="">Default (theme-based)</option>
+                      <option value="NIKAH">NIKAH</option>
+                      <option value="WEDDING">WEDDING</option>
+                      <option value="VIVAH">VIVAH</option>
+                      <option value="SHUBH VIVAH">SHUBH VIVAH</option>
+                      <option value="MARRIAGE">MARRIAGE</option>
+                      <option value="﷽">﷽ (Bismillah)</option>
+                      <option value="__custom__">Custom...</option>
+                    </select>
+                  </div>
+                  {!['NIKAH', 'WEDDING', 'VIVAH', 'SHUBH VIVAH', 'MARRIAGE', '﷽', ''].includes(styling.wax_seal_text || '') && (
+                    <input
+                      type="text"
+                      value={styling.wax_seal_text || ''}
+                      onChange={(e) => handleStylingChange('wax_seal_text', e.target.value)}
+                      placeholder="Enter custom seal text"
+                      maxLength={12}
+                      className="w-full mt-2 p-2 rounded bg-[#161622] border border-[#26263b] text-white placeholder-gray-500 focus:border-[#d4af37] outline-none transition-colors"
+                    />
+                  )}
+                </div>
+              </div>
+              
+              <p className="text-[10px] text-gray-500 mt-1">💡 Leave fields empty to hide them on the cover page.</p>
             </div>
 
             {/* Colors Config */}

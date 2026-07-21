@@ -18,6 +18,11 @@ export interface StylingPreferences {
   gallery_layout: string;
   background_type: BackgroundType;
   background_url: string;
+  // Cover page customization
+  cover_title?: string;
+  cover_subtitle?: string;
+  cover_custom_text?: string;
+  wax_seal_text?: string;
 }
 
 export interface WeddingEvent {

@@ -1083,8 +1083,12 @@ export async function updateUserTierAdmin(userId: string, tier: 'free' | 'basic'
   const authorized = await checkAdmin(supabase);
   if (!authorized) return false;
 
+  // Use service role client to bypass RLS and database triggers
+  const supabaseAdmin = getServiceSupabase();
+  const client = supabaseAdmin || supabase;
+
   try {
-    const { error } = await supabase
+    const { error } = await client
       .from('users')
       .update({
         subscription_tier: tier,
@@ -1094,6 +1098,24 @@ export async function updateUserTierAdmin(userId: string, tier: 'free' | 'basic'
       .eq('id', userId);
 
     if (error) throw error;
+
+    // Invalidate Redis/local cache for all invitations owned by this user
+    // so the editor picks up the new owner_tier immediately
+    try {
+      const { data: userInvitations } = await client
+        .from('invitations')
+        .select('slug')
+        .eq('user_id', userId);
+
+      if (userInvitations && userInvitations.length > 0) {
+        await Promise.all(
+          userInvitations.map((inv: { slug: string }) => invalidateInvitationCache(inv.slug))
+        );
+      }
+    } catch (cacheErr) {
+      console.warn('[updateUserTierAdmin] Cache invalidation failed (non-fatal):', cacheErr);
+    }
+
     return true;
   } catch (error) {
     console.error('Error in updateUserTierAdmin:', error);
@@ -1194,7 +1216,7 @@ export async function createMediaAssetAdmin(url: string, mediaType: 'image' | 'v
 
     const { error } = await supabase
       .from('media_assets')
-      .insert(parsed.data);
+      .upsert(parsed.data, { onConflict: 'url' });
 
     if (error) throw error;
     return true;
@@ -1235,7 +1257,14 @@ export async function getMediaAssets(type?: 'image' | 'video' | 'music'): Promis
     }
     const { data, error } = await query.order('created_at', { ascending: false });
     if (error) throw error;
-    return data || [];
+    // Deduplicate by URL as a safety net
+    const seen = new Set<string>();
+    const unique = (data || []).filter((asset: MediaAsset) => {
+      if (seen.has(asset.url)) return false;
+      seen.add(asset.url);
+      return true;
+    });
+    return unique;
   } catch (error) {
     console.error('Error in getMediaAssets:', error);
     return [];

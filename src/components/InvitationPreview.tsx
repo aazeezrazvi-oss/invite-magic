@@ -6,7 +6,7 @@ import {
   Heart, Calendar, Clock, MapPin, Gift, 
   Volume2, VolumeX, Send, Play, ExternalLink
 } from 'lucide-react';
-import { Invitation, RSVP as RSVPType } from '@/types';
+import { Invitation, RSVP as RSVPType, StylingPreferences } from '@/types';
 import { QRCodeSVG } from 'qrcode.react';
 
 interface InvitationPreviewProps {
@@ -20,7 +20,7 @@ export default function InvitationPreview({
   onRsvpSubmit,
   isPreviewMode = false 
 }: InvitationPreviewProps) {
-  const styling = invitation.styling || {
+  const styling = (invitation.styling || {
     primary_color: '#d4af37',
     secondary_color: '#b8962e',
     background_color: '#0d0d11',
@@ -35,7 +35,7 @@ export default function InvitationPreview({
     gallery_layout: 'grid',
     background_type: 'gradient' as const,
     background_url: 'linear-gradient(135deg, #0d0d11 0%, #1a1a24 100%)',
-  };
+  }) as StylingPreferences;
 
   const giftDetails = invitation.gift_collection || {
     upi_id: 'example@upi',
@@ -358,15 +358,26 @@ export default function InvitationPreview({
           </motion.div>
         ))}
 
-        {/* Elegant top Bismillah calligraphy header (Gold on dark burgundy) */}
-        <div className="text-center mb-8 z-10 select-none animate-fade-in">
-          <div className="text-xl md:text-2xl font-serif text-[#d4af37] tracking-wider mb-2 drop-shadow-[0_2px_4px_rgba(0,0,0,0.35)]">
-            بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ
+        {/* Cover page header text (customizable) */}
+        {(styling.cover_custom_text || styling.cover_title || styling.cover_subtitle) && (
+          <div className="text-center mb-8 z-10 select-none animate-fade-in">
+            {styling.cover_custom_text && (
+              <p className="text-[10px] uppercase tracking-[0.25em] text-[#fcf8f2]/60 font-semibold mb-3">
+                {styling.cover_custom_text}
+              </p>
+            )}
+            {styling.cover_title && (
+              <div className="text-xl md:text-2xl font-serif text-[#d4af37] tracking-wider mb-2 drop-shadow-[0_2px_4px_rgba(0,0,0,0.35)]">
+                {styling.cover_title}
+              </div>
+            )}
+            {styling.cover_subtitle && (
+              <p className="text-[10px] uppercase tracking-[0.25em] text-[#fcf8f2]/60 font-semibold mt-1">
+                {styling.cover_subtitle}
+              </p>
+            )}
           </div>
-          <p className="text-[10px] uppercase tracking-[0.25em] text-[#fcf8f2]/60 font-semibold mt-1">
-            In The Name of Allah, The Most Gracious, The Most Merciful
-          </p>
-        </div>
+        )}
 
         {/* Envelope Container */}
         <div className="relative w-80 h-52 md:w-96 md:h-56 flex items-center justify-center my-6 z-20 select-none shadow-[0_25px_60px_rgba(0,0,0,0.75)] rounded-2xl">
@@ -604,7 +615,11 @@ export default function InvitationPreview({
                 <circle cx="50" cy="50" r="38" strokeWidth="1" />
                 <path d="M50,18 L50,82 M18,50 L82,50" strokeWidth="0.8" opacity="0.25" />
                 <circle cx="50" cy="50" r="12" strokeWidth="1.2" />
-                {isPurpleOrBurgundy ? (
+                {styling.wax_seal_text ? (
+                  <text x="50" y="54" textAnchor="middle" fill="#d4af37" fontSize={styling.wax_seal_text.length > 6 ? '9' : '13'} fontFamily="Cinzel, Georgia, serif" fontWeight="bold" letterSpacing="1.5">
+                    {styling.wax_seal_text}
+                  </text>
+                ) : isPurpleOrBurgundy ? (
                   <text x="50" y="58" textAnchor="middle" fill="#d4af37" fontSize="26" fontFamily="Georgia, serif">
                     ﷽
                   </text>
