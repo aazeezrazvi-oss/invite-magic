@@ -105,10 +105,11 @@ export default function LandingPage() {
             <Link href="/bespoke" className="hover:text-[#d4af37] text-[#d4af37] transition-all font-semibold">Bespoke Designs</Link>
             <a href="#faqs" className="hover:text-white transition-all">FAQs</a>
           </nav>
-          <div className="flex items-center gap-4">
+          {/* Desktop Right Actions */}
+          <div className="hidden md:flex items-center gap-4">
             {isAuthenticated ? (
               <>
-                <span className="text-xs text-gray-400 font-mono hidden sm:inline">{userEmail}</span>
+                <span className="text-xs text-gray-400 font-mono hidden lg:inline">{userEmail}</span>
                 <Link href="/dashboard" className="text-xs uppercase tracking-widest font-semibold hover:text-[#d4af37] transition-all">
                   Dashboard
                 </Link>
@@ -124,21 +125,56 @@ export default function LandingPage() {
             >
               Try Editor
             </Link>
+          </div>
 
-            {/* Mobile Hamburger Button (3 lines menu) */}
+          {/* Mobile Action Controls (Right side of header on mobile) */}
+          <div className="flex md:hidden items-center gap-2">
+            <Link 
+              href="/dashboard/edit/abdul-sana" 
+              className="px-2.5 py-1.5 rounded bg-[#d4af37] hover:bg-[#b8962e] text-[#0d0d11] text-[10px] font-bold uppercase tracking-wider transition-all shrink-0"
+            >
+              Try Editor
+            </Link>
+
+            {/* Mobile 3-Lines Hamburger Button */}
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="md:hidden p-2 rounded-lg bg-[#26263b] text-gray-300 hover:text-white transition-all cursor-pointer"
+              className="p-2 rounded-lg bg-[#26263b] text-gray-200 hover:text-white transition-all cursor-pointer border border-[#34344d] shrink-0"
               aria-label="Toggle Navigation Menu"
             >
-              {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+              {mobileMenuOpen ? <X className="w-5 h-5 text-[#d4af37]" /> : <Menu className="w-5 h-5 text-[#d4af37]" />}
             </button>
           </div>
         </div>
 
         {/* Mobile Dropdown Menu Drawer */}
         {mobileMenuOpen && (
-          <div className="md:hidden border-t border-[#26263b] bg-[#161622] px-6 py-4 space-y-3 text-xs uppercase tracking-widest animate-fadeIn">
+          <div className="md:hidden border-t border-[#26263b] bg-[#12121a] px-6 py-5 space-y-4 text-xs uppercase tracking-widest shadow-2xl animate-fadeIn">
+            
+            {/* Account Status / Login */}
+            <div className="pb-3 border-b border-[#26263b] flex justify-between items-center">
+              {isAuthenticated ? (
+                <div className="flex flex-col gap-1">
+                  <span className="text-[10px] text-gray-400 lowercase font-mono">{userEmail}</span>
+                  <Link 
+                    href="/dashboard" 
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="text-[#d4af37] font-bold tracking-widest text-xs uppercase"
+                  >
+                    Go to Dashboard →
+                  </Link>
+                </div>
+              ) : (
+                <Link 
+                  href="/login" 
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="px-4 py-2 bg-[#26263b] hover:bg-[#34344d] text-[#d4af37] border border-[#d4af37]/30 rounded font-bold text-xs uppercase tracking-widest w-full text-center"
+                >
+                  🔑 Login / Sign Up
+                </Link>
+              )}
+            </div>
+
             <a 
               href="#features" 
               onClick={() => setMobileMenuOpen(false)}
@@ -166,7 +202,7 @@ export default function LandingPage() {
               className="block py-2 text-white font-semibold flex items-center justify-between"
             >
               <span>Vendors Directory</span>
-              <span className="px-2 py-0.5 bg-[#d4af37]/20 text-[#d4af37] rounded text-[9px]">Free</span>
+              <span className="px-2 py-0.5 bg-[#d4af37]/20 text-[#d4af37] rounded text-[9px] font-bold">Free</span>
             </Link>
             <Link 
               href="/vendors/portal" 
