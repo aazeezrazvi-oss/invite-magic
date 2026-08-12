@@ -75,19 +75,20 @@ export default function PublicVendorsPage() {
 
       {/* Header */}
       <header className="border-b border-[#26263b] bg-[#161622]/50 backdrop-blur-md sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-2">
-            <Heart className="w-6 h-6 text-[#d4af37] fill-[#d4af37]" />
-            <span className="text-xl font-bold tracking-wider font-cinzel text-[#d4af37]">InviteMagic</span>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3.5 flex items-center justify-between">
+          <Link href="/" className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+            <Heart className="w-5 h-5 sm:w-6 sm:h-6 text-[#d4af37] fill-[#d4af37]" />
+            <span className="text-base sm:text-xl font-bold tracking-wider font-cinzel text-[#d4af37]">InviteMagic</span>
           </Link>
 
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3">
             <Link 
               href="/vendors/portal" 
-              className="px-4 py-2 rounded bg-[#d4af37] hover:bg-[#b8962e] text-[#0d0d11] text-xs font-bold uppercase tracking-wider flex items-center gap-1.5 transition-all shadow-[0_2px_15px_rgba(212,175,55,0.2)]"
+              className="px-3 py-1.5 sm:px-4 sm:py-2 rounded bg-[#d4af37] hover:bg-[#b8962e] text-[#0d0d11] text-[11px] sm:text-xs font-bold uppercase tracking-wider flex items-center gap-1.5 transition-all shadow-[0_2px_15px_rgba(212,175,55,0.2)] whitespace-nowrap"
             >
-              <PlusCircle className="w-4 h-4" />
-              <span>Join as Vendor (Free)</span>
+              <PlusCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
+              <span className="hidden sm:inline">Join as Vendor (Free)</span>
+              <span className="inline sm:hidden">Join Free</span>
             </Link>
           </div>
         </div>

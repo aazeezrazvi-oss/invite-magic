@@ -250,17 +250,18 @@ export default function VendorPortalPage() {
       <div className="absolute bottom-10 right-10 w-[400px] h-[400px] bg-[#10b981]/5 rounded-full blur-[120px] pointer-events-none z-0" />
 
       {/* Header */}
-      <header className="border-b border-[#26263b] bg-[#161622]/50 backdrop-blur-md px-6 py-4 flex items-center justify-between z-10">
-        <Link href="/" className="flex items-center gap-2">
+      <header className="border-b border-[#26263b] bg-[#161622]/50 backdrop-blur-md px-4 sm:px-6 py-3.5 flex items-center justify-between z-10">
+        <Link href="/" className="flex items-center gap-1.5 sm:gap-2 shrink-0">
           <Heart className="w-5 h-5 text-[#d4af37] fill-[#d4af37]" />
-          <span className="text-lg font-bold tracking-wider font-cinzel text-[#d4af37]">InviteMagic</span>
+          <span className="text-base sm:text-lg font-bold tracking-wider font-cinzel text-[#d4af37]">InviteMagic</span>
         </Link>
         <Link 
           href="/vendors" 
-          className="text-xs uppercase tracking-widest font-semibold flex items-center gap-1.5 hover:text-[#d4af37] transition-all"
+          className="text-[11px] sm:text-xs uppercase tracking-widest font-semibold flex items-center gap-1 hover:text-[#d4af37] transition-all text-gray-300 whitespace-nowrap"
         >
-          <ArrowLeft className="w-4 h-4" />
-          <span>View Public Directory</span>
+          <ArrowLeft className="w-3.5 h-3.5" />
+          <span className="hidden sm:inline">View Public Directory</span>
+          <span className="inline sm:hidden">Directory</span>
         </Link>
       </header>
 
