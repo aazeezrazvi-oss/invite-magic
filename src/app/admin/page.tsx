@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { 
   Heart, Users, Layers, CreditCard, Power, Eye, CheckCircle2,
-  Tag, Film, Image, Music, Plus, Trash2, ShieldAlert
+  Tag, Film, Image, Music, Plus, Trash2, ShieldAlert, Store, ShieldCheck, Check, Clock 
 } from 'lucide-react';
 import { 
   getAdminDashboardData, 
@@ -16,8 +16,9 @@ import {
   createMediaAssetAdmin, 
   deleteMediaAssetAdmin 
 } from '@/app/actions';
+import { getAllVendorsAdmin, approveVendorAdmin, deleteVendorAdmin } from '@/app/vendor-actions';
 import { supabase } from '@/utils/supabase';
-import { ReferralCode, MediaAsset } from '@/types';
+import { ReferralCode, MediaAsset, VendorProfile } from '@/types';
 
 export default function AdminDashboard() {
   const router = useRouter();
@@ -28,11 +29,13 @@ export default function AdminDashboard() {
   const [payments, setPayments] = useState<any[]>([]);
   const [referrals, setReferrals] = useState<ReferralCode[]>([]);
   const [mediaAssets, setMediaAssets] = useState<MediaAsset[]>([]);
+  const [vendors, setVendors] = useState<VendorProfile[]>([]);
   
   // UI & Loading States
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'users' | 'invites' | 'payments' | 'referrals' | 'media'>('users');
+  const [activeTab, setActiveTab] = useState<'users' | 'invites' | 'payments' | 'referrals' | 'media' | 'vendors'>('users');
   const [isAdmin, setIsAdmin] = useState(false);
+
   const [verifying, setVerifying] = useState(true);
 
   // Form States - Referral Code
@@ -144,6 +147,9 @@ export default function AdminDashboard() {
 
       if (mediaErr) throw mediaErr;
 
+      // 6. Fetch Vendors
+      const vendorData = await getAllVendorsAdmin();
+
       // Format data using userMap lookup
       const formattedInvitations = (invData || []).map((inv: any) => ({
         id: inv.id,
@@ -170,6 +176,7 @@ export default function AdminDashboard() {
       setPayments(formattedPayments);
       setReferrals(refData || []);
       setMediaAssets(mediaData || []);
+      setVendors(vendorData || []);
     } catch (err: any) {
       console.error("Error loading admin dashboard data:", err);
       alert("Error loading dashboard data: " + err.message);
@@ -177,6 +184,31 @@ export default function AdminDashboard() {
       setLoading(false);
     }
   }
+
+  // Handle Approve / Verify Vendor Profile
+  const handleApproveVendor = async (vendorId: string, currentApproved: boolean) => {
+    const nextStatus = !currentApproved;
+    const success = await approveVendorAdmin(vendorId, nextStatus, true);
+    if (success) {
+      setVendors(prev => prev.map(v => v.id === vendorId ? { ...v, is_approved: nextStatus, is_verified: true } : v));
+      alert(`Vendor profile ${nextStatus ? 'approved and live on public directory!' : 'revoked from directory.'}`);
+    } else {
+      alert('Failed to update vendor status.');
+    }
+  };
+
+  // Handle Delete Vendor Profile
+  const handleDeleteVendor = async (vendorId: string) => {
+    if (!confirm('Are you sure you want to delete this vendor profile?')) return;
+    const success = await deleteVendorAdmin(vendorId);
+    if (success) {
+      setVendors(prev => prev.filter(v => v.id !== vendorId));
+      alert('Vendor profile deleted.');
+    } else {
+      alert('Failed to delete vendor profile.');
+    }
+  };
+
 
   // Handle User Subscription Tier Change
   const handleUpdateUserTier = async (userId: string, tier: 'free' | 'basic' | 'premium' | 'vip') => {
@@ -422,6 +454,20 @@ export default function AdminDashboard() {
           >
             <Film className="w-4 h-4" />
             <span>Media Library ({mediaAssets.length})</span>
+          </button>
+          <button
+            onClick={() => setActiveTab('vendors')}
+            className={`py-3 px-5 font-semibold border-b-2 capitalize transition-all flex items-center gap-1.5 ${
+              activeTab === 'vendors' ? 'border-[#d4af37] text-[#d4af37]' : 'border-transparent text-gray-400 hover:text-white'
+            }`}
+          >
+            <Store className="w-4 h-4 text-[#d4af37]" />
+            <span>Vendors Directory ({vendors.length})</span>
+            {vendors.filter(v => !v.is_approved).length > 0 && (
+              <span className="px-1.5 py-0.5 bg-yellow-500/20 text-yellow-400 rounded-full text-[9px] font-bold border border-yellow-500/30 animate-pulse">
+                {vendors.filter(v => !v.is_approved).length} Pending
+              </span>
+            )}
           </button>
         </div>
 
@@ -854,6 +900,87 @@ export default function AdminDashboard() {
 
                 </div>
               )}
+
+              {activeTab === 'vendors' && (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left border-collapse min-w-[800px]">
+                    <thead>
+                      <tr className="bg-[#0f0f18] text-gray-400 border-b border-[#26263b]">
+                        <th className="p-4">Vendor Business</th>
+                        <th className="p-4">Category</th>
+                        <th className="p-4">Location</th>
+                        <th className="p-4">Status</th>
+                        <th className="p-4">Contact Info</th>
+                        <th className="p-4 text-right">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-[#26263b]">
+                      {vendors.map((vendor) => (
+                        <tr key={vendor.id} className="hover:bg-[#1c1c2b] transition-all">
+                          <td className="p-4 font-semibold text-white">
+                            <div className="flex items-center gap-3">
+                              <img
+                                src={vendor.dp_url || vendor.portfolio_photos?.[0] || 'https://images.unsplash.com/photo-1487412720507-e7ab37603c6f?q=80&w=400&auto=format&fit=crop'}
+                                alt={vendor.business_name}
+                                className="w-9 h-9 rounded-full object-cover border border-[#26263b] shrink-0"
+                              />
+                              <div>
+                                <span className="font-bold block text-white">{vendor.business_name}</span>
+                                {vendor.tagline && <span className="text-[10px] text-gray-400 block line-clamp-1">{vendor.tagline}</span>}
+                              </div>
+                            </div>
+                          </td>
+                          <td className="p-4 uppercase text-[#d4af37] font-semibold text-[11px]">{vendor.category}</td>
+                          <td className="p-4 text-gray-400">{vendor.location || '-'}</td>
+                          <td className="p-4">
+                            <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                              vendor.is_approved 
+                                ? 'bg-green-500/15 text-green-400 border border-green-500/20' 
+                                : 'bg-yellow-500/15 text-yellow-400 border border-yellow-500/30 animate-pulse'
+                            }`}>
+                              {vendor.is_approved ? 'APPROVED & LIVE' : 'PENDING APPROVAL'}
+                            </span>
+                          </td>
+                          <td className="p-4 text-gray-400">
+                            <div className="flex flex-col text-[10px] gap-0.5">
+                              {vendor.whatsapp_number && <span className="text-green-400">WA: {vendor.whatsapp_number}</span>}
+                              {vendor.phone_number && <span className="text-blue-400">Ph: {vendor.phone_number}</span>}
+                            </div>
+                          </td>
+                          <td className="p-4 text-right">
+                            <div className="flex justify-end items-center gap-2">
+                              <button
+                                onClick={() => handleApproveVendor(vendor.id, vendor.is_approved || false)}
+                                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded text-[10px] font-bold uppercase tracking-wider border transition-all cursor-pointer ${
+                                  vendor.is_approved 
+                                    ? 'bg-yellow-500/10 hover:bg-yellow-500/20 border-yellow-500/30 text-yellow-400' 
+                                    : 'bg-green-500/20 hover:bg-green-500/30 border-green-500/40 text-green-400 shadow-[0_0_10px_rgba(16,185,129,0.2)]'
+                                }`}
+                              >
+                                {vendor.is_approved ? <Clock className="w-3.5 h-3.5" /> : <Check className="w-3.5 h-3.5" />}
+                                <span>{vendor.is_approved ? 'Revoke' : 'Approve & Verify'}</span>
+                              </button>
+                              <button
+                                onClick={() => handleDeleteVendor(vendor.id)}
+                                className="p-1.5 text-red-400 hover:bg-red-500/10 rounded transition-all cursor-pointer"
+                                title="Delete Vendor"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                      {vendors.length === 0 && (
+                        <tr>
+                          <td colSpan={6} className="p-8 text-center text-gray-500">No vendor profiles registered yet.</td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+
             </>
           )}
 

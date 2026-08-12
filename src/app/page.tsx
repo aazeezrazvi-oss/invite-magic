@@ -100,6 +100,7 @@ export default function LandingPage() {
             <a href="#features" className="hover:text-white transition-all">Features</a>
             <a href="#templates" className="hover:text-white transition-all">Templates</a>
             <a href="#pricing" className="hover:text-white transition-all">Pricing</a>
+            <Link href="/vendors" className="hover:text-white transition-all text-gray-200">Vendors Directory</Link>
             <Link href="/bespoke" className="hover:text-[#d4af37] text-[#d4af37] transition-all font-semibold">Bespoke Designs</Link>
             <a href="#faqs" className="hover:text-white transition-all">FAQs</a>
           </nav>
@@ -394,6 +395,31 @@ export default function LandingPage() {
               Request Custom Design
             </Link>
           </div>
+
+          {/* Vendor Marketplace Callout Banner */}
+          <div className="mt-8 bg-gradient-to-r from-[#161622] via-[#0d1f19] to-[#161622] border border-emerald-500/25 rounded-2xl p-8 max-w-4xl mx-auto flex flex-col md:flex-row justify-between items-center gap-6 shadow-lg">
+            <div className="space-y-2 text-center md:text-left">
+              <span className="inline-block px-2.5 py-0.5 bg-emerald-500/10 border border-emerald-500/25 text-emerald-400 text-[10px] font-bold uppercase tracking-wider rounded-full">100% Free Service Provider Directory</span>
+              <h4 className="text-xl font-bold text-white font-cinzel">Wedding Vendors & Artists Portal</h4>
+              <p className="text-xs text-gray-400 max-w-xl">
+                Are you a Mehendi artist, makeup artist, photographer, decorator, or venue host? Register your business profile for free or discover top verified wedding services.
+              </p>
+            </div>
+            <div className="flex flex-col sm:flex-row gap-3 shrink-0">
+              <Link 
+                href="/vendors" 
+                className="px-5 py-3 rounded bg-[#26263b] hover:bg-[#34344d] text-white text-xs font-bold uppercase tracking-wider transition-all text-center"
+              >
+                Browse Vendors
+              </Link>
+              <Link 
+                href="/vendors/portal" 
+                className="px-5 py-3 rounded bg-emerald-500 hover:bg-emerald-600 text-[#0d0d11] text-xs font-bold uppercase tracking-wider transition-all shadow-md text-center"
+              >
+                Register Profile (Free)
+              </Link>
+            </div>
+          </div>
         </div>
       </section>
 
@@ -436,6 +462,8 @@ export default function LandingPage() {
           </div>
           <p>© 2026 InviteMagic. All rights reserved. Made for love and weddings.</p>
           <div className="flex gap-4 mt-2 md:mt-0">
+            <Link href="/vendors" className="hover:text-white transition-colors">Vendors Directory</Link>
+            <span className="text-[#26263b]">|</span>
             <Link href="/terms" className="hover:text-white transition-colors">Terms & Conditions</Link>
             <span className="text-[#26263b]">|</span>
             <Link href="/privacy" className="hover:text-white transition-colors">Privacy Policy</Link>

@@ -117,3 +117,38 @@ export interface MediaAsset {
   created_at?: string;
 }
 
+export type VendorCategory = 
+  | 'all'
+  | 'mehendi' 
+  | 'makeup' 
+  | 'photography' 
+  | 'decor' 
+  | 'catering' 
+  | 'dj_music' 
+  | 'planner' 
+  | 'venue';
+
+export interface VendorProfile {
+  id: string;
+  user_id?: string | null;
+  business_name: string;
+  category: VendorCategory;
+  tagline?: string;
+  description?: string;
+  location?: string;
+  dp_url?: string;
+  portfolio_photos?: string[];
+  whatsapp_number?: string;
+  phone_number?: string;
+  instagram_handle?: string;
+  starting_price?: string;
+  rating?: number;
+  review_count?: number;
+  is_approved?: boolean;
+  is_verified?: boolean;
+  is_featured?: boolean;
+  created_at?: string;
+  updated_at?: string;
+}
+
+
