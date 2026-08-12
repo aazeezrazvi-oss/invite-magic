@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import { 
   Heart, Sparkles, Image as ImageIcon, Phone, MessageCircle, 
   MapPin, Tag, ShieldCheck, CheckCircle2, 
-  AlertCircle, ArrowLeft, Plus, Trash2, Eye, Star, Share2, Copy, Check 
+  AlertCircle, ArrowLeft, Plus, Trash2, Eye, Star, Share2, Copy, Check, Upload 
 } from 'lucide-react';
 import { VendorProfile, VendorCategory } from '@/types';
 import { submitVendorProfile, getVendorByUserId } from '@/app/vendor-actions';
@@ -57,6 +57,83 @@ export default function VendorPortalPage() {
   const [existingVendor, setExistingVendor] = useState<VendorProfile | null>(null);
   const [userId, setUserId] = useState<string | null>(null);
   const [copiedLink, setCopiedLink] = useState(false);
+  const [uploadingDp, setUploadingDp] = useState(false);
+  const [uploadingPortfolio, setUploadingPortfolio] = useState(false);
+
+  const handleUploadLocalDp = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploadingDp(true);
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `vendor_dp_${userId || 'anon'}_${Date.now()}_${Math.random().toString(36).substring(2, 7)}.${fileExt}`;
+      
+      const { error } = await supabase.storage
+        .from('photos')
+        .upload(fileName, file, { cacheControl: '3600', upsert: true });
+
+      if (!error) {
+        const { data: { publicUrl } } = supabase.storage.from('photos').getPublicUrl(fileName);
+        setFormData(prev => ({ ...prev, dp_url: publicUrl }));
+      } else {
+        const reader = new FileReader();
+        reader.onload = () => {
+          if (typeof reader.result === 'string') {
+            setFormData(prev => ({ ...prev, dp_url: reader.result as string }));
+          }
+        };
+        reader.readAsDataURL(file);
+      }
+    } catch (err) {
+      console.error('DP upload error:', err);
+    } finally {
+      setUploadingDp(false);
+    }
+  };
+
+  const handleUploadLocalPortfolio = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    setUploadingPortfolio(true);
+    try {
+      const uploadedUrls: string[] = [];
+
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        const fileExt = file.name.split('.').pop();
+        const fileName = `vendor_work_${userId || 'anon'}_${Date.now()}_${i}_${Math.random().toString(36).substring(2, 7)}.${fileExt}`;
+
+        const { error } = await supabase.storage
+          .from('photos')
+          .upload(fileName, file, { cacheControl: '3600', upsert: true });
+
+        if (!error) {
+          const { data: { publicUrl } } = supabase.storage.from('photos').getPublicUrl(fileName);
+          uploadedUrls.push(publicUrl);
+        } else {
+          const url = await new Promise<string>((resolve) => {
+            const reader = new FileReader();
+            reader.onload = () => {
+              if (typeof reader.result === 'string') resolve(reader.result);
+            };
+            reader.readAsDataURL(file);
+          });
+          uploadedUrls.push(url);
+        }
+      }
+
+      setFormData(prev => ({
+        ...prev,
+        portfolio_photos: [...(prev.portfolio_photos || []), ...uploadedUrls],
+      }));
+    } catch (err) {
+      console.error('Portfolio upload error:', err);
+    } finally {
+      setUploadingPortfolio(false);
+    }
+  };
 
   const getProfileUrl = () => {
     if (typeof window !== 'undefined' && existingVendor?.id) {
@@ -476,54 +553,123 @@ export default function VendorPortalPage() {
                 </div>
               </div>
 
-              {/* DP Picture URL */}
-              <div>
-                <label className="block text-gray-400 font-semibold mb-1 uppercase tracking-wider">Profile Picture (DP URL)</label>
-                <input
-                  type="text"
-                  name="dp_url"
-                  value={formData.dp_url || ''}
-                  onChange={handleChange}
-                  placeholder="https://images.unsplash.com/..."
-                  className="w-full bg-[#0d0d11]/80 border border-[#26263b] rounded-lg px-3.5 py-2.5 text-white outline-none focus:border-[#d4af37] font-mono"
-                />
-              </div>
+              {/* DP Picture URL / Local File Upload */}
+              <div className="space-y-2 bg-[#0d0d11] p-4 rounded-xl border border-[#26263b]">
+                <label className="block text-gray-300 font-semibold uppercase tracking-wider text-xs flex items-center justify-between">
+                  <span>Profile Picture / Business DP</span>
+                  {formData.dp_url && <span className="text-green-400 text-[10px]">✔ Image Set</span>}
+                </label>
 
-              {/* Portfolio Photos */}
-              <div className="space-y-2">
-                <label className="block text-gray-400 font-semibold uppercase tracking-wider">Portfolio Work Photos (URLs)</label>
-                <div className="flex gap-2">
+                <div className="flex flex-col sm:flex-row gap-3 items-center">
+                  {/* File Upload Button */}
+                  <div className="w-full sm:w-auto shrink-0">
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleUploadLocalDp}
+                      id="vendor-dp-upload"
+                      className="hidden"
+                      disabled={uploadingDp}
+                    />
+                    <label
+                      htmlFor="vendor-dp-upload"
+                      className="w-full sm:w-auto px-4 py-2.5 bg-[#d4af37] hover:bg-[#b8962e] text-[#0d0d11] font-bold text-xs uppercase tracking-wider rounded-lg transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-md"
+                    >
+                      {uploadingDp ? (
+                        <div className="w-4 h-4 border-2 border-t-transparent border-[#0d0d11] rounded-full animate-spin" />
+                      ) : (
+                        <Upload className="w-4 h-4" />
+                      )}
+                      <span>{uploadingDp ? 'Uploading DP...' : 'Upload Local DP Image'}</span>
+                    </label>
+                  </div>
+
+                  {/* DP Thumbnail Preview */}
+                  {formData.dp_url && (
+                    <div className="w-10 h-10 rounded-full border-2 border-[#d4af37] overflow-hidden bg-black shrink-0">
+                      <img src={formData.dp_url} alt="DP" className="w-full h-full object-cover" />
+                    </div>
+                  )}
+
+                  {/* Or Paste Direct Image URL */}
                   <input
                     type="text"
-                    value={newPhotoUrl}
-                    onChange={(e) => setNewPhotoUrl(e.target.value)}
-                    placeholder="Paste image URL of your work sample..."
-                    className="flex-grow bg-[#0d0d11]/80 border border-[#26263b] rounded-lg px-3.5 py-2 text-white outline-none focus:border-[#d4af37] font-mono text-[11px]"
+                    name="dp_url"
+                    value={formData.dp_url || ''}
+                    onChange={handleChange}
+                    placeholder="Or paste image URL (https://...)"
+                    className="flex-grow w-full bg-[#161622] border border-[#26263b] rounded-lg px-3 py-2 text-white outline-none focus:border-[#d4af37] font-mono text-[11px]"
                   />
-                  <button
-                    type="button"
-                    onClick={handleAddPortfolioPhoto}
-                    className="px-4 py-2 bg-[#26263b] hover:bg-[#34344d] text-white font-bold rounded-lg transition-all shrink-0 cursor-pointer"
+                </div>
+              </div>
+
+              {/* Portfolio Photos File Upload & Gallery */}
+              <div className="space-y-3 bg-[#0d0d11] p-4 rounded-xl border border-[#26263b]">
+                <label className="block text-gray-300 font-semibold uppercase tracking-wider text-xs flex justify-between items-center">
+                  <span>Portfolio Work Photos & Samples</span>
+                  <span className="text-gray-400 text-[10px]">({(formData.portfolio_photos || []).length} Photos)</span>
+                </label>
+
+                {/* Local Multi-File Upload Button */}
+                <div className="flex flex-col sm:flex-row gap-2">
+                  <input
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    onChange={handleUploadLocalPortfolio}
+                    id="vendor-portfolio-upload"
+                    className="hidden"
+                    disabled={uploadingPortfolio}
+                  />
+                  <label
+                    htmlFor="vendor-portfolio-upload"
+                    className="w-full sm:w-auto px-4 py-2.5 bg-emerald-500 hover:bg-emerald-600 text-[#0d0d11] font-bold text-xs uppercase tracking-wider rounded-lg transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-md"
                   >
-                    Add Image
-                  </button>
+                    {uploadingPortfolio ? (
+                      <div className="w-4 h-4 border-2 border-t-transparent border-[#0d0d11] rounded-full animate-spin" />
+                    ) : (
+                      <Upload className="w-4 h-4" />
+                    )}
+                    <span>{uploadingPortfolio ? 'Uploading Work Photos...' : 'Upload Work Photos (Multiple)'}</span>
+                  </label>
+
+                  {/* Or Paste Image URL */}
+                  <div className="flex flex-grow gap-2">
+                    <input
+                      type="text"
+                      value={newPhotoUrl}
+                      onChange={(e) => setNewPhotoUrl(e.target.value)}
+                      placeholder="Or paste image URL..."
+                      className="flex-grow bg-[#161622] border border-[#26263b] rounded-lg px-3 py-2 text-white outline-none focus:border-[#d4af37] font-mono text-[11px]"
+                    />
+                    <button
+                      type="button"
+                      onClick={handleAddPortfolioPhoto}
+                      className="px-3 py-2 bg-[#26263b] hover:bg-[#34344d] text-white font-bold rounded-lg text-xs transition-all shrink-0 cursor-pointer"
+                    >
+                      Add URL
+                    </button>
+                  </div>
                 </div>
 
-                {/* Added Photos Grid */}
-                <div className="flex flex-wrap gap-2 pt-2">
-                  {(formData.portfolio_photos || []).map((url, idx) => (
-                    <div key={idx} className="relative w-16 h-16 rounded-lg overflow-hidden border border-[#26263b] group shrink-0">
-                      <img src={url} alt={`Work ${idx}`} className="w-full h-full object-cover" />
-                      <button
-                        type="button"
-                        onClick={() => handleRemovePortfolioPhoto(idx)}
-                        className="absolute inset-0 bg-red-900/80 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </div>
-                  ))}
-                </div>
+                {/* Added Photos Gallery Grid */}
+                {(formData.portfolio_photos || []).length > 0 && (
+                  <div className="flex flex-wrap gap-3 pt-2">
+                    {(formData.portfolio_photos || []).map((url, idx) => (
+                      <div key={idx} className="relative w-20 h-20 rounded-xl overflow-hidden border border-[#26263b] group shrink-0 shadow-md bg-black">
+                        <img src={url} alt={`Work sample ${idx + 1}`} className="w-full h-full object-cover" />
+                        <button
+                          type="button"
+                          onClick={() => handleRemovePortfolioPhoto(idx)}
+                          className="absolute inset-0 bg-red-950/80 text-white flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer text-[10px]"
+                        >
+                          <Trash2 className="w-4 h-4 text-red-400 mb-0.5" />
+                          <span>Delete</span>
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
 
               {/* Description */}
