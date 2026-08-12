@@ -6,7 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Heart, Sparkles, Search, MapPin, Phone, 
   MessageCircle, Star, CheckCircle2, 
-  X, ExternalLink, Tag, ShieldCheck, ArrowRight, PlusCircle 
+  X, ExternalLink, Tag, ShieldCheck, ArrowRight, PlusCircle, Share2, Copy, Check 
 } from 'lucide-react';
 import { VendorProfile, VendorCategory } from '@/types';
 import { getPublicVendors } from '@/app/vendor-actions';
@@ -38,6 +38,17 @@ export default function PublicVendorsPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
   const [selectedVendor, setSelectedVendor] = useState<VendorProfile | null>(null);
+  const [copiedVendorId, setCopiedVendorId] = useState<string | null>(null);
+
+  const handleShareVendor = (e: React.MouseEvent, vendorId: string) => {
+    e.stopPropagation();
+    if (typeof window !== 'undefined') {
+      const url = `${window.location.origin}/vendors/profile/${vendorId}`;
+      navigator.clipboard.writeText(url);
+      setCopiedVendorId(vendorId);
+      setTimeout(() => setCopiedVendorId(null), 2500);
+    }
+  };
 
   useEffect(() => {
     async function loadVendors() {
@@ -192,11 +203,20 @@ export default function PublicVendorsPage() {
                     {vendor.category}
                   </span>
 
-                  {/* Rating Badge */}
-                  <div className="absolute top-3 right-3 bg-black/70 backdrop-blur-md px-2.5 py-1 rounded-md border border-white/10 flex items-center gap-1">
-                    <Star className="w-3.5 h-3.5 text-yellow-400 fill-yellow-400" />
-                    <span className="text-xs font-bold text-white">{vendor.rating || 4.9}</span>
-                    <span className="text-[10px] text-gray-400">({vendor.review_count || 12})</span>
+                  {/* Rating & Share Badges */}
+                  <div className="absolute top-3 right-3 flex items-center gap-1.5">
+                    <button
+                      onClick={(e) => handleShareVendor(e, vendor.id)}
+                      className="bg-black/70 hover:bg-black/90 backdrop-blur-md p-1.5 rounded-md border border-white/10 text-gray-300 hover:text-white transition-all cursor-pointer"
+                      title="Copy Shareable Profile Link"
+                    >
+                      {copiedVendorId === vendor.id ? <Check className="w-3.5 h-3.5 text-green-400" /> : <Share2 className="w-3.5 h-3.5 text-[#d4af37]" />}
+                    </button>
+                    <div className="bg-black/70 backdrop-blur-md px-2.5 py-1 rounded-md border border-white/10 flex items-center gap-1">
+                      <Star className="w-3.5 h-3.5 text-yellow-400 fill-yellow-400" />
+                      <span className="text-xs font-bold text-white">{vendor.rating || 4.9}</span>
+                      <span className="text-[10px] text-gray-400">({vendor.review_count || 12})</span>
+                    </div>
                   </div>
 
                   {/* DP Avatar Overlay */}
@@ -430,6 +450,34 @@ export default function PublicVendorsPage() {
                         <span>Instagram Profile</span>
                       </a>
                     )}
+                  </div>
+
+                  {/* Share Profile Banner in Modal */}
+                  <div className="pt-2 border-t border-[#26263b] flex flex-col sm:flex-row items-center justify-between gap-3">
+                    <div className="text-xs text-gray-400 flex items-center gap-1.5">
+                      <Share2 className="w-3.5 h-3.5 text-[#d4af37]" />
+                      <span>Direct Share Link:</span>
+                      <span className="font-mono text-[#d4af37] text-[11px]">
+                        {typeof window !== 'undefined' ? `${window.location.origin}/vendors/profile/${selectedVendor.id}` : ''}
+                      </span>
+                    </div>
+                    <div className="flex gap-2 w-full sm:w-auto">
+                      <button
+                        onClick={(e) => handleShareVendor(e, selectedVendor.id)}
+                        className="flex-1 sm:flex-initial py-2 px-3 bg-[#26263b] hover:bg-[#34344d] text-white font-bold text-xs rounded flex items-center justify-center gap-1.5 transition-all cursor-pointer"
+                      >
+                        {copiedVendorId === selectedVendor.id ? <Check className="w-3.5 h-3.5 text-green-400" /> : <Copy className="w-3.5 h-3.5 text-[#d4af37]" />}
+                        <span>{copiedVendorId === selectedVendor.id ? 'Copied Link!' : 'Copy Link'}</span>
+                      </button>
+                      <Link
+                        href={`/vendors/profile/${selectedVendor.id}`}
+                        target="_blank"
+                        className="flex-1 sm:flex-initial py-2 px-3 bg-[#d4af37] hover:bg-[#b8962e] text-[#0d0d11] font-bold text-xs rounded flex items-center justify-center gap-1.5 transition-all cursor-pointer"
+                      >
+                        <ExternalLink className="w-3.5 h-3.5" />
+                        <span>Open Full Profile</span>
+                      </Link>
+                    </div>
                   </div>
                 </div>
 

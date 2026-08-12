@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { 
   Heart, Sparkles, Smartphone, Gift, 
-  CheckCircle, ArrowRight, Layers, X, Monitor 
+  CheckCircle, ArrowRight, Layers, X, Monitor, Menu 
 } from 'lucide-react';
 import { TEMPLATE_PRESETS, TemplatePreset } from '@/utils/presets';
 import { supabase } from '@/utils/supabase';
@@ -17,6 +17,7 @@ export default function LandingPage() {
   const [previewDevice, setPreviewDevice] = useState<'mobile' | 'desktop'>('mobile');
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
   const [userEmail, setUserEmail] = useState<string>('');
+  const [mobileMenuOpen, setMobileMenuOpen] = useState<boolean>(false);
 
   useEffect(() => {
     async function checkAuth() {
@@ -123,8 +124,73 @@ export default function LandingPage() {
             >
               Try Editor
             </Link>
+
+            {/* Mobile Hamburger Button (3 lines menu) */}
+            <button
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              className="md:hidden p-2 rounded-lg bg-[#26263b] text-gray-300 hover:text-white transition-all cursor-pointer"
+              aria-label="Toggle Navigation Menu"
+            >
+              {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+            </button>
           </div>
         </div>
+
+        {/* Mobile Dropdown Menu Drawer */}
+        {mobileMenuOpen && (
+          <div className="md:hidden border-t border-[#26263b] bg-[#161622] px-6 py-4 space-y-3 text-xs uppercase tracking-widest animate-fadeIn">
+            <a 
+              href="#features" 
+              onClick={() => setMobileMenuOpen(false)}
+              className="block py-2 text-gray-300 hover:text-white transition-colors"
+            >
+              Features
+            </a>
+            <a 
+              href="#templates" 
+              onClick={() => setMobileMenuOpen(false)}
+              className="block py-2 text-gray-300 hover:text-white transition-colors"
+            >
+              Templates
+            </a>
+            <a 
+              href="#pricing" 
+              onClick={() => setMobileMenuOpen(false)}
+              className="block py-2 text-gray-300 hover:text-white transition-colors"
+            >
+              Pricing
+            </a>
+            <Link 
+              href="/vendors" 
+              onClick={() => setMobileMenuOpen(false)}
+              className="block py-2 text-white font-semibold flex items-center justify-between"
+            >
+              <span>Vendors Directory</span>
+              <span className="px-2 py-0.5 bg-[#d4af37]/20 text-[#d4af37] rounded text-[9px]">Free</span>
+            </Link>
+            <Link 
+              href="/vendors/portal" 
+              onClick={() => setMobileMenuOpen(false)}
+              className="block py-2 text-emerald-400 font-semibold"
+            >
+              Vendor Registration Portal
+            </Link>
+            <Link 
+              href="/bespoke" 
+              onClick={() => setMobileMenuOpen(false)}
+              className="block py-2 text-[#d4af37] font-semibold"
+            >
+              Bespoke Designs
+            </Link>
+            <a 
+              href="#faqs" 
+              onClick={() => setMobileMenuOpen(false)}
+              className="block py-2 text-gray-300 hover:text-white transition-colors"
+            >
+              FAQs
+            </a>
+          </div>
+        )}
       </header>
 
       {/* Hero Section */}

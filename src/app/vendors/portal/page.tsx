@@ -183,6 +183,65 @@ export default function VendorPortalPage() {
     );
   }
 
+  // Enforce Login Requirement: Vendors must be logged in to register & edit profile details
+  if (!userId) {
+    return (
+      <div className="min-h-screen bg-[#0d0d11] text-[#f3f4f6] flex flex-col font-sans relative overflow-x-hidden">
+        {/* Header */}
+        <header className="border-b border-[#26263b] bg-[#161622]/50 backdrop-blur-md px-6 py-4 flex items-center justify-between">
+          <Link href="/" className="flex items-center gap-2">
+            <Heart className="w-5 h-5 text-[#d4af37] fill-[#d4af37]" />
+            <span className="text-lg font-bold tracking-wider font-cinzel text-[#d4af37]">InviteMagic</span>
+          </Link>
+          <Link 
+            href="/vendors" 
+            className="text-xs uppercase tracking-widest font-semibold flex items-center gap-1.5 hover:text-[#d4af37] transition-all text-gray-300"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            <span>Public Directory</span>
+          </Link>
+        </header>
+
+        {/* Login Prompt Hero Box */}
+        <div className="flex-grow flex items-center justify-center p-6">
+          <div className="bg-[#161622] border border-[#26263b] rounded-2xl p-8 sm:p-12 text-center max-w-lg w-full space-y-6 shadow-2xl relative overflow-hidden">
+            <div className="absolute -top-10 -right-10 w-36 h-36 bg-[#d4af37]/10 rounded-full blur-2xl pointer-events-none" />
+            
+            <div className="w-16 h-16 bg-[#d4af37]/10 border border-[#d4af37]/30 rounded-full flex items-center justify-center mx-auto text-[#d4af37]">
+              <ShieldCheck className="w-8 h-8" />
+            </div>
+
+            <div className="space-y-2">
+              <span className="inline-block px-3 py-1 rounded-full bg-[#d4af37]/10 text-[#d4af37] border border-[#d4af37]/20 text-[10px] font-bold uppercase tracking-wider">
+                Authentication Required
+              </span>
+              <h2 className="text-2xl font-bold text-white font-cinzel">Login to Access Vendor Portal</h2>
+              <p className="text-xs text-gray-400 leading-relaxed">
+                Service providers must log in to register a new business profile or edit existing profile details securely.
+              </p>
+            </div>
+
+            <div className="space-y-3 pt-2">
+              <Link
+                href="/login?redirectTo=/vendors/portal"
+                className="w-full py-3.5 bg-[#d4af37] hover:bg-[#b8962e] text-[#0d0d11] font-bold text-xs uppercase tracking-widest rounded-lg flex items-center justify-center gap-2 transition-all shadow-lg cursor-pointer"
+              >
+                <span>Login or Register Free Account</span>
+              </Link>
+
+              <Link
+                href="/vendors"
+                className="w-full py-3 bg-[#26263b] hover:bg-[#34344d] text-gray-300 font-semibold text-xs uppercase tracking-wider rounded-lg flex items-center justify-center gap-2 transition-all"
+              >
+                <span>Browse Vendor Directory</span>
+              </Link>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-[#0d0d11] text-[#f3f4f6] flex flex-col font-sans relative overflow-x-hidden">
       
