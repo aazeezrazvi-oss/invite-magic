@@ -8,7 +8,7 @@ import {
   ShieldCheck, ArrowLeft, Share2, Copy, Check, Sparkles, AlertCircle 
 } from 'lucide-react';
 import { VendorProfile } from '@/types';
-import { getVendorById } from '@/app/vendor-actions';
+import { getVendorById, rateVendor } from '@/app/vendor-actions';
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -29,12 +29,22 @@ export default function DedicatedVendorProfilePage({ params }: PageProps) {
   const [loading, setLoading] = useState(true);
   const [copied, setCopied] = useState(false);
   const [shareUrl, setShareUrl] = useState('');
+  
+  // Real-time star rating state
+  const [hoveredStar, setHoveredStar] = useState<number | null>(null);
+  const [userRatedStars, setUserRatedStars] = useState<number | null>(null);
+  const [isRating, setIsRating] = useState(false);
+  const [ratingMessage, setRatingMessage] = useState('');
 
   useEffect(() => {
     async function loadVendor() {
       setLoading(true);
       if (typeof window !== 'undefined') {
         setShareUrl(window.location.href);
+        const saved = localStorage.getItem(`rated_vendor_${id}`);
+        if (saved) {
+          setUserRatedStars(parseInt(saved, 10));
+        }
       }
       const data = await getVendorById(id);
       setVendor(data);
@@ -42,6 +52,35 @@ export default function DedicatedVendorProfilePage({ params }: PageProps) {
     }
     loadVendor();
   }, [id]);
+
+  const handleGiveRating = async (stars: number) => {
+    if (!vendor || isRating) return;
+
+    setIsRating(true);
+    setUserRatedStars(stars);
+    localStorage.setItem(`rated_vendor_${vendor.id}`, stars.toString());
+
+    // Optimistic calculation for instant UI feedback
+    const prevRating = typeof vendor.rating === 'number' && !isNaN(vendor.rating) ? vendor.rating : 5.0;
+    const prevCount = typeof vendor.review_count === 'number' && !isNaN(vendor.review_count) ? vendor.review_count : 0;
+    const optimisticCount = prevCount + 1;
+    const optimisticRating = Math.round(((prevRating * prevCount + stars) / optimisticCount) * 10) / 10;
+
+    setVendor((prev) => prev ? { ...prev, rating: optimisticRating, review_count: optimisticCount } : prev);
+    setRatingMessage(`⭐ Thank you for giving ${stars} Star${stars > 1 ? 's' : ''}!`);
+
+    try {
+      const res = await rateVendor(vendor.id, stars);
+      if (res.success) {
+        setVendor((prev) => prev ? { ...prev, rating: res.newRating, review_count: res.newReviewCount } : prev);
+      }
+    } catch (e) {
+      console.warn('Rating sync error:', e);
+    } finally {
+      setIsRating(false);
+      setTimeout(() => setRatingMessage(''), 4500);
+    }
+  };
 
   const handleCopyLink = () => {
     if (typeof window !== 'undefined' && shareUrl) {
@@ -223,22 +262,94 @@ export default function DedicatedVendorProfilePage({ params }: PageProps) {
 
         </div>
 
-        {/* Rating & Reviews Section */}
-        <div className="bg-[#161622] border border-[#26263b] rounded-2xl p-6 sm:p-8 space-y-4 shadow-xl">
-          <h3 className="text-lg font-bold text-white font-cinzel flex items-center gap-2">
-            <Star className="w-5 h-5 text-yellow-400 fill-yellow-400" />
-            <span>Rating & Verified Feedback</span>
-          </h3>
+        {/* Real-time Rating & Stars Counter Section */}
+        <div className="bg-[#161622] border border-[#26263b] rounded-2xl p-6 sm:p-8 space-y-5 shadow-xl">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-[#26263b] pb-4">
+            <div>
+              <h3 className="text-lg font-bold text-white font-cinzel flex items-center gap-2">
+                <Star className="w-5 h-5 text-yellow-400 fill-yellow-400" />
+                <span>Vendor Star Ratings & Ranking</span>
+              </h3>
+              <p className="text-xs text-gray-400 mt-0.5">
+                Couples rate vendors in real time. Vendors with higher stars rank at the top of the search directory!
+              </p>
+            </div>
 
-          <div className="flex items-center gap-4 bg-[#0d0d11] p-4 rounded-xl border border-[#26263b]">
-            <div className="text-3xl font-extrabold text-white">{vendor.rating || 4.9}</div>
-            <div className="space-y-1">
-              <div className="flex text-yellow-400 gap-0.5">
-                {[...Array(5)].map((_, i) => (
-                  <Star key={i} className="w-4 h-4 fill-yellow-400" />
-                ))}
+            <div className="px-3 py-1.5 rounded-lg bg-[#d4af37]/10 border border-[#d4af37]/30 text-[#d4af37] text-xs font-bold font-cinzel shrink-0">
+              ⚡ Rank Boost Active
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-center">
+            {/* Aggregate Score Display */}
+            <div className="flex items-center gap-4 bg-[#0d0d11] p-4 rounded-xl border border-[#26263b]">
+              <div className="text-4xl font-extrabold text-white font-mono tracking-tight">
+                {vendor.rating ? Number(vendor.rating).toFixed(1) : '5.0'}
               </div>
-              <span className="text-xs text-gray-400 block">Based on {vendor.review_count || 12} Google & Verified Couple Reviews</span>
+              <div className="space-y-1">
+                <div className="flex text-yellow-400 gap-1">
+                  {[1, 2, 3, 4, 5].map((starIndex) => {
+                    const ratingVal = vendor.rating || 5.0;
+                    const isFilled = starIndex <= Math.round(ratingVal);
+                    return (
+                      <Star 
+                        key={starIndex} 
+                        className={`w-4 h-4 ${isFilled ? 'fill-yellow-400 text-yellow-400' : 'text-gray-600'}`} 
+                      />
+                    );
+                  })}
+                </div>
+                <span className="text-xs text-gray-400 block">
+                  Total <strong className="text-white font-mono">{vendor.review_count || 0}</strong> User Star Ratings Counted
+                </span>
+              </div>
+            </div>
+
+            {/* Interactive User Rating Input */}
+            <div className="bg-[#0d0d11] p-4 rounded-xl border border-[#26263b] flex flex-col justify-center items-center sm:items-start gap-2">
+              <div className="flex items-center justify-between w-full">
+                <span className="text-xs font-bold uppercase tracking-wider text-gray-300">
+                  {userRatedStars ? `Your Rating: ${userRatedStars} Stars ⭐` : 'Rate this Vendor:'}
+                </span>
+                {userRatedStars && (
+                  <span className="text-[10px] text-green-400 font-semibold">✓ Counted</span>
+                )}
+              </div>
+
+              <div className="flex items-center gap-2">
+                {[1, 2, 3, 4, 5].map((starVal) => {
+                  const isFilled = hoveredStar !== null 
+                    ? hoveredStar >= starVal 
+                    : (userRatedStars || 0) >= starVal;
+
+                  return (
+                    <button
+                      key={starVal}
+                      type="button"
+                      onMouseEnter={() => setHoveredStar(starVal)}
+                      onMouseLeave={() => setHoveredStar(null)}
+                      onClick={() => handleGiveRating(starVal)}
+                      disabled={isRating}
+                      className="p-1 rounded hover:scale-125 transition-all text-yellow-400 cursor-pointer disabled:cursor-not-allowed"
+                      title={`Give ${starVal} Star${starVal > 1 ? 's' : ''}`}
+                    >
+                      <Star
+                        className={`w-7 h-7 transition-all ${
+                          isFilled
+                            ? 'fill-yellow-400 text-yellow-400 drop-shadow-[0_0_10px_rgba(250,204,21,0.7)]'
+                            : 'text-gray-700 hover:text-yellow-400'
+                        }`}
+                      />
+                    </button>
+                  );
+                })}
+              </div>
+
+              {ratingMessage ? (
+                <p className="text-xs text-green-400 font-semibold animate-pulse">{ratingMessage}</p>
+              ) : (
+                <p className="text-[11px] text-gray-500">Tap 1 to 5 stars above to cast your real-time vote</p>
+              )}
             </div>
           </div>
         </div>

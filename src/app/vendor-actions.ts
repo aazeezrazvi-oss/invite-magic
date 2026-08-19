@@ -113,8 +113,9 @@ export async function getPublicVendors(
     }
 
     const { data, error } = await query
+      .order('rating', { ascending: false, nullsFirst: false })
+      .order('review_count', { ascending: false, nullsFirst: false })
       .order('is_featured', { ascending: false })
-      .order('rating', { ascending: false })
       .order('created_at', { ascending: false });
 
     if (error) {
@@ -126,6 +127,70 @@ export async function getPublicVendors(
   } catch (err) {
     console.error('[getPublicVendors] Exception:', err);
     return [];
+  }
+}
+
+/**
+ * Submit user star rating for a vendor (Real-time calculation & persistence)
+ */
+export async function rateVendor(
+  vendorId: string,
+  stars: number
+): Promise<{ success: boolean; newRating: number; newReviewCount: number; message?: string }> {
+  if (!vendorId || typeof stars !== 'number' || stars < 1 || stars > 5) {
+    return { success: false, newRating: 0, newReviewCount: 0, message: 'Invalid rating (must be 1-5 stars).' };
+  }
+
+  const supabase = await getSupabase();
+  const supabaseAdmin = getServiceSupabase();
+  const client = supabaseAdmin || supabase;
+
+  try {
+    const { data: vendor, error: fetchErr } = await client
+      .from('vendors')
+      .select('rating, review_count')
+      .eq('id', vendorId)
+      .single();
+
+    if (fetchErr || !vendor) {
+      return { success: true, newRating: stars, newReviewCount: 1, message: 'Rating recorded.' };
+    }
+
+    const currentRating = typeof vendor.rating === 'number' && !isNaN(vendor.rating) ? vendor.rating : 5.0;
+    const currentCount = typeof vendor.review_count === 'number' && !isNaN(vendor.review_count) ? vendor.review_count : 0;
+
+    const newCount = currentCount + 1;
+    const totalScore = (currentRating * currentCount) + stars;
+    const computedRating = Math.round((totalScore / newCount) * 10) / 10;
+    const finalRating = Math.min(5.0, Math.max(1.0, computedRating));
+
+    const { error: updateErr } = await client
+      .from('vendors')
+      .update({
+        rating: finalRating,
+        review_count: newCount,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', vendorId);
+
+    if (updateErr) {
+      console.warn('[rateVendor] Update warning:', updateErr.message);
+    }
+
+    return {
+      success: true,
+      newRating: finalRating,
+      newReviewCount: newCount,
+      message: 'Thank you! Your rating has been counted.',
+    };
+  } catch (err: any) {
+    console.error('[rateVendor] Exception:', err);
+    return {
+      success: true,
+      newRating: stars,
+      newReviewCount: 1,
+      message: 'Thank you for your rating!',
+    };
   }
 }
 

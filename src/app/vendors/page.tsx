@@ -9,7 +9,7 @@ import {
   X, ExternalLink, Tag, ShieldCheck, ArrowRight, PlusCircle, Share2, Copy, Check 
 } from 'lucide-react';
 import { VendorProfile, VendorCategory } from '@/types';
-import { getPublicVendors } from '@/app/vendor-actions';
+import { getPublicVendors, rateVendor } from '@/app/vendor-actions';
 
 const InstagramIcon = ({ className = "w-4 h-4" }: { className?: string }) => (
   <svg className={className} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" strokeLinecap="round" strokeLinejoin="round">
@@ -39,6 +39,61 @@ export default function PublicVendorsPage() {
   const [loading, setLoading] = useState(true);
   const [selectedVendor, setSelectedVendor] = useState<VendorProfile | null>(null);
   const [copiedVendorId, setCopiedVendorId] = useState<string | null>(null);
+  
+  // Modal rating state
+  const [modalHoveredStar, setModalHoveredStar] = useState<number | null>(null);
+  const [modalUserRating, setModalUserRating] = useState<number | null>(null);
+  const [modalRatingMsg, setModalRatingMsg] = useState('');
+  const [isModalRating, setIsModalRating] = useState(false);
+
+  useEffect(() => {
+    if (selectedVendor && typeof window !== 'undefined') {
+      const saved = localStorage.getItem(`rated_vendor_${selectedVendor.id}`);
+      setModalUserRating(saved ? parseInt(saved, 10) : null);
+      setModalRatingMsg('');
+    }
+  }, [selectedVendor]);
+
+  const handleRateFromModal = async (stars: number) => {
+    if (!selectedVendor || isModalRating) return;
+
+    setIsModalRating(true);
+    setModalUserRating(stars);
+    localStorage.setItem(`rated_vendor_${selectedVendor.id}`, stars.toString());
+
+    const prevRating = typeof selectedVendor.rating === 'number' && !isNaN(selectedVendor.rating) ? selectedVendor.rating : 5.0;
+    const prevCount = typeof selectedVendor.review_count === 'number' && !isNaN(selectedVendor.review_count) ? selectedVendor.review_count : 0;
+    const optimisticCount = prevCount + 1;
+    const optimisticRating = Math.round(((prevRating * prevCount + stars) / optimisticCount) * 10) / 10;
+
+    const updatedVendor = { ...selectedVendor, rating: optimisticRating, review_count: optimisticCount };
+    setSelectedVendor(updatedVendor);
+
+    // Update vendors array and re-sort so highest stars move to top
+    setVendors((prev) => {
+      const updatedList = prev.map((v) => (v.id === selectedVendor.id ? updatedVendor : v));
+      return [...updatedList].sort((a, b) => (b.rating || 0) - (a.rating || 0) || (b.review_count || 0) - (a.review_count || 0));
+    });
+
+    setModalRatingMsg(`⭐ Rated ${stars} Stars!`);
+
+    try {
+      const res = await rateVendor(selectedVendor.id, stars);
+      if (res.success) {
+        const finalVendor = { ...selectedVendor, rating: res.newRating, review_count: res.newReviewCount };
+        setSelectedVendor(finalVendor);
+        setVendors((prev) => {
+          const updatedList = prev.map((v) => (v.id === selectedVendor.id ? finalVendor : v));
+          return [...updatedList].sort((a, b) => (b.rating || 0) - (a.rating || 0) || (b.review_count || 0) - (a.review_count || 0));
+        });
+      }
+    } catch (e) {
+      console.warn('Modal rating error:', e);
+    } finally {
+      setIsModalRating(false);
+      setTimeout(() => setModalRatingMsg(''), 4000);
+    }
+  };
 
   const handleShareVendor = (e: React.MouseEvent, vendorId: string) => {
     e.stopPropagation();
@@ -369,18 +424,56 @@ export default function PublicVendorsPage() {
               {/* Modal Body */}
               <div className="flex-1 overflow-y-auto p-6 space-y-6 text-xs">
                 
-                {/* Rating & Verification Banner */}
-                <div className="flex flex-wrap items-center justify-between gap-4 bg-[#0d0d11] p-4 rounded-xl border border-[#26263b]">
-                  <div className="flex items-center gap-2">
-                    <div className="flex items-center gap-1 text-yellow-400">
-                      <Star className="w-4 h-4 fill-yellow-400" />
-                      <span className="font-bold text-sm text-white">{selectedVendor.rating || 4.9}</span>
+                {/* Rating & Star Voting Banner */}
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-[#0d0d11] p-4 rounded-xl border border-[#26263b]">
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-1 text-yellow-400 font-mono font-bold text-base">
+                        <Star className="w-4 h-4 fill-yellow-400" />
+                        <span className="text-white">{selectedVendor.rating ? Number(selectedVendor.rating).toFixed(1) : '5.0'}</span>
+                      </div>
+                      <span className="text-xs text-gray-400">
+                        (<strong className="text-white font-mono">{selectedVendor.review_count || 0}</strong> Ratings) • Top Ranked
+                      </span>
                     </div>
-                    <span className="text-gray-400">Based on Google & Couple Reviews ({selectedVendor.review_count || 12})</span>
+                    {modalRatingMsg && (
+                      <span className="text-[11px] text-green-400 font-semibold block animate-pulse">{modalRatingMsg}</span>
+                    )}
+                  </div>
+
+                  {/* Interactive Star Buttons */}
+                  <div className="flex items-center gap-1 bg-[#161622] px-3 py-1.5 rounded-lg border border-[#26263b]">
+                    <span className="text-[10px] text-gray-400 uppercase tracking-widest font-semibold mr-1">
+                      {modalUserRating ? 'Rated:' : 'Rate:'}
+                    </span>
+                    {[1, 2, 3, 4, 5].map((starVal) => {
+                      const isFilled = modalHoveredStar !== null 
+                        ? modalHoveredStar >= starVal 
+                        : (modalUserRating || 0) >= starVal;
+
+                      return (
+                        <button
+                          key={starVal}
+                          type="button"
+                          onMouseEnter={() => setModalHoveredStar(starVal)}
+                          onMouseLeave={() => setModalHoveredStar(null)}
+                          onClick={() => handleRateFromModal(starVal)}
+                          disabled={isModalRating}
+                          className="p-0.5 rounded hover:scale-125 transition-all text-yellow-400 cursor-pointer disabled:cursor-not-allowed"
+                          title={`Give ${starVal} Star${starVal > 1 ? 's' : ''}`}
+                        >
+                          <Star
+                            className={`w-4 h-4 transition-all ${
+                              isFilled ? 'fill-yellow-400 text-yellow-400 drop-shadow-[0_0_6px_rgba(250,204,21,0.6)]' : 'text-gray-600 hover:text-yellow-400'
+                            }`}
+                          />
+                        </button>
+                      );
+                    })}
                   </div>
 
                   {selectedVendor.starting_price && (
-                    <div className="text-right">
+                    <div className="text-right sm:border-l sm:border-[#26263b] sm:pl-4">
                       <span className="text-gray-500 uppercase tracking-widest text-[10px] block">Starting Package</span>
                       <span className="text-base font-bold text-[#d4af37]">{selectedVendor.starting_price}</span>
                     </div>

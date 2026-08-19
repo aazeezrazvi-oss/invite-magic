@@ -394,36 +394,69 @@ export default function VendorPortalPage() {
 
         {/* Direct Share Profile Link Banner */}
         {existingVendor?.id && (
-          <div className="bg-[#161622] border border-[#d4af37]/30 rounded-xl p-4 flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-3 shadow-lg">
-            <div className="flex items-center gap-2.5 text-xs text-gray-300">
-              <Share2 className="w-4 h-4 text-[#d4af37] shrink-0" />
-              <div>
-                <span className="font-bold text-white block text-xs">Your Direct Shareable Profile Link:</span>
-                <span className="font-mono text-[#d4af37] font-semibold text-xs truncate max-w-[280px] sm:max-w-md block">
-                  {getProfileUrl()}
-                </span>
+          <div className="space-y-3">
+            {/* Live Real-time Star Rating & Directory Rank Banner */}
+            <div className="bg-[#161622] border border-[#26263b] rounded-xl p-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 shadow-lg">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 rounded-xl bg-yellow-500/10 border border-yellow-500/30 flex items-center justify-center text-yellow-400 font-mono font-bold text-lg shrink-0">
+                  <Star className="w-6 h-6 fill-yellow-400" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-white font-bold text-sm">
+                      {existingVendor.rating ? Number(existingVendor.rating).toFixed(1) : '5.0'} / 5.0 Star Rating
+                    </span>
+                    <span className="px-2.5 py-0.5 rounded-full bg-[#d4af37]/15 text-[#d4af37] text-[10px] font-bold uppercase font-mono">
+                      {existingVendor.review_count || 0} User Ratings
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-gray-400 mt-0.5">
+                    ⭐ Higher star ratings boost your profile to the top position in the vendor directory!
+                  </p>
+                </div>
               </div>
+
+              <Link
+                href={`/vendors/profile/${existingVendor.id}`}
+                target="_blank"
+                className="px-3.5 py-2 bg-[#26263b] hover:bg-[#34344d] text-white font-bold rounded-lg text-xs flex items-center gap-1.5 transition-all shrink-0"
+              >
+                <Eye className="w-3.5 h-3.5 text-[#d4af37]" />
+                <span>View Live Public Profile</span>
+              </Link>
             </div>
 
-            <div className="flex gap-2 shrink-0">
-              <button
-                type="button"
-                onClick={handleCopyProfileUrl}
-                className="px-4 py-2 bg-[#d4af37] hover:bg-[#b8962e] text-[#0d0d11] font-bold rounded-lg text-xs flex items-center gap-1.5 transition-all cursor-pointer shadow-md"
-              >
-                {copiedLink ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
-                <span>{copiedLink ? 'Copied Link!' : 'Copy Direct Link'}</span>
-              </button>
+            <div className="bg-[#161622] border border-[#d4af37]/30 rounded-xl p-4 flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-3 shadow-lg">
+              <div className="flex items-center gap-2.5 text-xs text-gray-300">
+                <Share2 className="w-4 h-4 text-[#d4af37] shrink-0" />
+                <div>
+                  <span className="font-bold text-white block text-xs">Your Direct Shareable Profile Link:</span>
+                  <span className="font-mono text-[#d4af37] font-semibold text-xs truncate max-w-[280px] sm:max-w-md block">
+                    {getProfileUrl()}
+                  </span>
+                </div>
+              </div>
 
-              <a
-                href={`https://api.whatsapp.com/send?text=${encodeURIComponent(`Check out my vendor profile on InviteMagic: ${getProfileUrl()}`)}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="px-4 py-2 bg-green-500/20 hover:bg-green-500/30 text-green-400 font-bold rounded-lg text-xs flex items-center gap-1.5 transition-all"
-              >
-                <MessageCircle className="w-4 h-4" />
-                <span>Share WA</span>
-              </a>
+              <div className="flex gap-2 shrink-0">
+                <button
+                  type="button"
+                  onClick={handleCopyProfileUrl}
+                  className="px-4 py-2 bg-[#d4af37] hover:bg-[#b8962e] text-[#0d0d11] font-bold rounded-lg text-xs flex items-center gap-1.5 transition-all cursor-pointer shadow-md"
+                >
+                  {copiedLink ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                  <span>{copiedLink ? 'Copied Link!' : 'Copy Direct Link'}</span>
+                </button>
+
+                <a
+                  href={`https://api.whatsapp.com/send?text=${encodeURIComponent(`Check out my vendor profile on InviteMagic: ${getProfileUrl()}`)}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="px-4 py-2 bg-green-500/20 hover:bg-green-500/30 text-green-400 font-bold rounded-lg text-xs flex items-center gap-1.5 transition-all"
+                >
+                  <MessageCircle className="w-4 h-4" />
+                  <span>Share WA</span>
+                </a>
+              </div>
             </div>
           </div>
         )}
