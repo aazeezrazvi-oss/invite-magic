@@ -9,6 +9,7 @@ import {
 import { Invitation, StylingPreferences, WeddingEvent, GiftCollectionDetails, MediaAsset } from '@/types';
 import { TEMPLATE_PRESETS, MUSIC_PRESETS, FONT_PRESETS } from '@/utils/presets';
 import CheckoutButton from '@/components/CheckoutButton';
+import { BrandIcon } from '@/components/Logo';
 import { supabase } from '@/utils/supabase';
 import { getMediaAssets } from '@/app/actions';
 
@@ -305,8 +306,16 @@ export default function Sidebar({
         {/* Sidebar Header */}
         <div className="p-4 border-b border-[#26263b] flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Heart className="w-5 h-5 text-[#d4af37] fill-[#d4af37]" />
-            <span className="font-semibold text-white tracking-wider font-cinzel">InviteMagic Editor</span>
+            <BrandIcon size={24} />
+            <div className="flex items-center font-bold tracking-wider font-cinzel text-sm">
+              <span className="text-white">Invite</span>
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#fae084] via-[#d4af37] to-[#aa7c11] ml-0.5">
+                Magic
+              </span>
+              <span className="text-gray-400 font-sans font-medium text-[11px] ml-1.5 uppercase tracking-wider">
+                Editor
+              </span>
+            </div>
           </div>
           <div className="px-2 py-0.5 rounded bg-yellow-500/10 border border-yellow-500/20 text-yellow-500 text-[10px] font-semibold uppercase tracking-wider flex items-center gap-1">
             <Lock className="w-3.5 h-3.5 animate-pulse" />
@@ -396,8 +405,16 @@ export default function Sidebar({
       {!isMobileSheet && (
         <div className="p-4 border-b border-[#26263b] flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Heart className="w-5 h-5 text-[#d4af37] fill-[#d4af37]" />
-            <span className="font-semibold text-white tracking-wider font-cinzel">InviteMagic Editor</span>
+            <BrandIcon size={24} />
+            <div className="flex items-center font-bold tracking-wider font-cinzel text-sm">
+              <span className="text-white">Invite</span>
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#fae084] via-[#d4af37] to-[#aa7c11] ml-0.5">
+                Magic
+              </span>
+              <span className="text-gray-400 font-sans font-medium text-[11px] ml-1.5 uppercase tracking-wider">
+                Editor
+              </span>
+            </div>
           </div>
           <button
             onClick={onSave}
