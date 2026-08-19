@@ -51,12 +51,17 @@ export default function ManualUpiModal({
 
   if (!isOpen) return null;
 
+  const defaultPrices: Record<string, number> = { basic: 299, premium: 499, vip: 999 };
+  const finalAmount = (typeof amount === 'number' && !isNaN(amount) && amount > 0) 
+    ? amount 
+    : (defaultPrices[tier] || 299);
+
   const upiId = process.env.NEXT_PUBLIC_UPI_ID || 'azeezrazvi@okaxis';
   const payeeName = process.env.NEXT_PUBLIC_UPI_PAYEE_NAME || 'InviteMagic';
   const note = `InviteMagic ${tier.toUpperCase()} Upgrade`;
   
-  // Standard UPI URI format
-  const upiUri = `upi://pay?pa=${encodeURIComponent(upiId)}&pn=${encodeURIComponent(payeeName)}&am=${amount}&cu=INR&tn=${encodeURIComponent(note)}`;
+  // Standard UPI URI format with pre-set amount
+  const upiUri = `upi://pay?pa=${encodeURIComponent(upiId)}&pn=${encodeURIComponent(payeeName)}&am=${finalAmount}&cu=INR&tn=${encodeURIComponent(note)}&mode=02`;
 
   const handleCopyUpi = () => {
     navigator.clipboard.writeText(upiId);
@@ -143,7 +148,7 @@ export default function ManualUpiModal({
         userId,
         userEmail,
         tier,
-        amount,
+        amount: finalAmount,
         utrNumber: cleanUtr,
         screenshotUrl: finalScreenshotUrl,
       });
@@ -177,7 +182,7 @@ export default function ManualUpiModal({
             <div>
               <h3 className="font-bold text-white font-cinzel text-base tracking-wide flex items-center gap-2">
                 <span>Upgrade to {tier.toUpperCase()}</span>
-                <span className="text-xs bg-[#d4af37]/20 text-[#d4af37] px-2 py-0.5 rounded font-mono font-semibold">₹{amount}</span>
+                <span className="text-xs bg-[#d4af37]/20 text-[#d4af37] px-2 py-0.5 rounded font-mono font-semibold">₹{finalAmount}</span>
               </h3>
               <p className="text-[11px] text-gray-400">Direct UPI Payment & Instant Access Unlock</p>
             </div>
@@ -212,7 +217,7 @@ export default function ManualUpiModal({
                 </div>
                 <div className="flex justify-between items-center text-gray-400">
                   <span>Amount Paid:</span>
-                  <span className="font-semibold text-[#d4af37] font-mono">₹{amount}</span>
+                  <span className="font-semibold text-[#d4af37] font-mono">₹{finalAmount}</span>
                 </div>
                 <div className="flex justify-between items-center text-gray-400">
                   <span>Verification Status:</span>
@@ -244,7 +249,7 @@ export default function ManualUpiModal({
                     <span className="w-5 h-5 rounded-full bg-[#d4af37] text-[#0d0d11] font-bold text-[10px] flex items-center justify-center">1</span>
                     Scan QR or Pay with UPI App
                   </span>
-                  <span className="text-[11px] font-mono text-[#d4af37] font-bold">Amount: ₹{amount}</span>
+                  <span className="text-[11px] font-mono text-[#d4af37] font-bold">Amount: ₹{finalAmount}</span>
                 </div>
 
                 <div className="flex flex-col sm:flex-row items-center gap-4 pt-1">
@@ -393,7 +398,7 @@ export default function ManualUpiModal({
                       <span>Submitting Proof...</span>
                     </>
                   ) : (
-                    <span>Submit Payment Proof (₹{amount})</span>
+                    <span>Submit Payment Proof (₹{finalAmount})</span>
                   )}
                 </button>
               </div>

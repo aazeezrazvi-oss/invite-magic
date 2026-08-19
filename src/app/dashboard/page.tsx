@@ -806,68 +806,109 @@ export default function Dashboard() {
                   </div>
                 </div>
               )}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
-                {/* Basic Upgrade */}
-                <div className="bg-[#0d0d11] p-4 rounded border border-[#26263b] flex flex-col justify-between">
-                  <div>
-                    <div className="flex justify-between items-start">
-                      <span className="font-bold text-white block">Basic Upgrade</span>
-                      {appliedReferral ? (
-                        <div className="text-right">
-                          <span className="text-[10px] text-gray-500 line-through block">₹299</span>
-                          <span className="font-bold text-[#d4af37] text-sm">₹{Math.round(299 - (299 * appliedReferral.discount_percent / 100))}</span>
-                        </div>
-                      ) : (
-                        <span className="font-bold text-white">₹299</span>
-                      )}
-                    </div>
-                    <span className="text-[10px] text-gray-500 block">6 Months Access</span>
-                    <p className="text-xs opacity-75 my-3">Allows 1 active invitation link, up to 20 photos, and basic UPI shagun collection.</p>
-                  </div>
-                  <CheckoutButton amount={appliedReferral ? Math.round(299 - (299 * appliedReferral.discount_percent / 100)) : 299} tier="basic" userId={userId} userEmail={userEmail} onSuccess={() => handleUpgradeSuccess('basic')} className="mt-4 w-full cursor-pointer" />
-                </div>
+              {(() => {
+                const getTierPrice = (base: number) => {
+                  if (!appliedReferral || typeof appliedReferral.discount_percent !== 'number') return base;
+                  const discount = Math.min(100, Math.max(0, appliedReferral.discount_percent));
+                  return Math.max(0, Math.round(base - (base * discount / 100)));
+                };
 
-                {/* Premium Upgrade */}
-                <div className="bg-[#0d0d11] p-4 rounded border border-[#d4af37]/35 flex flex-col justify-between relative shadow-[0_0_15px_rgba(212,175,55,0.03)]">
-                  <span className="absolute -top-2.5 right-4 bg-[#d4af37] text-[#0d0d11] text-[8px] font-extrabold uppercase tracking-widest px-2 py-0.5 rounded-full">Popular</span>
-                  <div>
-                    <div className="flex justify-between items-start">
-                      <span className="font-bold text-[#d4af37] block">Premium Upgrade</span>
-                      {appliedReferral ? (
-                        <div className="text-right">
-                          <span className="text-[10px] text-gray-500 line-through block">₹499</span>
-                          <span className="font-bold text-[#d4af37] text-sm">₹{Math.round(499 - (499 * appliedReferral.discount_percent / 100))}</span>
-                        </div>
-                      ) : (
-                        <span className="font-bold text-[#d4af37]">₹499</span>
-                      )}
-                    </div>
-                    <span className="text-[10px] text-gray-500 block">1 Year Access</span>
-                    <p className="text-xs opacity-75 my-3">Unlocks all templates, unlimited photos, and advanced gift logs dashboard.</p>
-                  </div>
-                  <CheckoutButton amount={appliedReferral ? Math.round(499 - (499 * appliedReferral.discount_percent / 100)) : 499} tier="premium" userId={userId} userEmail={userEmail} onSuccess={() => handleUpgradeSuccess('premium')} className="mt-4 w-full cursor-pointer" />
-                </div>
+                const basicPrice = getTierPrice(299);
+                const premiumPrice = getTierPrice(499);
+                const vipPrice = getTierPrice(999);
 
-                {/* VIP Lifetime */}
-                <div className="bg-[#0d0d11] p-4 rounded border border-[#26263b] flex flex-col justify-between">
-                  <div>
-                    <div className="flex justify-between items-start">
-                      <span className="font-bold text-white block">VIP Lifetime</span>
-                      {appliedReferral ? (
-                        <div className="text-right">
-                          <span className="text-[10px] text-gray-500 line-through block">₹999</span>
-                          <span className="font-bold text-[#d4af37] text-sm">₹{Math.round(999 - (999 * appliedReferral.discount_percent / 100))}</span>
+                return (
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
+                    {/* Basic Upgrade */}
+                    <div className="bg-[#0d0d11] p-4 rounded border border-[#26263b] flex flex-col justify-between">
+                      <div>
+                        <div className="flex justify-between items-start">
+                          <span className="font-bold text-white block">Basic Upgrade</span>
+                          {appliedReferral ? (
+                            <div className="text-right">
+                              <span className="text-[10px] text-gray-500 line-through block">₹299</span>
+                              <span className="font-bold text-[#d4af37] text-sm">₹{basicPrice}</span>
+                            </div>
+                          ) : (
+                            <span className="font-bold text-white">₹299</span>
+                          )}
                         </div>
+                        <span className="text-[10px] text-gray-500 block">6 Months Access</span>
+                        <p className="text-xs opacity-75 my-3">Allows 1 active invitation link, up to 20 photos, and basic UPI shagun collection.</p>
+                      </div>
+                      {basicPrice === 0 ? (
+                        <button
+                          onClick={() => handleUpgradeSuccess('basic')}
+                          className="mt-4 w-full py-2 bg-green-500 hover:bg-green-600 text-black font-bold rounded text-xs transition-all cursor-pointer"
+                        >
+                          Activate Free Access
+                        </button>
                       ) : (
-                        <span className="font-bold text-white">₹999</span>
+                        <CheckoutButton amount={basicPrice} tier="basic" userId={userId} userEmail={userEmail} onSuccess={() => handleUpgradeSuccess('basic')} className="mt-4 w-full cursor-pointer" />
                       )}
                     </div>
-                    <span className="text-[10px] text-gray-500 block">Lifetime Access</span>
-                    <p className="text-xs opacity-75 my-3">Adds custom domain mapping (Cloudflare), advanced analytics, and premium support.</p>
+
+                    {/* Premium Upgrade */}
+                    <div className="bg-[#0d0d11] p-4 rounded border border-[#d4af37]/35 flex flex-col justify-between relative shadow-[0_0_15px_rgba(212,175,55,0.03)]">
+                      <span className="absolute -top-2.5 right-4 bg-[#d4af37] text-[#0d0d11] text-[8px] font-extrabold uppercase tracking-widest px-2 py-0.5 rounded-full">Popular</span>
+                      <div>
+                        <div className="flex justify-between items-start">
+                          <span className="font-bold text-[#d4af37] block">Premium Upgrade</span>
+                          {appliedReferral ? (
+                            <div className="text-right">
+                              <span className="text-[10px] text-gray-500 line-through block">₹499</span>
+                              <span className="font-bold text-[#d4af37] text-sm">₹{premiumPrice}</span>
+                            </div>
+                          ) : (
+                            <span className="font-bold text-[#d4af37]">₹499</span>
+                          )}
+                        </div>
+                        <span className="text-[10px] text-gray-500 block">1 Year Access</span>
+                        <p className="text-xs opacity-75 my-3">Unlocks all templates, unlimited photos, and advanced gift logs dashboard.</p>
+                      </div>
+                      {premiumPrice === 0 ? (
+                        <button
+                          onClick={() => handleUpgradeSuccess('premium')}
+                          className="mt-4 w-full py-2 bg-green-500 hover:bg-green-600 text-black font-bold rounded text-xs transition-all cursor-pointer"
+                        >
+                          Activate Free Access
+                        </button>
+                      ) : (
+                        <CheckoutButton amount={premiumPrice} tier="premium" userId={userId} userEmail={userEmail} onSuccess={() => handleUpgradeSuccess('premium')} className="mt-4 w-full cursor-pointer" />
+                      )}
+                    </div>
+
+                    {/* VIP Lifetime */}
+                    <div className="bg-[#0d0d11] p-4 rounded border border-[#26263b] flex flex-col justify-between">
+                      <div>
+                        <div className="flex justify-between items-start">
+                          <span className="font-bold text-white block">VIP Lifetime</span>
+                          {appliedReferral ? (
+                            <div className="text-right">
+                              <span className="text-[10px] text-gray-500 line-through block">₹999</span>
+                              <span className="font-bold text-[#d4af37] text-sm">₹{vipPrice}</span>
+                            </div>
+                          ) : (
+                            <span className="font-bold text-white">₹999</span>
+                          )}
+                        </div>
+                        <span className="text-[10px] text-gray-500 block">Lifetime Access</span>
+                        <p className="text-xs opacity-75 my-3">Adds custom domain mapping (Cloudflare), advanced analytics, and premium support.</p>
+                      </div>
+                      {vipPrice === 0 ? (
+                        <button
+                          onClick={() => handleUpgradeSuccess('vip')}
+                          className="mt-4 w-full py-2 bg-green-500 hover:bg-green-600 text-black font-bold rounded text-xs transition-all cursor-pointer"
+                        >
+                          Activate Free Access
+                        </button>
+                      ) : (
+                        <CheckoutButton amount={vipPrice} tier="vip" userId={userId} userEmail={userEmail} onSuccess={() => handleUpgradeSuccess('vip')} className="mt-4 w-full cursor-pointer" />
+                      )}
+                    </div>
                   </div>
-                  <CheckoutButton amount={appliedReferral ? Math.round(999 - (999 * appliedReferral.discount_percent / 100)) : 999} tier="vip" userId={userId} userEmail={userEmail} onSuccess={() => handleUpgradeSuccess('vip')} className="mt-4 w-full cursor-pointer" />
-                </div>
-              </div>
+                );
+              })()}
             </div>
           </>
         )}

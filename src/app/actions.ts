@@ -435,9 +435,7 @@ export async function upgradeUserSubscription(userId: string, tier: 'basic' | 'p
 }
 
 // Action to save/update full invitation data (Validated & Sanitized)
-export async function saveInvitation(invitationData: Partial<Invitation>): Promise<{ success: boolean; error?: string }> {
-  if (!invitationData.id) return { success: false, error: 'No invitation ID provided' };
-  
+export async function saveInvitation(invitationData: Partial<Invitation>): Promise<{ success: boolean; error?: string; id?: string }> {
   // 1. Rate Limiting check
   const ip = await getClientIp();
   const rateLimit = await rateLimitRequest(`rate_limit:save_invitation:${ip}`, 10, 0.5); // 10 burst, 1 refill per 2 sec
@@ -446,12 +444,53 @@ export async function saveInvitation(invitationData: Partial<Invitation>): Promi
   }
 
   const supabase = await getSupabase();
-  
+  const cleanSlug = (invitationData.slug || 'wedding').trim().toLowerCase();
+  let targetId = invitationData.id;
+
   try {
+    // If ID is missing or temporary, find or create the invitation record
+    if (!targetId || targetId.startsWith('temp-')) {
+      const { data: existing } = await supabase
+        .from('invitations')
+        .select('id')
+        .eq('slug', cleanSlug)
+        .maybeSingle();
+
+      if (existing) {
+        targetId = existing.id;
+      } else {
+        const { data: { user } } = await supabase.auth.getUser();
+        const ownerId = user?.id || invitationData.user_id;
+
+        const { data: inserted, error: insertErr } = await supabase
+          .from('invitations')
+          .insert({
+            user_id: ownerId || '00000000-0000-0000-0000-000000000000',
+            slug: cleanSlug,
+            groom_name: sanitizeText(invitationData.groom_name || 'Groom'),
+            bride_name: sanitizeText(invitationData.bride_name || 'Bride'),
+            is_published: invitationData.is_published || false,
+          })
+          .select('id')
+          .single();
+
+        if (insertErr || !inserted) {
+          console.warn('[saveInvitation] Could not create new invitation row:', insertErr?.message);
+        } else {
+          targetId = inserted.id;
+          await addSlugToFilter(cleanSlug);
+        }
+      }
+    }
+
+    if (!targetId || targetId.startsWith('temp-')) {
+      return { success: false, error: 'No valid invitation ID found in database.' };
+    }
+
     // 2. Validate Core invitation parameters
     const coreDetailsParsed = InvitationCoreSchema.safeParse({
-      id: invitationData.id,
-      slug: invitationData.slug,
+      id: targetId,
+      slug: cleanSlug,
       groom_name: invitationData.groom_name,
       groom_photo: invitationData.groom_photo,
       groom_bio: invitationData.groom_bio,
@@ -471,7 +510,7 @@ export async function saveInvitation(invitationData: Partial<Invitation>): Promi
     }
 
     const coreDetails = coreDetailsParsed.data;
-    const { styling, events, gift_collection, slug } = invitationData;
+    const { styling, events, gift_collection } = invitationData;
 
     // 3. Update Core Invitation Table
     const { error: inviteError } = await supabase
@@ -480,7 +519,7 @@ export async function saveInvitation(invitationData: Partial<Invitation>): Promi
         ...coreDetails,
         updated_at: new Date().toISOString(),
       })
-      .eq('id', invitationData.id);
+      .eq('id', targetId);
 
     if (inviteError) {
       return { success: false, error: inviteError.message };
@@ -493,7 +532,7 @@ export async function saveInvitation(invitationData: Partial<Invitation>): Promi
         .from('styling_preferences')
         .upsert({
           ...stylingProps,
-          invitation_id: invitationData.id,
+          invitation_id: targetId,
           primary_color: sanitizeText(stylingProps.primary_color || '#d4af37'),
           secondary_color: sanitizeText(stylingProps.secondary_color || '#b8962e'),
           background_color: sanitizeText(stylingProps.background_color || '#0d0d11'),
@@ -519,7 +558,7 @@ export async function saveInvitation(invitationData: Partial<Invitation>): Promi
       const { error: deleteEventsError } = await supabase
         .from('events')
         .delete()
-        .eq('invitation_id', invitationData.id);
+        .eq('invitation_id', targetId);
 
       if (deleteEventsError) {
         return { success: false, error: deleteEventsError.message };
@@ -527,7 +566,7 @@ export async function saveInvitation(invitationData: Partial<Invitation>): Promi
 
       if (events.length > 0) {
         const eventsToInsert = (events as any[]).map((e: any) => ({
-          invitation_id: invitationData.id,
+          invitation_id: targetId,
           event_name: sanitizeText(e.event_name),
           event_date: e.event_date, // native date
           event_time: e.event_time, // native time
@@ -553,7 +592,7 @@ export async function saveInvitation(invitationData: Partial<Invitation>): Promi
         .from('gift_collection_details')
         .upsert({
           ...giftProps,
-          invitation_id: invitationData.id,
+          invitation_id: targetId,
           upi_id: sanitizeText(giftProps.upi_id),
           receiver_name: sanitizeText(giftProps.receiver_name),
           thank_you_message: sanitizeText(giftProps.thank_you_message || 'Thank you for your blessings!'),
@@ -566,11 +605,11 @@ export async function saveInvitation(invitationData: Partial<Invitation>): Promi
     }
 
     // Invalidate Cache and Register slug in Bloom Filter
-    if (slug) {
-      await invalidateInvitationCache(slug);
-      await addSlugToFilter(slug);
-      revalidatePath(`/invite/${slug}`);
-      revalidatePath(`/dashboard/edit/${slug}`);
+    if (cleanSlug) {
+      await invalidateInvitationCache(cleanSlug);
+      await addSlugToFilter(cleanSlug);
+      revalidatePath(`/invite/${cleanSlug}`);
+      revalidatePath(`/dashboard/edit/${cleanSlug}`);
     }
 
     // Write compliance audit log
@@ -579,9 +618,9 @@ export async function saveInvitation(invitationData: Partial<Invitation>): Promi
       const { data: { user } } = await supabase.auth.getUser();
       if (user) currentUserId = user.id;
     } catch (e) {}
-    await logAuditEvent('invitation_save', { invitation_id: invitationData.id, slug: slug }, currentUserId);
+    await logAuditEvent('invitation_save', { invitation_id: targetId, slug: cleanSlug }, currentUserId);
 
-    return { success: true };
+    return { success: true, id: targetId };
   } catch (error: any) {
     console.error('Error in saveInvitation action:', error);
     return { success: false, error: error?.message || 'Server Action execution error' };

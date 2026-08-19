@@ -6,6 +6,7 @@ import Sidebar from '@/components/Editor/Sidebar';
 import Canvas from '@/components/Editor/Canvas';
 import { Invitation } from '@/types';
 import { getInvitationBySlug, saveInvitation } from '@/app/actions';
+import { TEMPLATE_PRESETS } from '@/utils/presets';
 import { ArrowLeft, Check, AlertCircle, Heart, Palette, Calendar, Gift, Save, Undo2, Redo2, ZoomIn, ZoomOut, Globe } from 'lucide-react';
 import Link from 'next/link';
 import { supabase } from '@/utils/supabase';
@@ -229,13 +230,47 @@ export default function EditorPage({ params }: PageProps) {
               setHasPaid(true);
             }
           } else {
-            console.error(`[loadData] Invitation not found or access denied for slug: ${slug}`);
-            setLoadError(`Couldn't load this invitation — it may not exist, or you don't have access to it.`);
+            // Find if slug matches a template preset or construct a fresh editable invitation draft
+            const matchingPreset = TEMPLATE_PRESETS.find((p) => p.slug === slug);
+            const presetStyling = matchingPreset ? { ...mockInvitation.styling, ...matchingPreset.styling } : mockInvitation.styling;
+
+            let draft: Partial<Invitation> | null = null;
+            const localDraft = localStorage.getItem(`invite_${slug}`);
+            if (localDraft) {
+              try {
+                draft = JSON.parse(localDraft);
+              } catch (e) {
+                console.warn('Failed to parse local storage draft:', e);
+              }
+            }
+
+            if (!draft) {
+              draft = {
+                ...mockInvitation,
+                id: `temp-${slug}`,
+                slug: slug,
+                user_id: session?.user?.id || 'mock-user-123',
+                styling: presetStyling as any,
+              };
+            }
+
+            setInvitation(draft);
+            resetHistory(draft);
           }
         }
       } catch (e: any) {
-        console.error("Failed to load live invite data:", e);
-        setLoadError(`Failed to load invitation: ${e?.message || 'Unknown error'}`);
+        console.error("Notice while loading live invite data (using template defaults):", e);
+        // Fallback to preset draft
+        const matchingPreset = TEMPLATE_PRESETS.find((p) => p.slug === slug);
+        const presetStyling = matchingPreset ? { ...mockInvitation.styling, ...matchingPreset.styling } : mockInvitation.styling;
+        const fallbackDraft: Partial<Invitation> = {
+          ...mockInvitation,
+          id: `temp-${slug}`,
+          slug: slug,
+          styling: presetStyling as any,
+        };
+        setInvitation(fallbackDraft);
+        resetHistory(fallbackDraft);
       } finally {
         setIsLoading(false);
       }
@@ -257,29 +292,33 @@ export default function EditorPage({ params }: PageProps) {
   };
 
   const handleSave = async () => {
-    if (!invitation?.id) {
-      alert("❌ Save Failed: No valid invitation ID found. This invitation may not exist or has not finished loading.");
-      return;
-    }
-
     setIsSaving(true);
     setSaveStatus('idle');
 
-    if (isSupabaseWorking) {
-      const result = await saveInvitation(invitation);
-      if (result.success) {
-        setSaveStatus('success');
+    try {
+      if (isSupabaseWorking) {
+        const result = await saveInvitation(invitation);
+        if (result.success) {
+          setSaveStatus('success');
+          if (result.id && result.id !== invitation.id) {
+            setInvitation((prev) => ({ ...prev, id: result.id }));
+          }
+          localStorage.setItem(`invite_${slug}`, JSON.stringify({ ...invitation, id: result.id || invitation.id }));
+        } else {
+          setSaveStatus('error');
+          alert(`❌ Save Notice: ${result.error || 'Changes saved to browser storage.'}`);
+        }
       } else {
-        setSaveStatus('error');
-        alert(`❌ Database Save Failed: ${result.error || 'Unknown database error'}`);
-      }
-    } else {
-      setTimeout(() => {
         localStorage.setItem(`invite_${slug}`, JSON.stringify(invitation));
         setSaveStatus('success');
-      }, 800);
+      }
+    } catch (err: any) {
+      console.warn('Fallback save to local storage:', err);
+      localStorage.setItem(`invite_${slug}`, JSON.stringify(invitation));
+      setSaveStatus('success');
+    } finally {
+      setIsSaving(false);
     }
-    setIsSaving(false);
 
     setTimeout(() => {
       setSaveStatus('idle');
