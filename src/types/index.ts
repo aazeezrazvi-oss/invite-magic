@@ -98,9 +98,16 @@ export interface PaymentLog {
   payment_id?: string;
   amount: number;
   currency: string;
-  status: string;
+  status: string; // 'captured' | 'pending_verification' | 'rejected' | 'created'
   tier: SubscriptionTier;
+  utr_number?: string;
+  screenshot_url?: string;
+  payment_method?: string;
+  admin_notes?: string;
+  reviewed_at?: string;
+  reviewed_by?: string;
   created_at?: string;
+  email?: string;
 }
 
 export interface ReferralCode {

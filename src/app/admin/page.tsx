@@ -5,7 +5,8 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { 
   Heart, Users, Layers, CreditCard, Power, Eye, CheckCircle2,
-  Tag, Film, Image, Music, Plus, Trash2, ShieldAlert, Store, ShieldCheck, Check, Clock 
+  Tag, Film, Image, Music, Plus, Trash2, ShieldAlert, Store, ShieldCheck, Check, Clock,
+  ExternalLink, ZoomIn, XCircle, Copy, AlertTriangle, Filter, QrCode
 } from 'lucide-react';
 import { 
   getAdminDashboardData, 
@@ -14,7 +15,9 @@ import {
   createReferralCodeAdmin, 
   deleteReferralCodeAdmin, 
   createMediaAssetAdmin, 
-  deleteMediaAssetAdmin 
+  deleteMediaAssetAdmin,
+  approveManualPayment,
+  rejectManualPayment
 } from '@/app/actions';
 import { getAllVendorsAdmin, approveVendorAdmin, deleteVendorAdmin } from '@/app/vendor-actions';
 import { supabase } from '@/utils/supabase';
@@ -49,6 +52,12 @@ export default function AdminDashboard() {
   const [newMediaType, setNewMediaType] = useState<'image' | 'video' | 'music'>('image');
   const [addingMedia, setAddingMedia] = useState(false);
   const [uploadingMedia, setUploadingMedia] = useState(false);
+
+  // Payment Verification States
+  const [paymentFilter, setPaymentFilter] = useState<'all' | 'pending' | 'captured' | 'rejected'>('all');
+  const [selectedReceiptImage, setSelectedReceiptImage] = useState<string | null>(null);
+  const [processingPaymentId, setProcessingPaymentId] = useState<string | null>(null);
+  const [copiedUtr, setCopiedUtr] = useState<string | null>(null);
 
   // Verify Admin Access
   useEffect(() => {
@@ -162,12 +171,17 @@ export default function AdminDashboard() {
 
       const formattedPayments = (payData || []).map((pay: any) => ({
         id: pay.id,
+        user_id: pay.user_id,
         email: userMap[pay.user_id] || 'Unknown User',
         orderId: pay.order_id,
         paymentId: pay.payment_id,
         amount: pay.amount,
         status: pay.status,
         tier: pay.tier,
+        utrNumber: pay.utr_number || (pay.payment_id?.startsWith('UTR_') ? pay.payment_id.replace('UTR_', '') : pay.payment_id),
+        screenshotUrl: pay.screenshot_url,
+        adminNotes: pay.admin_notes,
+        paymentMethod: pay.payment_method || 'upi_manual',
         created_at: pay.created_at,
       }));
 
@@ -337,6 +351,52 @@ export default function AdminDashboard() {
     }
   };
 
+  // Approve Manual Payment & Upgrade User Plan
+  const handleApprovePayment = async (paymentId: string) => {
+    if (!confirm('Are you sure you want to approve this payment proof and unlock the customer\'s plan?')) return;
+    setProcessingPaymentId(paymentId);
+    try {
+      const res = await approveManualPayment(paymentId);
+      if (res.success) {
+        alert('🎉 Payment verified and approved! User subscription tier has been upgraded.');
+        loadAllData();
+      } else {
+        alert(`❌ Failed to approve payment: ${res.error}`);
+      }
+    } catch (e: any) {
+      alert(`Error approving payment: ${e.message}`);
+    } finally {
+      setProcessingPaymentId(null);
+    }
+  };
+
+  // Reject Manual Payment Proof
+  const handleRejectPayment = async (paymentId: string) => {
+    const reason = prompt('Enter a reason for rejection (e.g. Invalid UTR, Amount mismatch, Fake receipt):', 'UTR number not found in bank statement');
+    if (reason === null) return; // cancelled
+    
+    setProcessingPaymentId(paymentId);
+    try {
+      const res = await rejectManualPayment(paymentId, reason);
+      if (res.success) {
+        alert('Payment proof rejected.');
+        loadAllData();
+      } else {
+        alert(`❌ Failed to reject payment: ${res.error}`);
+      }
+    } catch (e: any) {
+      alert(`Error rejecting payment: ${e.message}`);
+    } finally {
+      setProcessingPaymentId(null);
+    }
+  };
+
+  const handleCopyUtr = (utr: string) => {
+    navigator.clipboard.writeText(utr);
+    setCopiedUtr(utr);
+    setTimeout(() => setCopiedUtr(null), 2000);
+  };
+
   if (verifying) {
     return (
       <div className="min-h-screen bg-[#0d0d11] flex flex-col justify-center items-center gap-3">
@@ -436,6 +496,11 @@ export default function AdminDashboard() {
           >
             <CreditCard className="w-4 h-4" />
             <span>Payments ({payments.length})</span>
+            {payments.filter(p => p.status === 'pending_verification').length > 0 && (
+              <span className="bg-amber-500 text-[#0d0d11] text-[10px] font-extrabold px-1.5 py-0.5 rounded-full animate-pulse">
+                {payments.filter(p => p.status === 'pending_verification').length} pending
+              </span>
+            )}
           </button>
           <button
             onClick={() => setActiveTab('referrals')}
@@ -596,41 +661,262 @@ export default function AdminDashboard() {
               )}
 
               {activeTab === 'payments' && (
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left border-collapse min-w-[700px]">
-                    <thead>
-                      <tr className="bg-[#0f0f18] text-gray-400 border-b border-[#26263b]">
-                        <th className="p-4">Razorpay Payment ID</th>
-                        <th className="p-4">Customer Email</th>
-                        <th className="p-4">Order ID</th>
-                        <th className="p-4">Amount</th>
-                        <th className="p-4">Tier</th>
-                        <th className="p-4">Status</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-[#26263b]">
-                      {payments.map((p) => (
-                        <tr key={p.id} className="hover:bg-[#1c1c2b] transition-all">
-                          <td className="p-4 font-mono font-semibold text-white">{p.paymentId || p.id}</td>
-                          <td className="p-4">{p.email}</td>
-                          <td className="p-4 font-mono text-gray-400">{p.orderId}</td>
-                          <td className="p-4 font-mono text-white">₹{p.amount}</td>
-                          <td className="p-4 uppercase">{p.tier}</td>
-                          <td className="p-4 capitalize">
-                            <span className="flex items-center gap-1 text-green-500 font-bold">
-                              <CheckCircle2 className="w-3.5 h-3.5" />
-                              <span>{p.status}</span>
-                            </span>
-                          </td>
+                <div className="p-6 space-y-6">
+                  {/* Payment Metrics & Filter Toolbar */}
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-[#0d0d11]/80 border border-[#26263b] rounded-xl p-4">
+                    <div className="flex items-center gap-2">
+                      <CreditCard className="w-5 h-5 text-[#d4af37]" />
+                      <div>
+                        <h3 className="font-bold text-white font-cinzel text-sm">UPI Payment Verifications</h3>
+                        <p className="text-[11px] text-gray-400">Review payment proofs and activate customer plan tiers</p>
+                      </div>
+                    </div>
+
+                    {/* Filter Pills */}
+                    <div className="flex items-center gap-1.5 bg-[#161622] p-1 rounded-lg border border-[#26263b] text-xs">
+                      <button
+                        onClick={() => setPaymentFilter('all')}
+                        className={`px-3 py-1 rounded-md transition-all font-medium ${
+                          paymentFilter === 'all' ? 'bg-[#d4af37] text-[#0d0d11] font-bold' : 'text-gray-400 hover:text-white'
+                        }`}
+                      >
+                        All ({payments.length})
+                      </button>
+                      <button
+                        onClick={() => setPaymentFilter('pending')}
+                        className={`px-3 py-1 rounded-md transition-all font-medium flex items-center gap-1.5 ${
+                          paymentFilter === 'pending' ? 'bg-amber-500 text-black font-bold' : 'text-gray-400 hover:text-amber-400'
+                        }`}
+                      >
+                        <span>Pending</span>
+                        <span className="bg-amber-400/30 text-amber-200 text-[10px] px-1.5 rounded-full font-bold">
+                          {payments.filter(p => p.status === 'pending_verification').length}
+                        </span>
+                      </button>
+                      <button
+                        onClick={() => setPaymentFilter('captured')}
+                        className={`px-3 py-1 rounded-md transition-all font-medium ${
+                          paymentFilter === 'captured' ? 'bg-green-600 text-white font-bold' : 'text-gray-400 hover:text-green-400'
+                        }`}
+                      >
+                        Approved ({payments.filter(p => p.status === 'captured').length})
+                      </button>
+                      <button
+                        onClick={() => setPaymentFilter('rejected')}
+                        className={`px-3 py-1 rounded-md transition-all font-medium ${
+                          paymentFilter === 'rejected' ? 'bg-red-600 text-white font-bold' : 'text-gray-400 hover:text-red-400'
+                        }`}
+                      >
+                        Rejected ({payments.filter(p => p.status === 'rejected').length})
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Payments Table */}
+                  <div className="overflow-x-auto border border-[#26263b] rounded-xl bg-[#0f0f18]/60">
+                    <table className="w-full text-left border-collapse min-w-[850px] text-xs">
+                      <thead>
+                        <tr className="bg-[#12121c] text-gray-400 border-b border-[#26263b]">
+                          <th className="p-3.5">Customer / Date</th>
+                          <th className="p-3.5">Plan Tier</th>
+                          <th className="p-3.5">Amount</th>
+                          <th className="p-3.5">UTR / Transaction ID</th>
+                          <th className="p-3.5">Receipt Proof</th>
+                          <th className="p-3.5">Status</th>
+                          <th className="p-3.5 text-right">Verification Action</th>
                         </tr>
-                      ))}
-                      {payments.length === 0 && (
-                        <tr>
-                          <td colSpan={6} className="p-8 text-center text-gray-500">No payment logs found in database.</td>
-                        </tr>
-                      )}
-                    </tbody>
-                  </table>
+                      </thead>
+                      <tbody className="divide-y divide-[#26263b]">
+                        {payments
+                          .filter((p) => {
+                            if (paymentFilter === 'pending') return p.status === 'pending_verification';
+                            if (paymentFilter === 'captured') return p.status === 'captured';
+                            if (paymentFilter === 'rejected') return p.status === 'rejected';
+                            return true;
+                          })
+                          .map((p) => {
+                            const isPending = p.status === 'pending_verification';
+                            const isApproved = p.status === 'captured';
+                            const isRejected = p.status === 'rejected';
+                            const utrDisplay = p.utrNumber || p.paymentId || 'N/A';
+
+                            return (
+                              <tr 
+                                key={p.id} 
+                                className={`transition-all ${
+                                  isPending 
+                                    ? 'bg-amber-500/5 hover:bg-amber-500/10 border-l-4 border-l-amber-500' 
+                                    : 'hover:bg-[#161624]'
+                                }`}
+                              >
+                                <td className="p-3.5">
+                                  <span className="font-semibold text-white block">{p.email}</span>
+                                  <span className="text-[10px] text-gray-500 font-mono">
+                                    {p.created_at ? new Date(p.created_at).toLocaleString('en-IN') : 'Recent'}
+                                  </span>
+                                </td>
+
+                                <td className="p-3.5">
+                                  <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-[#d4af37]/20 text-[#d4af37] border border-[#d4af37]/30">
+                                    {p.tier}
+                                  </span>
+                                </td>
+
+                                <td className="p-3.5 font-mono font-bold text-white text-sm">
+                                  ₹{p.amount}
+                                </td>
+
+                                <td className="p-3.5">
+                                  <div className="flex items-center gap-1.5">
+                                    <span className="font-mono text-white select-all bg-[#161624] px-2 py-1 rounded border border-[#2b2b3f] text-[11px]">
+                                      {utrDisplay}
+                                    </span>
+                                    <button
+                                      onClick={() => handleCopyUtr(utrDisplay)}
+                                      className="p-1 text-gray-400 hover:text-[#d4af37] transition-all"
+                                      title="Copy UTR"
+                                    >
+                                      {copiedUtr === utrDisplay ? <Check className="w-3.5 h-3.5 text-green-400" /> : <Copy className="w-3.5 h-3.5" />}
+                                    </button>
+                                  </div>
+                                </td>
+
+                                <td className="p-3.5">
+                                  {p.screenshotUrl ? (
+                                    <div 
+                                      onClick={() => setSelectedReceiptImage(p.screenshotUrl)}
+                                      className="relative group cursor-pointer w-12 h-12 rounded-lg overflow-hidden border border-[#3b3b55] bg-black flex-shrink-0"
+                                    >
+                                      <img 
+                                        src={p.screenshotUrl} 
+                                        alt="Proof receipt" 
+                                        className="w-full h-full object-cover group-hover:scale-110 transition-all duration-200"
+                                      />
+                                      <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-all text-white">
+                                        <ZoomIn className="w-4 h-4" />
+                                      </div>
+                                    </div>
+                                  ) : (
+                                    <span className="text-[11px] text-gray-500 italic">No receipt attached</span>
+                                  )}
+                                </td>
+
+                                <td className="p-3.5">
+                                  {isPending && (
+                                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                                      <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-ping" />
+                                      Pending Verification
+                                    </span>
+                                  )}
+                                  {isApproved && (
+                                    <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold bg-green-500/20 text-green-400 border border-green-500/30">
+                                      <CheckCircle2 className="w-3 h-3" />
+                                      Approved
+                                    </span>
+                                  )}
+                                  {isRejected && (
+                                    <div className="space-y-0.5">
+                                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold bg-red-500/20 text-red-400 border border-red-500/30">
+                                        <XCircle className="w-3 h-3" />
+                                        Rejected
+                                      </span>
+                                      {p.adminNotes && (
+                                        <p className="text-[10px] text-gray-400 max-w-xs truncate" title={p.adminNotes}>
+                                          {p.adminNotes}
+                                        </p>
+                                      )}
+                                    </div>
+                                  )}
+                                </td>
+
+                                <td className="p-3.5 text-right">
+                                  {isPending ? (
+                                    <div className="flex items-center justify-end gap-2">
+                                      <button
+                                        onClick={() => handleApprovePayment(p.id)}
+                                        disabled={processingPaymentId === p.id}
+                                        className="px-3 py-1.5 bg-[#d4af37] hover:bg-[#b8962e] text-[#0d0d11] font-bold rounded-lg text-xs transition-all flex items-center gap-1 disabled:opacity-50 cursor-pointer shadow-sm"
+                                        title="Approve payment & activate customer subscription tier"
+                                      >
+                                        {processingPaymentId === p.id ? (
+                                          <div className="w-3 h-3 border-2 border-t-transparent border-[#0d0d11] rounded-full animate-spin" />
+                                        ) : (
+                                          <Check className="w-3.5 h-3.5" />
+                                        )}
+                                        <span>Approve & Unlock</span>
+                                      </button>
+                                      <button
+                                        onClick={() => handleRejectPayment(p.id)}
+                                        disabled={processingPaymentId === p.id}
+                                        className="px-2.5 py-1.5 bg-red-500/20 hover:bg-red-500/30 text-red-300 border border-red-500/40 rounded-lg text-xs transition-all flex items-center gap-1 disabled:opacity-50 cursor-pointer"
+                                        title="Reject payment proof"
+                                      >
+                                        <XCircle className="w-3.5 h-3.5" />
+                                        <span>Reject</span>
+                                      </button>
+                                    </div>
+                                  ) : isApproved ? (
+                                    <span className="text-[11px] text-gray-500 font-mono">Tier Active</span>
+                                  ) : (
+                                    <span className="text-[11px] text-gray-500">No action needed</span>
+                                  )}
+                                </td>
+                              </tr>
+                            );
+                          })}
+
+                        {payments.length === 0 && (
+                          <tr>
+                            <td colSpan={7} className="p-8 text-center text-gray-500">
+                              No payment submission logs found in database.
+                            </td>
+                          </tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  {/* Screenshot Lightbox Modal */}
+                  {selectedReceiptImage && (
+                    <div 
+                      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/90 backdrop-blur-md"
+                      onClick={() => setSelectedReceiptImage(null)}
+                    >
+                      <div 
+                        className="relative max-w-2xl max-h-[90vh] bg-[#12121c] border border-[#2e2e46] rounded-2xl overflow-hidden shadow-2xl flex flex-col"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <div className="flex items-center justify-between px-4 py-3 border-b border-[#28283d] bg-[#181827]">
+                          <span className="text-xs font-bold text-white font-cinzel">Payment Screenshot Verification</span>
+                          <button
+                            onClick={() => setSelectedReceiptImage(null)}
+                            className="p-1 text-gray-400 hover:text-white rounded-lg transition-all"
+                          >
+                            <XCircle className="w-5 h-5" />
+                          </button>
+                        </div>
+                        <div className="p-4 overflow-auto max-h-[75vh] flex items-center justify-center bg-black/50">
+                          <img 
+                            src={selectedReceiptImage} 
+                            alt="Full payment screenshot" 
+                            className="max-w-full max-h-[70vh] object-contain rounded-lg border border-[#2b2b3d]"
+                          />
+                        </div>
+                        <div className="p-3 border-t border-[#28283d] bg-[#181827] flex items-center justify-between text-xs text-gray-400">
+                          <span>Click outside or close to dismiss</span>
+                          <a 
+                            href={selectedReceiptImage} 
+                            target="_blank" 
+                            rel="noopener noreferrer" 
+                            className="text-[#d4af37] hover:underline flex items-center gap-1 font-semibold"
+                          >
+                            <span>Open Original Image</span>
+                            <ExternalLink className="w-3 h-3" />
+                          </a>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
 

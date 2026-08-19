@@ -4,12 +4,12 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { 
-  Heart, Users, Gift, Eye, Edit2, Plus, BarChart2, ShieldAlert, User, Lock, Tag
+  Heart, Users, Gift, Eye, Edit2, Plus, BarChart2, ShieldAlert, User, Lock, Tag, Clock, CheckCircle2, AlertCircle
 } from 'lucide-react';
 import { RSVP, GiftTransaction } from '@/types';
 import CheckoutButton from '@/components/CheckoutButton';
 import { supabase } from '@/utils/supabase';
-import { upgradeUserSubscription, applyReferralCode, getAppliedReferralCode, createDefaultInvitation, updateInvitationSlug } from '@/app/actions';
+import { upgradeUserSubscription, applyReferralCode, getAppliedReferralCode, createDefaultInvitation, updateInvitationSlug, getUserLatestPayment } from '@/app/actions';
 
 export default function Dashboard() {
   const router = useRouter();
@@ -48,6 +48,7 @@ export default function Dashboard() {
   const [referralInput, setReferralInput] = useState('');
   const [referralLoading, setReferralLoading] = useState(false);
   const [referralMessage, setReferralMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [latestPayment, setLatestPayment] = useState<any | null>(null);
   
   const [loadingInvite, setLoadingInvite] = useState(true);
 
@@ -78,8 +79,15 @@ export default function Dashboard() {
       }
     }
 
-    // Load subscription tier from database
+    // Load subscription tier and latest payment verification status
     if (currentUserId) {
+      try {
+        const payRecord = await getUserLatestPayment(currentUserId);
+        setLatestPayment(payRecord);
+      } catch (e) {
+        console.warn('Could not load payment status:', e);
+      }
+
       const { data: userProfile } = await supabase
         .from('users')
         .select('*')
@@ -753,11 +761,51 @@ export default function Dashboard() {
                 </h3>
                 <p className="text-xs text-gray-400 mt-1">Unlock premium features, unlimited photos, and advanced gift analytics.</p>
                 {appliedReferral && (
-                  <span className="inline-block text-[11px] bg-green-500/10 border border-green-500/20 text-green-400 px-2 py-0.5 rounded font-bold uppercase tracking-wider">
+                  <span className="inline-block text-[11px] bg-green-500/10 border border-green-500/20 text-green-400 px-2 py-0.5 rounded font-bold uppercase tracking-wider mt-1">
                     🎉 Promo Discount Active: {appliedReferral.discount_percent}% off applied at checkout!
                   </span>
                 )}
               </div>
+
+              {/* Pending Payment Verification Status Banner */}
+              {latestPayment && latestPayment.status === 'pending_verification' && (
+                <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-4 flex items-start gap-3 text-xs">
+                  <div className="w-7 h-7 rounded-lg bg-amber-500/20 text-amber-400 flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <Clock className="w-4 h-4 animate-spin" />
+                  </div>
+                  <div className="space-y-1 flex-1">
+                    <div className="flex items-center justify-between">
+                      <h4 className="font-bold text-white font-cinzel text-xs flex items-center gap-1.5">
+                        <span>Payment Verification In Progress</span>
+                        <span className="px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 font-mono text-[10px] uppercase font-semibold">
+                          {latestPayment.tier} Plan (₹{latestPayment.amount})
+                        </span>
+                      </h4>
+                      <span className="text-[10px] text-gray-500 font-mono">
+                        {latestPayment.created_at ? new Date(latestPayment.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Recently submitted'}
+                      </span>
+                    </div>
+                    <p className="text-gray-300 text-[11px]">
+                      Your payment proof (UTR: <span className="font-mono text-[#d4af37] font-semibold">{latestPayment.utr_number || latestPayment.payment_id}</span>) was received. Our team will verify and unlock your account access shortly.
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {/* Rejected Notice Banner */}
+              {latestPayment && latestPayment.status === 'rejected' && (
+                <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-4 flex items-start gap-3 text-xs">
+                  <div className="w-7 h-7 rounded-lg bg-red-500/20 text-red-400 flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <AlertCircle className="w-4 h-4" />
+                  </div>
+                  <div className="space-y-0.5 flex-1">
+                    <h4 className="font-bold text-white font-cinzel text-xs">Payment Verification Not Approved</h4>
+                    <p className="text-red-300 text-[11px]">
+                      {latestPayment.admin_notes || 'Your previous payment proof could not be verified. Please ensure you submit a valid 12-digit UTR number and clear screenshot.'}
+                    </p>
+                  </div>
+                </div>
+              )}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
                 {/* Basic Upgrade */}
                 <div className="bg-[#0d0d11] p-4 rounded border border-[#26263b] flex flex-col justify-between">

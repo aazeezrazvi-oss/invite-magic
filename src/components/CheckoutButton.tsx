@@ -3,8 +3,8 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 import React, { useState } from 'react';
-import { CreditCard } from 'lucide-react';
-import { createRazorpayOrder, upgradeUserTierMock, verifyRazorpayPayment } from '@/app/actions';
+import { CreditCard, QrCode } from 'lucide-react';
+import ManualUpiModal from '@/components/payment/ManualUpiModal';
 
 interface CheckoutButtonProps {
   amount: number;
@@ -23,8 +23,49 @@ export default function CheckoutButton({
   onSuccess,
   className = '',
 }: CheckoutButtonProps) {
-  const [loading, setLoading] = useState(false);
+  const [showUpiModal, setShowUpiModal] = useState(false);
 
+  return (
+    <>
+      <button
+        onClick={() => setShowUpiModal(true)}
+        className={`px-4 py-2 bg-[#d4af37] hover:bg-[#b8962e] text-[#0d0d11] font-bold rounded-lg flex items-center justify-center gap-2 transition-all text-xs shadow-md shadow-[#d4af37]/10 hover:shadow-[#d4af37]/20 ${className}`}
+      >
+        <QrCode className="w-3.5 h-3.5" />
+        <span>Pay ₹{amount} with UPI</span>
+      </button>
+
+      {/* Manual UPI & Receipt Upload Modal */}
+      <ManualUpiModal
+        isOpen={showUpiModal}
+        onClose={() => setShowUpiModal(false)}
+        tier={tier}
+        amount={amount}
+        userId={userId}
+        userEmail={userEmail}
+        onSuccess={() => {
+          if (onSuccess) onSuccess();
+        }}
+      />
+    </>
+  );
+}
+
+// ==============================================================================
+// --- Razorpay Payment Integration (Temporarily Paused for Business Verification) ---
+// ==============================================================================
+/*
+import { createRazorpayOrder, upgradeUserTierMock, verifyRazorpayPayment } from '@/app/actions';
+
+const handleRazorpayCheckout = async (
+  tier: 'basic' | 'premium' | 'vip',
+  amount: number,
+  userId: string,
+  userEmail: string,
+  setLoading: (val: boolean) => void,
+  onSuccess?: () => void
+) => {
+  setLoading(true);
   const loadRazorpayScript = () => {
     return new Promise((resolve) => {
       const script = document.createElement('script');
@@ -35,124 +76,78 @@ export default function CheckoutButton({
     });
   };
 
-  const handleCheckout = async () => {
-    setLoading(true);
-
-    try {
-      // 1. Generate Order ID from Server Action
-      const orderRes = await createRazorpayOrder(tier, amount, userId);
-      if (!orderRes.success) {
-        alert(`❌ Failed to start checkout: ${orderRes.error}`);
-        setLoading(false);
-        return;
-      }
-
-      if (orderRes.isMock) {
-        // Simulator Mode: Directly update tier without loading Razorpay widget
-        const upgradeRes = await upgradeUserTierMock(userId, tier);
-        if (upgradeRes.success) {
-          alert(`🎉 [Demo Mode] Mock payment of ₹${amount} completed successfully!\nYour account has been upgraded to ${tier.toUpperCase()}!`);
-          if (onSuccess) onSuccess();
-        } else {
-          alert(`❌ [Demo Mode] Payment completed, but failed to upgrade account: ${upgradeRes.error}`);
-        }
-        setLoading(false);
-        return;
-      }
-
-      // 2. Load Razorpay script only for real checkout gateway
-      const isLoaded = await loadRazorpayScript();
-      if (!isLoaded) {
-        alert('Razorpay SDK failed to load. Please check your internet connection.');
-        setLoading(false);
-        return;
-      }
-
-      const options = {
-        key: orderRes.keyId,
-        amount: amount * 100, // in paisa
-        currency: 'INR',
-        name: 'InviteMagic',
-        description: `Upgrade to ${tier.toUpperCase()} Plan`,
-        image: '/images/favicon.ico',
-        order_id: orderRes.orderId,
-        prefill: {
-          email: userEmail,
-          contact: '',
-        },
-        notes: {
-          user_id: userId,
-          tier: tier,
-        },
-        theme: {
-          color: '#d4af37', // Gold matching style theme
-        },
-        handler: async function (response: any) {
-          console.log('Razorpay Payment success callback:', response);
-          
-          if (orderRes.isMock) {
-            // Simulator Mode: Directly update tier
-            const upgradeRes = await upgradeUserTierMock(userId, tier);
-            if (upgradeRes.success) {
-              alert(`🎉 [Demo Mode] Mock payment of ₹${amount} completed successfully!\nYour account has been upgraded to ${tier.toUpperCase()}!`);
-              if (onSuccess) onSuccess();
-            } else {
-              alert(`❌ [Demo Mode] Payment completed, but failed to upgrade account: ${upgradeRes.error}`);
-            }
-          } else {
-            // Live production mode: Verify payment signature securely on the server!
-            setLoading(true);
-            try {
-              const verifyRes = await verifyRazorpayPayment(
-                response.razorpay_payment_id,
-                response.razorpay_order_id,
-                response.razorpay_signature,
-                tier,
-                userId
-              );
-              
-              if (verifyRes.success) {
-                alert(`🎉 Payment of ₹${amount} verified successfully!\nYour account has been upgraded to ${tier.toUpperCase()}!`);
-                if (onSuccess) onSuccess();
-              } else {
-                alert(`❌ Payment completed, but verification failed: ${verifyRes.error || 'Invalid signature'}`);
-              }
-            } catch (err: any) {
-              console.error('Error verifying payment:', err);
-              alert('Error verifying payment. Please contact support.');
-            } finally {
-              setLoading(false);
-            }
-          }
-        },
-      };
-
-      const paymentObject = new (window as any).Razorpay(options);
-      paymentObject.on('payment.failed', function (response: any) {
-        console.error('Razorpay Payment failed details:', response.error);
-        alert(`Payment Failed: ${response.error.description}`);
-      });
-
-      paymentObject.open();
-    } catch (e) {
-      console.error('Error starting checkout:', e);
-      alert('Could not initialize payment checkout. Please try again.');
+  try {
+    const orderRes = await createRazorpayOrder(tier, amount, userId);
+    if (!orderRes.success) {
+      alert(`❌ Failed to start checkout: ${orderRes.error}`);
+      setLoading(false);
+      return;
     }
-    setLoading(false);
-  };
 
-  return (
-    <button
-      onClick={handleCheckout}
-      disabled={loading}
-      className={`px-4 py-2 bg-[#d4af37] hover:bg-[#b8962e] text-[#0d0d11] font-bold rounded flex items-center justify-center gap-1.5 transition-all text-xs disabled:opacity-50 ${className}`}
-    >
-      {loading ? (
-        <div className="w-4 h-4 border-2 border-t-transparent border-[#0d0d11] rounded-full animate-spin" />
-      ) : (
-        <CreditCard className="w-4 h-4" />
-      )}
-      <span>Pay ₹{amount} Now</span>
-    </button>
-  );
-}
+    if (orderRes.isMock) {
+      const upgradeRes = await upgradeUserTierMock(userId, tier);
+      if (upgradeRes.success) {
+        alert(`🎉 [Demo Mode] Mock payment of ₹${amount} completed successfully!`);
+        if (onSuccess) onSuccess();
+      } else {
+        alert(`❌ Failed to upgrade account: ${upgradeRes.error}`);
+      }
+      setLoading(false);
+      return;
+    }
+
+    const isLoaded = await loadRazorpayScript();
+    if (!isLoaded) {
+      alert('Razorpay SDK failed to load. Please check your internet connection.');
+      setLoading(false);
+      return;
+    }
+
+    const options = {
+      key: orderRes.keyId,
+      amount: amount * 100,
+      currency: 'INR',
+      name: 'InviteMagic',
+      description: `Upgrade to ${tier.toUpperCase()} Plan`,
+      image: '/images/favicon.ico',
+      order_id: orderRes.orderId,
+      prefill: { email: userEmail, contact: '' },
+      notes: { user_id: userId, tier },
+      theme: { color: '#d4af37' },
+      handler: async function (response: any) {
+        setLoading(true);
+        try {
+          const verifyRes = await verifyRazorpayPayment(
+            response.razorpay_payment_id,
+            response.razorpay_order_id,
+            response.razorpay_signature,
+            tier,
+            userId
+          );
+          if (verifyRes.success) {
+            alert(`🎉 Payment of ₹${amount} verified successfully! Account upgraded to ${tier.toUpperCase()}!`);
+            if (onSuccess) onSuccess();
+          } else {
+            alert(`❌ Verification failed: ${verifyRes.error || 'Invalid signature'}`);
+          }
+        } catch (err: any) {
+          console.error('Error verifying payment:', err);
+          alert('Error verifying payment.');
+        } finally {
+          setLoading(false);
+        }
+      },
+    };
+
+    const paymentObject = new (window as any).Razorpay(options);
+    paymentObject.on('payment.failed', function (response: any) {
+      alert(`Payment Failed: ${response.error.description}`);
+    });
+    paymentObject.open();
+  } catch (e) {
+    console.error('Error starting checkout:', e);
+    alert('Could not initialize payment checkout.');
+  }
+  setLoading(false);
+};
+*/

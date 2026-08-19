@@ -777,9 +777,229 @@ export async function getAppliedReferralCode(userId: string): Promise<{ code: st
   }
 }
 
-// --- Razorpay Payment Actions ---
+// ==============================================================================
+// --- Manual UPI Payment & Verification Actions ---
+// ==============================================================================
 
-// Generate a Razorpay Order ID securely (Protected by Rate Limiter)
+/**
+ * Submit manual UPI payment proof (screenshot + 12-digit UTR) for admin verification.
+ */
+export async function submitManualPaymentProof(params: {
+  userId: string;
+  userEmail?: string;
+  tier: 'basic' | 'premium' | 'vip';
+  amount: number;
+  utrNumber: string;
+  screenshotUrl: string;
+  notes?: string;
+}): Promise<{ success: boolean; error?: string; paymentId?: string }> {
+  const ip = await getClientIp();
+  const rateLimit = await rateLimitRequest(`rate_limit:submit_payment:${ip}`, 5, 0.2); // 5 burst, 1 refill per 5 sec
+  if (!rateLimit.success) {
+    return { success: false, error: 'Too many submissions. Please wait a moment before trying again.' };
+  }
+
+  const { userId, tier, amount, utrNumber, screenshotUrl, notes } = params;
+  if (!userId || !tier || !amount || !utrNumber) {
+    return { success: false, error: 'Missing required payment submission fields.' };
+  }
+
+  const supabaseAdmin = getServiceSupabase();
+  const supabase = await getSupabase();
+  const client = supabaseAdmin || supabase;
+
+  try {
+    const orderId = `UPI_${Date.now()}_${Math.random().toString(36).substring(2, 7).toUpperCase()}`;
+    const paymentId = `UTR_${utrNumber.trim()}`;
+
+    // Attempt insert with extended fields
+    const { data, error } = await client
+      .from('payments')
+      .insert({
+        user_id: userId,
+        order_id: orderId,
+        payment_id: paymentId,
+        amount: Number(amount),
+        currency: 'INR',
+        status: 'pending_verification',
+        tier,
+        utr_number: utrNumber.trim(),
+        screenshot_url: screenshotUrl,
+        admin_notes: notes || 'Pending admin manual verification',
+        payment_method: 'upi_manual',
+      })
+      .select('id')
+      .single();
+
+    if (error) {
+      console.warn('[submitManualPaymentProof] Standard insert notice, attempting schema fallback:', error.message);
+      // Fallback: If extra columns are not yet applied to database schema, insert baseline columns
+      const fallbackRes = await client
+        .from('payments')
+        .insert({
+          user_id: userId,
+          order_id: orderId,
+          payment_id: paymentId,
+          amount: Number(amount),
+          currency: 'INR',
+          status: 'pending_verification',
+          tier,
+        })
+        .select('id')
+        .single();
+
+      if (fallbackRes.error) {
+        console.error('[submitManualPaymentProof] Fallback insert failed:', fallbackRes.error);
+        return { success: false, error: fallbackRes.error.message || 'Failed to record payment proof.' };
+      }
+
+      await logAuditEvent('payment_manual_submitted', { order_id: orderId, utr: utrNumber, tier, amount }, userId);
+      return { success: true, paymentId: fallbackRes.data?.id };
+    }
+
+    await logAuditEvent('payment_manual_submitted', { order_id: orderId, utr: utrNumber, tier, amount }, userId);
+    return { success: true, paymentId: data?.id };
+  } catch (err: any) {
+    console.error('Exception submitting manual payment:', err);
+    return { success: false, error: err.message || 'Server error during payment submission' };
+  }
+}
+
+/**
+ * Admin action to approve a pending manual payment, update status to captured, and unlock the user's plan.
+ */
+export async function approveManualPayment(
+  paymentId: string, 
+  adminNotes?: string
+): Promise<{ success: boolean; error?: string }> {
+  const supabase = await getSupabase();
+  const authorized = await checkAdmin(supabase);
+  if (!authorized) {
+    return { success: false, error: 'Unauthorized: Only administrators can approve payments.' };
+  }
+
+  const supabaseAdmin = getServiceSupabase();
+  const client = supabaseAdmin || supabase;
+
+  try {
+    // 1. Fetch the target payment
+    const { data: payment, error: fetchErr } = await client
+      .from('payments')
+      .select('*')
+      .eq('id', paymentId)
+      .single();
+
+    if (fetchErr || !payment) {
+      return { success: false, error: 'Payment record not found.' };
+    }
+
+    // 2. Update payment status to captured/approved
+    const { error: updatePayErr } = await client
+      .from('payments')
+      .update({
+        status: 'captured',
+        admin_notes: adminNotes || 'Approved by Admin',
+        reviewed_at: new Date().toISOString(),
+      })
+      .eq('id', paymentId);
+
+    if (updatePayErr) {
+      console.warn('[approveManualPayment] Notice updating payment status:', updatePayErr.message);
+    }
+
+    // 3. Upgrade user tier and calculate expiry
+    const upgradeSuccess = await updateUserTierAdmin(payment.user_id, payment.tier);
+    if (!upgradeSuccess) {
+      return { success: false, error: 'Failed to update user subscription tier.' };
+    }
+
+    await logAuditEvent(
+      'payment_manual_approved', 
+      { payment_id: paymentId, tier: payment.tier, amount: payment.amount, user_id: payment.user_id }, 
+      payment.user_id
+    );
+
+    return { success: true };
+  } catch (err: any) {
+    console.error('Exception approving payment:', err);
+    return { success: false, error: err.message || 'Server error during approval' };
+  }
+}
+
+/**
+ * Admin action to reject a pending manual payment proof with a reason.
+ */
+export async function rejectManualPayment(
+  paymentId: string, 
+  reason: string
+): Promise<{ success: boolean; error?: string }> {
+  const supabase = await getSupabase();
+  const authorized = await checkAdmin(supabase);
+  if (!authorized) {
+    return { success: false, error: 'Unauthorized: Only administrators can reject payments.' };
+  }
+
+  const supabaseAdmin = getServiceSupabase();
+  const client = supabaseAdmin || supabase;
+
+  try {
+    const { data: payment, error: fetchErr } = await client
+      .from('payments')
+      .select('*')
+      .eq('id', paymentId)
+      .single();
+
+    if (fetchErr || !payment) {
+      return { success: false, error: 'Payment record not found.' };
+    }
+
+    const { error: updateErr } = await client
+      .from('payments')
+      .update({
+        status: 'rejected',
+        admin_notes: reason || 'Rejected by Admin',
+        reviewed_at: new Date().toISOString(),
+      })
+      .eq('id', paymentId);
+
+    if (updateErr) {
+      return { success: false, error: updateErr.message };
+    }
+
+    await logAuditEvent('payment_manual_rejected', { payment_id: paymentId, reason }, payment.user_id);
+    return { success: true };
+  } catch (err: any) {
+    console.error('Exception rejecting payment:', err);
+    return { success: false, error: err.message || 'Server error during rejection' };
+  }
+}
+
+/**
+ * Fetch the latest payment verification status for a user.
+ */
+export async function getUserLatestPayment(userId: string): Promise<any | null> {
+  if (!userId) return null;
+  const supabase = await getSupabase();
+  try {
+    const { data, error } = await supabase
+      .from('payments')
+      .select('*')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (error || !data) return null;
+    return data;
+  } catch (e) {
+    return null;
+  }
+}
+
+// ==============================================================================
+// --- Razorpay Payment Actions (Temporarily Paused for Business Verification) ---
+// ==============================================================================
+/*
 export async function createRazorpayOrder(tier: 'basic' | 'premium' | 'vip', amount: number, userId: string) {
   const ip = await getClientIp();
   const rateLimit = await rateLimitRequest(`rate_limit:create_order:${ip}`, 5, 0.2); // 5 burst, 1 refill per 5 sec
@@ -911,6 +1131,7 @@ export async function verifyRazorpayPayment(
     return { success: false, error: err.message || 'Server error during payment verification' };
   }
 }
+*/
 
 // Server Action to upgrade user tier for mock/demo checkouts (Only allowed in development/mock modes)
 export async function upgradeUserTierMock(userId: string, tier: 'basic' | 'premium' | 'vip') {
@@ -1054,12 +1275,17 @@ export async function getAdminDashboardData(): Promise<{
 
     const formattedPayments = (payments || []).map((pay: any) => ({
       id: pay.id,
+      user_id: pay.user_id,
       email: pay.users?.email || 'Unknown User',
       orderId: pay.order_id,
       paymentId: pay.payment_id,
       amount: pay.amount,
       status: pay.status,
       tier: pay.tier,
+      utrNumber: pay.utr_number || (pay.payment_id?.startsWith('UTR_') ? pay.payment_id.replace('UTR_', '') : pay.payment_id),
+      screenshotUrl: pay.screenshot_url,
+      adminNotes: pay.admin_notes,
+      paymentMethod: pay.payment_method || 'upi_manual',
       created_at: pay.created_at,
     }));
 
