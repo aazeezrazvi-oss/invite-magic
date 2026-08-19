@@ -51,9 +51,13 @@ export const metadata: Metadata = {
   title: "InviteMagic | Digital Wedding Invitations & Vendor Directory",
   description: "Create premium animated wedding invitation websites, track RSVPs, and explore verified wedding vendors with InviteMagic.",
   icons: {
-    icon: "/logo-icon.png",
-    shortcut: "/logo-icon.png",
-    apple: "/logo-icon.png",
+    icon: [
+      { url: '/icon.svg', type: 'image/svg+xml' },
+      { url: '/logo-icon.png', type: 'image/png' },
+      { url: '/favicon.ico' },
+    ],
+    shortcut: '/logo-icon.png',
+    apple: '/logo-icon.png',
   },
   openGraph: {
     title: "InviteMagic | Digital Wedding Invitations",
