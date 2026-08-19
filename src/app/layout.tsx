@@ -48,8 +48,18 @@ const notoKannada = Noto_Sans_Kannada({
 });
 
 export const metadata: Metadata = {
-  title: "InviteMagic | No-Code Wedding Invitations & Digital Gifts",
-  description: "Create premium animated wedding invitation websites, track RSVPs, and collect digital gifts via UPI with InviteMagic.",
+  title: "InviteMagic | Digital Wedding Invitations & Vendor Directory",
+  description: "Create premium animated wedding invitation websites, track RSVPs, and explore verified wedding vendors with InviteMagic.",
+  icons: {
+    icon: "/logo-icon.png",
+    shortcut: "/logo-icon.png",
+    apple: "/logo-icon.png",
+  },
+  openGraph: {
+    title: "InviteMagic | Digital Wedding Invitations",
+    description: "Create premium animated wedding invitation websites with InviteMagic.",
+    images: ["/logo.png"],
+  },
 };
 
 export default function RootLayout({

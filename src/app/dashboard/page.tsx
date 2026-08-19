@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import { RSVP, GiftTransaction } from '@/types';
 import CheckoutButton from '@/components/CheckoutButton';
+import Logo from '@/components/Logo';
 import { supabase } from '@/utils/supabase';
 import { upgradeUserSubscription, applyReferralCode, getAppliedReferralCode, createDefaultInvitation, updateInvitationSlug, getUserLatestPayment } from '@/app/actions';
 
@@ -358,10 +359,7 @@ export default function Dashboard() {
     <div className="min-h-screen bg-[#0d0d11] text-[#f3f4f6] flex flex-col">
       {/* Top Navbar */}
       <nav className="border-b border-[#26263b] bg-[#161622]/50 backdrop-blur-md px-4 sm:px-6 py-3 flex flex-wrap items-center justify-between gap-2">
-        <Link href="/" className="flex items-center gap-2 shrink-0">
-          <Heart className="w-5 h-5 text-[#d4af37] fill-[#d4af37]" />
-          <span className="text-base sm:text-lg font-bold tracking-wider font-cinzel text-[#d4af37]">InviteMagic</span>
-        </Link>
+        <Logo variant="compact" size="sm" href="/" />
         <div className="flex items-center gap-2 sm:gap-4 text-[10px] sm:text-xs flex-wrap">
           {isAdmin && (
             <>

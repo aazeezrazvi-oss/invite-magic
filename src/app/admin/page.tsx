@@ -19,8 +19,9 @@ import {
   approveManualPayment,
   rejectManualPayment
 } from '@/app/actions';
-import { getAllVendorsAdmin, approveVendorAdmin, deleteVendorAdmin } from '@/app/vendor-actions';
+import Logo from '@/components/Logo';
 import { supabase } from '@/utils/supabase';
+import { getAllVendorsAdmin, approveVendorAdmin, deleteVendorAdmin } from '@/app/vendor-actions';
 import { ReferralCode, MediaAsset, VendorProfile } from '@/types';
 
 export default function AdminDashboard() {
@@ -413,10 +414,7 @@ export default function AdminDashboard() {
       {/* Top Navbar */}
       <nav className="border-b border-[#26263b] bg-[#161622]/50 backdrop-blur-md px-6 py-4 flex items-center justify-between">
         <div className="flex items-center gap-4">
-          <Link href="/dashboard" className="flex items-center gap-2">
-            <Heart className="w-5 h-5 text-[#d4af37] fill-[#d4af37]" />
-            <span className="text-lg font-bold tracking-wider font-cinzel text-[#d4af37]">InviteMagic</span>
-          </Link>
+          <Logo variant="compact" size="sm" href="/dashboard" />
           <div className="h-4 w-[1px] bg-[#26263b]" />
           <span className="text-[10px] bg-[#d4af37]/10 border border-[#d4af37]/20 text-[#d4af37] px-2 py-0.5 rounded uppercase font-bold tracking-widest">
             Admin Console

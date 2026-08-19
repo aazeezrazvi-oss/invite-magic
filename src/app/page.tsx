@@ -11,6 +11,7 @@ import { TEMPLATE_PRESETS, TemplatePreset } from '@/utils/presets';
 import { supabase } from '@/utils/supabase';
 import InvitationPreview from '@/components/InvitationPreview';
 import { Invitation } from '@/types';
+import Logo from '@/components/Logo';
 
 export default function LandingPage() {
   const [previewPreset, setPreviewPreset] = useState<TemplatePreset | null>(null);
@@ -92,11 +93,8 @@ export default function LandingPage() {
     <div className="min-h-screen bg-[#0d0d11] text-[#f3f4f6]">
       {/* Premium Header */}
       <header className="border-b border-[#26263b] bg-[#161622]/50 backdrop-blur-md sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-2">
-            <Heart className="w-6 h-6 text-[#d4af37] fill-[#d4af37]" />
-            <span className="text-xl font-bold tracking-wider font-cinzel text-[#d4af37]">InviteMagic</span>
-          </Link>
+        <div className="max-w-7xl mx-auto px-6 py-3.5 flex items-center justify-between">
+          <Logo variant="full" size="md" href="/" />
           <nav className="hidden md:flex items-center gap-8 text-xs uppercase tracking-widest text-gray-300">
             <a href="#features" className="hover:text-white transition-all">Features</a>
             <a href="#templates" className="hover:text-white transition-all">Templates</a>
@@ -558,10 +556,7 @@ export default function LandingPage() {
       {/* Footer */}
       <footer className="border-t border-[#26263b] py-12 px-6 text-center text-xs text-gray-500">
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-4">
-          <div className="flex items-center gap-2">
-            <Heart className="w-4 h-4 text-[#d4af37] fill-[#d4af37]" />
-            <span className="font-bold font-cinzel text-white">InviteMagic</span>
-          </div>
+          <Logo variant="compact" size="sm" href="/" />
           <p>© 2026 InviteMagic. All rights reserved. Made for love and weddings.</p>
           <div className="flex gap-4 mt-2 md:mt-0">
             <Link href="/vendors" className="hover:text-white transition-colors">Vendors Directory</Link>

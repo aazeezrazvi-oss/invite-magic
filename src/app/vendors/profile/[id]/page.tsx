@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import { VendorProfile } from '@/types';
 import { getVendorById, rateVendor } from '@/app/vendor-actions';
+import Logo from '@/components/Logo';
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -128,10 +129,7 @@ export default function DedicatedVendorProfilePage({ params }: PageProps) {
       {/* Header */}
       <header className="border-b border-[#26263b] bg-[#161622]/50 backdrop-blur-md sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-2">
-            <Heart className="w-5 h-5 text-[#d4af37] fill-[#d4af37]" />
-            <span className="text-lg font-bold tracking-wider font-cinzel text-[#d4af37]">InviteMagic</span>
-          </Link>
+          <Logo variant="compact" size="sm" href="/" />
           <Link 
             href="/vendors" 
             className="text-xs uppercase tracking-widest font-semibold flex items-center gap-1.5 hover:text-[#d4af37] transition-all text-gray-300"

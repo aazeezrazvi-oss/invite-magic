@@ -8,6 +8,7 @@ import {
   MessageSquare, ArrowLeft, CheckCircle2, IndianRupee 
 } from 'lucide-react';
 import { submitBespokeRequest } from '@/app/actions';
+import Logo from '@/components/Logo';
 
 export default function BespokeInquiryPage() {
   const [formData, setFormData] = useState({
@@ -81,10 +82,7 @@ export default function BespokeInquiryPage() {
 
       {/* Header */}
       <header className="border-b border-[#26263b] bg-[#161622]/40 backdrop-blur-md px-6 py-4 flex items-center justify-between z-10">
-        <Link href="/" className="flex items-center gap-2">
-          <Heart className="w-5 h-5 text-[#d4af37] fill-[#d4af37]" />
-          <span className="text-base sm:text-lg font-bold tracking-wider font-cinzel text-[#d4af37]">InviteMagic</span>
-        </Link>
+        <Logo variant="compact" size="sm" href="/" />
         <Link 
           href="/" 
           className="text-xs uppercase tracking-widest font-semibold flex items-center gap-1.5 hover:text-[#d4af37] transition-all"

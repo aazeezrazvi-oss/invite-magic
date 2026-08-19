@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { supabase } from '@/utils/supabase';
 import { Heart, Lock, User, Gift, Mail } from 'lucide-react';
+import Logo from '@/components/Logo';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -237,11 +238,9 @@ export default function LoginPage() {
       {/* Auth Card Container - Glassmorphic design */}
       <div className="w-full max-w-[440px] bg-[#161622]/40 backdrop-blur-md border border-[#26263b] rounded-[24px] p-10 shadow-[0_8px_32px_rgba(0,0,0,0.37)] z-10 space-y-6">
         
-        {/* Heart Icon Header Wrapper */}
-        <div className="flex justify-start">
-          <div className="w-12 h-12 rounded-[12px] bg-[#d4af37]/10 border border-[#d4af37]/30 flex items-center justify-center shadow-[0_0_15px_rgba(212,175,55,0.1)]">
-            <Heart className="w-6 h-6 text-[#d4af37] fill-[#d4af37]/20" />
-          </div>
+        {/* Brand Logo Header */}
+        <div className="flex justify-start pb-2">
+          <Logo variant="full" size="md" href="/" />
         </div>
 
         {/* Heading */}

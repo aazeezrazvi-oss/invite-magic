@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import { VendorProfile, VendorCategory } from '@/types';
 import { getPublicVendors, rateVendor } from '@/app/vendor-actions';
+import Logo from '@/components/Logo';
 
 const InstagramIcon = ({ className = "w-4 h-4" }: { className?: string }) => (
   <svg className={className} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" strokeLinecap="round" strokeLinejoin="round">
@@ -131,10 +132,7 @@ export default function PublicVendorsPage() {
       {/* Header */}
       <header className="border-b border-[#26263b] bg-[#161622]/50 backdrop-blur-md sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3.5 flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-1.5 sm:gap-2 shrink-0">
-            <Heart className="w-5 h-5 sm:w-6 sm:h-6 text-[#d4af37] fill-[#d4af37]" />
-            <span className="text-base sm:text-xl font-bold tracking-wider font-cinzel text-[#d4af37]">InviteMagic</span>
-          </Link>
+          <Logo variant="compact" size="sm" href="/" />
 
           <div className="flex items-center gap-3">
             <Link 
