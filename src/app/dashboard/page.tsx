@@ -463,7 +463,7 @@ export default function Dashboard() {
                   <label className="block text-xs font-semibold text-gray-400 mb-1.5 uppercase tracking-wider">Custom Invite Link (Slug)</label>
                   <div className="flex flex-col sm:flex-row items-stretch sm:items-center">
                     <span className="bg-[#0d0d11]/80 border border-[#26263b] sm:border-r-0 rounded-t-lg sm:rounded-t-none sm:rounded-l-lg px-3 py-2.5 text-xs text-gray-500 font-mono select-none flex items-center justify-center sm:justify-start">
-                      https://www.bknexus.in/invite/
+                      {typeof window !== 'undefined' ? `${window.location.origin}/invite/` : 'https://invitemagic.in/invite/'}
                     </span>
                     <input
                       type="text"
