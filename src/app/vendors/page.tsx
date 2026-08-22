@@ -365,11 +365,11 @@ export default function PublicVendorsPage() {
                       title="View Instagram Profile"
                     >
                       <InstagramIcon className="w-3.5 h-3.5" />
-                      <span>Insta</span>
+                      <span>Instagram</span>
                     </a>
                   ) : (
                     <button disabled className="py-2 px-2 rounded-lg bg-gray-800 text-gray-500 text-xs font-semibold cursor-not-allowed">
-                      Insta
+                      Instagram
                     </button>
                   )}
                 </div>

@@ -801,7 +801,7 @@ export default function VendorPortalPage() {
                   </div>
                   <div className="py-1.5 rounded bg-pink-500/10 border border-pink-500/30 text-pink-400 font-bold flex items-center justify-center gap-1">
                     <InstagramIcon className="w-3 h-3" />
-                    <span>Insta</span>
+                    <span>Instagram</span>
                   </div>
                 </div>
 
