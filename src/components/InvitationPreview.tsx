@@ -4,7 +4,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { 
   Heart, Calendar, Clock, MapPin, Gift, 
-  Volume2, VolumeX, Send, Play, ExternalLink
+  Volume2, VolumeX, Send, Play, ExternalLink,
+  Pause, ChevronsDown
 } from 'lucide-react';
 import { Invitation, RSVP as RSVPType, StylingPreferences } from '@/types';
 import { QRCodeSVG } from 'qrcode.react';
@@ -64,6 +65,8 @@ export default function InvitationPreview({
   const [isOpening, setIsOpening] = useState(false);
   const [isCardOut, setIsCardOut] = useState(false);
   const [isCoverFading, setIsCoverFading] = useState(false);
+  const [isAutoScrolling, setIsAutoScrolling] = useState(false);
+  const containerRef = useRef<HTMLDivElement | null>(null);
   
   const isBurgundyTheme = styling.secondary_color === '#580b14' || styling.secondary_color === '#6b0c1b' || styling.secondary_color === '#5a1846';
   const isKalyanam = styling.secondary_color === '#5c0c1b' || styling.font_heading === 'kannada';
@@ -136,6 +139,93 @@ export default function InvitationPreview({
     }
     setIsPlaying(!isPlaying);
   };
+
+  // Auto-scroll when guest opens the invitation
+  useEffect(() => {
+    let timer: NodeJS.Timeout;
+    if (isOpen && !isPreviewMode) {
+      // 1.5s delay to allow guest to read top Hero header before auto-scrolling
+      timer = setTimeout(() => {
+        setIsAutoScrolling(true);
+      }, 1500);
+    } else if (!isOpen) {
+      setIsAutoScrolling(false);
+    }
+    return () => {
+      if (timer) clearTimeout(timer);
+    };
+  }, [isOpen, isPreviewMode]);
+
+  // Auto-scroll requestAnimationFrame engine
+  useEffect(() => {
+    if (!isAutoScrolling) return;
+
+    let animationFrameId: number;
+    let lastTime = performance.now();
+
+    const getScrollContainer = (): HTMLElement | null => {
+      if (!containerRef.current) return null;
+      let el: HTMLElement | null = containerRef.current.parentElement;
+      while (el) {
+        const style = window.getComputedStyle(el);
+        if ((style.overflowY === 'auto' || style.overflowY === 'scroll') && el.scrollHeight > el.clientHeight) {
+          return el;
+        }
+        el = el.parentElement;
+      }
+      return null;
+    };
+
+    const scrollStep = (currentTime: number) => {
+      const deltaMs = currentTime - lastTime;
+      lastTime = currentTime;
+
+      // 45px per second -> very smooth, comfortable reading pace
+      const pixelsToScroll = Math.min((deltaMs / 1000) * 45, 6);
+
+      const scrollContainer = getScrollContainer();
+      if (scrollContainer) {
+        scrollContainer.scrollTop += pixelsToScroll;
+        if (scrollContainer.scrollTop + scrollContainer.clientHeight >= scrollContainer.scrollHeight - 6) {
+          setIsAutoScrolling(false);
+          return;
+        }
+      } else {
+        window.scrollBy(0, pixelsToScroll);
+        const maxScroll = (document.documentElement.scrollHeight || document.body.scrollHeight) - window.innerHeight;
+        if (window.scrollY >= maxScroll - 6) {
+          setIsAutoScrolling(false);
+          return;
+        }
+      }
+
+      animationFrameId = requestAnimationFrame(scrollStep);
+    };
+
+    animationFrameId = requestAnimationFrame(scrollStep);
+
+    // Pause auto-scroll on manual user scrolling, touch or keyboard interaction
+    const handleUserInteraction = () => {
+      setIsAutoScrolling(false);
+    };
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (['ArrowUp', 'ArrowDown', 'PageUp', 'PageDown', 'Home', 'End', ' '].includes(e.key)) {
+        setIsAutoScrolling(false);
+      }
+    };
+
+    window.addEventListener('wheel', handleUserInteraction, { passive: true });
+    window.addEventListener('touchstart', handleUserInteraction, { passive: true });
+    window.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      cancelAnimationFrame(animationFrameId);
+      window.removeEventListener('wheel', handleUserInteraction);
+      window.removeEventListener('touchstart', handleUserInteraction);
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isAutoScrolling]);
 
   // Countdown timer logic
   const mainEvent = events[0] || { event_date: '2026-12-31', event_time: '10:00' };
@@ -1811,8 +1901,9 @@ export default function InvitationPreview({
 
   return (
     <div 
+      ref={containerRef}
       style={containerStyle} 
-      className="min-h-screen text-[var(--text-color)] relative flex flex-col overflow-hidden @container"
+      className="min-h-screen text-[var(--text-color)] relative flex flex-col overflow-x-hidden @container"
     >
       {/* Background Layer */}
       {isRoyalWreath ? (
@@ -1868,11 +1959,39 @@ export default function InvitationPreview({
         />
       )}
 
+      {/* Floating Auto-Scroll Controls (Bottom-Left) */}
+      <button
+        onClick={() => setIsAutoScrolling((prev) => !prev)}
+        className={`fixed bottom-6 left-6 px-3.5 py-2.5 rounded-full backdrop-blur-md border shadow-xl hover:scale-105 active:scale-95 transition-all z-50 flex items-center gap-2 text-xs font-semibold select-none cursor-pointer ${
+          isAutoScrolling 
+            ? 'bg-[#d4af37] text-[#0d0d11] border-[#d4af37] shadow-[0_0_15px_rgba(212,175,55,0.4)]' 
+            : 'bg-black/80 text-[#d4af37] border-[#d4af37]/40 hover:border-[#d4af37]'
+        }`}
+        title={isAutoScrolling ? 'Pause Auto Scroll' : 'Start Auto Scroll'}
+        aria-label={isAutoScrolling ? 'Pause Auto Scroll' : 'Start Auto Scroll'}
+      >
+        {isAutoScrolling ? (
+          <>
+            <Pause className="w-3.5 h-3.5 fill-current" />
+            <span className="text-[10px] sm:text-[11px] tracking-wider uppercase font-medium">Auto Scrolling</span>
+            <span className="flex h-2 w-2 relative">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#0d0d11] opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-[#0d0d11]"></span>
+            </span>
+          </>
+        ) : (
+          <>
+            <ChevronsDown className="w-3.5 h-3.5 animate-bounce text-[#d4af37]" />
+            <span className="text-[10px] sm:text-[11px] tracking-wider uppercase font-medium">Auto Scroll</span>
+          </>
+        )}
+      </button>
+
       {/* Floating Audio Toggle Controls */}
       {styling.music_url && (
         <button
           onClick={toggleMusic}
-          className="fixed bottom-6 right-6 p-3 rounded-full bg-[var(--primary-color)] text-[var(--bg-color)] shadow-lg hover:scale-105 transition-all z-50 flex items-center justify-center"
+          className="fixed bottom-6 right-6 p-3 rounded-full bg-[var(--primary-color)] text-[var(--bg-color)] shadow-lg hover:scale-105 transition-all z-50 flex items-center justify-center cursor-pointer"
         >
           {isPlaying ? <Volume2 className="w-5 h-5" /> : <VolumeX className="w-5 h-5" />}
         </button>
