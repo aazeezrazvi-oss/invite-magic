@@ -48,6 +48,16 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
   return {
     title,
     description,
+    keywords: [
+      `${vendor.business_name}`,
+      `${categoryName} near me`,
+      `wedding ${categoryName} near me`,
+      `best ${categoryName} in ${vendor.location || 'India'}`,
+      `hire ${categoryName} ${locationText}`,
+      `${vendor.business_name} reviews`,
+      `${vendor.business_name} contact`,
+      'verified wedding vendor'
+    ],
     alternates: {
       canonical: canonicalUrl,
     },
@@ -88,7 +98,7 @@ export default async function VendorProfileLayout({ children, params }: LayoutPr
 
   const categoryName = vendor ? (categoryLabels[vendor.category] || 'Wedding Specialist') : 'Wedding Specialist';
 
-  // Generate LocalBusiness / ProfessionalService structured data
+  // Generate LocalBusiness / ProfessionalService structured data for Google Local / "Near Me" search
   const vendorSchema = vendor ? {
     "@context": "https://schema.org",
     "@type": "LocalBusiness",
@@ -98,6 +108,12 @@ export default async function VendorProfileLayout({ children, params }: LayoutPr
     "image": vendor.dp_url || (vendor.portfolio_photos && vendor.portfolio_photos[0]) || `${siteUrl}/logo.png`,
     "telephone": vendor.phone_number || vendor.whatsapp_number || undefined,
     "priceRange": vendor.starting_price ? `₹${vendor.starting_price}+` : "₹₹",
+    "areaServed": vendor.location ? [vendor.location, "Nearby Cities", "India"] : ["India"],
+    "serviceType": [
+      categoryName,
+      `${categoryName} near me`,
+      `Wedding ${categoryName} in ${vendor.location || 'India'}`
+    ],
     "address": {
       "@type": "PostalAddress",
       "addressLocality": vendor.location || "India",

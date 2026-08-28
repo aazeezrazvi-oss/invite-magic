@@ -11,6 +11,7 @@ import {
 import { VendorProfile, VendorCategory } from '@/types';
 import { getPublicVendors, rateVendor } from '@/app/vendor-actions';
 import Logo from '@/components/Logo';
+import JsonLd from '@/components/JsonLd';
 
 const InstagramIcon = ({ className = "w-4 h-4" }: { className?: string }) => (
   <svg className={className} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" strokeLinecap="round" strokeLinejoin="round">
@@ -19,7 +20,6 @@ const InstagramIcon = ({ className = "w-4 h-4" }: { className?: string }) => (
     <line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line>
   </svg>
 );
-
 
 const categories: { id: VendorCategory; label: string; icon: string }[] = [
   { id: 'all', label: 'All Services', icon: '✨' },
@@ -33,9 +33,54 @@ const categories: { id: VendorCategory; label: string; icon: string }[] = [
   { id: 'venue', label: 'Venues', icon: '🏰' },
 ];
 
+const popularCities = [
+  'All Cities',
+  'Bengaluru',
+  'Mumbai',
+  'Delhi NCR',
+  'Hyderabad',
+  'Chennai',
+  'Pune',
+  'Kolkata',
+  'Jaipur',
+  'Lucknow'
+];
+
+const vendorFaqSchema = {
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "How do I find top verified wedding vendors or mehendi artists near me?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Browse categories like Mehendi Artists, Makeup, or Photography and select your city (e.g. Bengaluru, Mumbai, Delhi). You can view portfolios, reviews, pricing, and chat with artists directly on WhatsApp."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Is there any commission or booking fee to contact wedding vendors?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "No. InviteMagic is a 100% free directory with zero booking fees or commission. You connect directly with service providers via phone or WhatsApp."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "How can wedding vendors list their business profile?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Click 'Join as Vendor' to create your free business profile, upload portfolio photos, and start receiving direct inquiries from wedding couples."
+      }
+    }
+  ]
+};
+
 export default function PublicVendorsPage() {
   const [vendors, setVendors] = useState<VendorProfile[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<VendorCategory>('all');
+  const [selectedCity, setSelectedCity] = useState<string>('All Cities');
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
   const [selectedVendor, setSelectedVendor] = useState<VendorProfile | null>(null);
@@ -109,7 +154,11 @@ export default function PublicVendorsPage() {
   useEffect(() => {
     async function loadVendors() {
       setLoading(true);
-      const data = await getPublicVendors(selectedCategory, searchQuery);
+      const effectiveSearch = selectedCity !== 'All Cities'
+        ? (searchQuery.trim() ? `${searchQuery.trim()} ${selectedCity}` : selectedCity)
+        : searchQuery.trim();
+
+      const data = await getPublicVendors(selectedCategory, effectiveSearch);
       setVendors(data);
       setLoading(false);
     }
@@ -120,7 +169,7 @@ export default function PublicVendorsPage() {
     }, 300);
 
     return () => clearTimeout(timer);
-  }, [selectedCategory, searchQuery]);
+  }, [selectedCategory, selectedCity, searchQuery]);
 
   return (
     <div className="min-h-screen bg-[#0d0d11] text-[#f3f4f6] flex flex-col font-sans relative overflow-x-hidden">
@@ -188,7 +237,7 @@ export default function PublicVendorsPage() {
       </section>
 
       {/* Category Tabs */}
-      <section className="px-6 max-w-7xl mx-auto w-full mb-10 z-10">
+      <section className="px-6 max-w-7xl mx-auto w-full mb-4 z-10">
         <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-none justify-start md:justify-center">
           {categories.map((cat) => (
             <button
@@ -202,6 +251,29 @@ export default function PublicVendorsPage() {
             >
               <span>{cat.icon}</span>
               <span>{cat.label}</span>
+            </button>
+          ))}
+        </div>
+      </section>
+
+      {/* Popular Cities Filter (Local / Near Me SEO) */}
+      <section className="px-6 max-w-7xl mx-auto w-full mb-10 z-10">
+        <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none justify-start md:justify-center text-xs">
+          <span className="text-gray-500 font-semibold uppercase tracking-wider text-[10px] flex items-center gap-1 shrink-0">
+            <MapPin className="w-3 h-3 text-[#d4af37]" />
+            <span>Near:</span>
+          </span>
+          {popularCities.map((city) => (
+            <button
+              key={city}
+              onClick={() => setSelectedCity(city)}
+              className={`px-3 py-1 rounded-full text-[11px] font-medium whitespace-nowrap transition-all cursor-pointer ${
+                selectedCity === city
+                  ? 'bg-[#d4af37]/20 text-[#d4af37] border border-[#d4af37]/40 font-bold'
+                  : 'bg-[#161622]/60 text-gray-400 hover:text-gray-200 border border-[#26263b]'
+              }`}
+            >
+              {city}
             </button>
           ))}
         </div>
@@ -379,6 +451,74 @@ export default function PublicVendorsPage() {
           </div>
         )}
       </main>
+
+      {/* Local SEO & "Near Me" Wedding Services Guide */}
+      <section className="border-t border-[#26263b] bg-[#12121c]/60 py-16 px-6 z-10">
+        <JsonLd data={vendorFaqSchema} />
+        <div className="max-w-4xl mx-auto space-y-12">
+          
+          <div className="text-center space-y-3">
+            <span className="text-[#d4af37] uppercase tracking-widest text-xs font-bold font-sans">Local Wedding Services</span>
+            <h2 className="text-2xl md:text-3xl font-light text-white font-cinzel">
+              Find Verified Wedding Professionals <span className="text-[#d4af37]">Near You</span>
+            </h2>
+            <p className="text-xs md:text-sm text-gray-400 max-w-2xl mx-auto leading-relaxed">
+              Searching for top-rated bridal mehendi artists, candid wedding photographers, bridal makeup experts, or banquet halls near you? InviteMagic connects couples directly with local verified vendors across major cities in India with zero commission.
+            </p>
+          </div>
+
+          {/* Local Service Categories Grid */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
+            <div className="bg-[#161622] border border-[#26263b] rounded-xl p-5 space-y-2">
+              <span className="text-xl">🌿</span>
+              <h3 className="font-bold text-white font-cinzel text-sm">Mehendi Artists Near Me</h3>
+              <p className="text-gray-400 text-[11px] leading-relaxed">
+                Book top bridal Mehendi designers for Rajasthani, Arabic, Floral, and contemporary henna designs.
+              </p>
+            </div>
+            <div className="bg-[#161622] border border-[#26263b] rounded-xl p-5 space-y-2">
+              <span className="text-xl">💄</span>
+              <h3 className="font-bold text-white font-cinzel text-sm">Makeup Artists Near Me</h3>
+              <p className="text-gray-400 text-[11px] leading-relaxed">
+                Connect with certified bridal makeup & hair stylists for HD, Airbrush, and destination wedding looks.
+              </p>
+            </div>
+            <div className="bg-[#161622] border border-[#26263b] rounded-xl p-5 space-y-2">
+              <span className="text-xl">📸</span>
+              <h3 className="font-bold text-white font-cinzel text-sm">Photographers Near Me</h3>
+              <p className="text-gray-400 text-[11px] leading-relaxed">
+                Hire creative wedding photographers and cinematic filmmakers for pre-wedding and wedding shoots.
+              </p>
+            </div>
+          </div>
+
+          {/* FAQs Accordion */}
+          <div className="space-y-4 pt-4">
+            <h3 className="text-lg font-bold text-white font-cinzel text-center">Frequently Asked Questions</h3>
+            <div className="space-y-3">
+              <div className="bg-[#161622] border border-[#26263b] rounded-xl p-5">
+                <h4 className="font-bold text-white mb-2 text-xs sm:text-sm font-cinzel">How do I find top verified wedding vendors or mehendi artists near me?</h4>
+                <p className="text-gray-400 text-xs leading-relaxed">
+                  Browse categories like Mehendi Artists, Makeup, or Photography and select your city (e.g. Bengaluru, Mumbai, Delhi). You can view portfolios, reviews, pricing, and chat with artists directly on WhatsApp.
+                </p>
+              </div>
+              <div className="bg-[#161622] border border-[#26263b] rounded-xl p-5">
+                <h4 className="font-bold text-white mb-2 text-xs sm:text-sm font-cinzel">Is there any commission or booking fee to contact wedding vendors?</h4>
+                <p className="text-gray-400 text-xs leading-relaxed">
+                  No. InviteMagic is a 100% free directory with zero booking fees or commission. You connect directly with service providers via phone or WhatsApp.
+                </p>
+              </div>
+              <div className="bg-[#161622] border border-[#26263b] rounded-xl p-5">
+                <h4 className="font-bold text-white mb-2 text-xs sm:text-sm font-cinzel">How can wedding vendors list their business profile?</h4>
+                <p className="text-gray-400 text-xs leading-relaxed">
+                  Click &apos;Join as Vendor&apos; to create your free business profile, upload portfolio photos, and start receiving direct inquiries from wedding couples.
+                </p>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </section>
 
       {/* Footer */}
       <footer className="border-t border-[#26263b] py-8 px-6 text-center text-xs text-gray-500 z-10">
