@@ -8,17 +8,23 @@ import InvitationPreview from '../InvitationPreview';
 interface CanvasProps {
   invitation: Partial<Invitation>;
   zoom?: number;
+  onEditSection?: (sectionKey: 'details' | 'design' | 'events' | 'gifts') => void;
 }
 
-export default function Canvas({ invitation, zoom = 100 }: CanvasProps) {
+export default function Canvas({ invitation, zoom = 100, onEditSection }: CanvasProps) {
   const [device, setDevice] = useState<'mobile' | 'desktop'>('mobile');
   const scale = zoom / 100;
 
   return (
     <div className="flex-1 bg-[#0d0d11] flex flex-col h-full overflow-hidden">
-      {/* Device Toolbar Controls (only on desktop — mobile uses the bottom sheet) */}
+      {/* Device Toolbar Controls */}
       <div className="bg-[#161622] border-b border-[#26263b] p-2 md:p-3 flex justify-between items-center text-xs shrink-0">
-        <div className="text-gray-500 font-semibold text-[10px] md:text-xs">Live Preview</div>
+        <div className="flex items-center gap-2">
+          <span className="text-gray-400 font-semibold text-[10px] md:text-xs">Live Interactive Canvas</span>
+          <span className="hidden lg:inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-[#d4af37]/10 text-[#d4af37] text-[10px] border border-[#d4af37]/20 font-medium">
+            <span>✨ Tap any section to edit</span>
+          </span>
+        </div>
         <div className="flex bg-[#0d0d11] rounded p-0.5 md:p-1 gap-0.5 md:gap-1 border border-[#26263b]">
           <button
             onClick={() => setDevice('mobile')}
@@ -58,13 +64,23 @@ export default function Canvas({ invitation, zoom = 100 }: CanvasProps) {
 
               {/* Preview scroll area */}
               <div className="flex-1 overflow-y-auto w-full h-full scroll-smooth pt-4">
-                <InvitationPreview invitation={invitation} isPreviewMode={true} />
+                <InvitationPreview 
+                  invitation={invitation} 
+                  isPreviewMode={true} 
+                  isEditorMode={true} 
+                  onEditSection={onEditSection} 
+                />
               </div>
             </div>
           ) : (
             <div className="w-[900px] h-[600px] border border-[#26263b] bg-[#0d0d11] rounded-lg shadow-2xl overflow-hidden flex flex-col">
               <div className="flex-1 overflow-y-auto scroll-smooth">
-                <InvitationPreview invitation={invitation} isPreviewMode={true} />
+                <InvitationPreview 
+                  invitation={invitation} 
+                  isPreviewMode={true} 
+                  isEditorMode={true} 
+                  onEditSection={onEditSection} 
+                />
               </div>
             </div>
           )}

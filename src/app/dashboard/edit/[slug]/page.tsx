@@ -7,7 +7,7 @@ import Canvas from '@/components/Editor/Canvas';
 import { Invitation } from '@/types';
 import { getInvitationBySlug, saveInvitation } from '@/app/actions';
 import { TEMPLATE_PRESETS } from '@/utils/presets';
-import { ArrowLeft, Check, AlertCircle, Heart, Palette, Calendar, Gift, Save, Undo2, Redo2, ZoomIn, ZoomOut, Globe } from 'lucide-react';
+import { ArrowLeft, Check, AlertCircle, Heart, Palette, Calendar, Gift, Save, Undo2, Redo2, ZoomIn, ZoomOut, Globe, Eye, EyeOff, Sparkles } from 'lucide-react';
 import Link from 'next/link';
 import { supabase } from '@/utils/supabase';
 
@@ -158,13 +158,17 @@ export default function EditorPage({ params }: PageProps) {
   const { current: historyState, push: pushHistory, undo, redo, reset: resetHistory, canUndo, canRedo } = useHistory<Partial<Invitation>>(mockInvitation);
   
   const [isSaving, setIsSaving] = useState(false);
-  const [saveStatus, setSaveStatus] = useState<'idle' | 'success' | 'error'>('idle');
+  const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'success' | 'error'>('idle');
   const [isSupabaseWorking, setIsSupabaseWorking] = useState(true);
   const [hasPaid, setHasPaid] = useState<boolean>(false);
   
-  // Canva-style mobile bottom sheet state
+  // Active desktop & mobile tabs
+  const [desktopTab, setDesktopTab] = useState<'details' | 'design' | 'events' | 'gifts'>('details');
   const [activeMobileTab, setActiveMobileTab] = useState<'details' | 'design' | 'events' | 'gifts' | null>(null);
   
+  // Mobile full-screen preview toggle
+  const [isFullScreenPreview, setIsFullScreenPreview] = useState(false);
+
   // Canvas zoom
   const [zoom, setZoom] = useState(100);
 
@@ -172,8 +176,13 @@ export default function EditorPage({ params }: PageProps) {
   const [showShareModal, setShowShareModal] = useState(false);
   const [copied, setCopied] = useState(false);
 
-  // Debounce timer ref for history push
-  const updateTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Debounce timer refs
+  const historyTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const autoSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Touch gesture refs for mobile sheet swipe down
+  const [touchStart, setTouchStart] = useState<number | null>(null);
+  const [touchMove, setTouchMove] = useState<number | null>(null);
 
   // Sync draft state with history changes
   useEffect(() => {
@@ -260,7 +269,6 @@ export default function EditorPage({ params }: PageProps) {
         }
       } catch (e: any) {
         console.error("Notice while loading live invite data (using template defaults):", e);
-        // Fallback to preset draft
         const matchingPreset = TEMPLATE_PRESETS.find((p) => p.slug === slug);
         const presetStyling = matchingPreset ? { ...mockInvitation.styling, ...matchingPreset.styling } : mockInvitation.styling;
         const fallbackDraft: Partial<Invitation> = {
@@ -279,50 +287,63 @@ export default function EditorPage({ params }: PageProps) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [slug]);
 
+  // Silent background auto-save
+  const performSilentSave = useCallback(async (dataToSave: Partial<Invitation>) => {
+    setIsSaving(true);
+    setSaveStatus('saving');
+    try {
+      if (isSupabaseWorking) {
+        const result = await saveInvitation(dataToSave);
+        if (result.success) {
+          setSaveStatus('success');
+          if (result.id && result.id !== dataToSave.id) {
+            setInvitation((prev) => ({ ...prev, id: result.id }));
+          }
+          localStorage.setItem(`invite_${slug}`, JSON.stringify({ ...dataToSave, id: result.id || dataToSave.id }));
+        } else {
+          setSaveStatus('error');
+        }
+      } else {
+        localStorage.setItem(`invite_${slug}`, JSON.stringify(dataToSave));
+        setSaveStatus('success');
+      }
+    } catch (err: any) {
+      console.warn('Fallback save to local storage:', err);
+      localStorage.setItem(`invite_${slug}`, JSON.stringify(dataToSave));
+      setSaveStatus('success');
+    } finally {
+      setIsSaving(false);
+    }
+  }, [isSupabaseWorking, slug]);
+
   const handleUpdate = (updatedFields: Partial<Invitation>) => {
     const nextVal = { ...invitation, ...updatedFields };
     setInvitation(nextVal);
     localStorage.setItem(`invite_${slug}`, JSON.stringify(nextVal));
 
-    // Debounce history push to avoid flooding undo stack on every keystroke
-    if (updateTimer.current) clearTimeout(updateTimer.current);
-    updateTimer.current = setTimeout(() => {
+    // Debounce history push
+    if (historyTimer.current) clearTimeout(historyTimer.current);
+    historyTimer.current = setTimeout(() => {
       pushHistory(nextVal);
     }, 600);
+
+    // Debounce auto-save (2 seconds after typing/adjusting stops)
+    setSaveStatus('saving');
+    if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current);
+    autoSaveTimer.current = setTimeout(() => {
+      performSilentSave(nextVal);
+    }, 2000);
   };
 
-  const handleSave = async () => {
-    setIsSaving(true);
-    setSaveStatus('idle');
+  const handleManualSave = async () => {
+    if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current);
+    await performSilentSave(invitation);
+  };
 
-    try {
-      if (isSupabaseWorking) {
-        const result = await saveInvitation(invitation);
-        if (result.success) {
-          setSaveStatus('success');
-          if (result.id && result.id !== invitation.id) {
-            setInvitation((prev) => ({ ...prev, id: result.id }));
-          }
-          localStorage.setItem(`invite_${slug}`, JSON.stringify({ ...invitation, id: result.id || invitation.id }));
-        } else {
-          setSaveStatus('error');
-          alert(`❌ Save Notice: ${result.error || 'Changes saved to browser storage.'}`);
-        }
-      } else {
-        localStorage.setItem(`invite_${slug}`, JSON.stringify(invitation));
-        setSaveStatus('success');
-      }
-    } catch (err: any) {
-      console.warn('Fallback save to local storage:', err);
-      localStorage.setItem(`invite_${slug}`, JSON.stringify(invitation));
-      setSaveStatus('success');
-    } finally {
-      setIsSaving(false);
-    }
-
-    setTimeout(() => {
-      setSaveStatus('idle');
-    }, 3000);
+  // Click-to-edit callback from Canvas preview
+  const handleEditSection = (sectionKey: 'details' | 'design' | 'events' | 'gifts') => {
+    setDesktopTab(sectionKey);
+    setActiveMobileTab(sectionKey);
   };
 
   const togglePublish = async () => {
@@ -333,13 +354,12 @@ export default function EditorPage({ params }: PageProps) {
     const newPublished = !invitation.is_published;
     const nextVal = { ...invitation, is_published: newPublished };
     
-    // Update local state and history immediately for responsive UI
     setInvitation(nextVal);
     pushHistory(nextVal);
     localStorage.setItem(`invite_${slug}`, JSON.stringify(nextVal));
 
     setIsSaving(true);
-    setSaveStatus('idle');
+    setSaveStatus('saving');
 
     if (isSupabaseWorking) {
       const result = await saveInvitation(nextVal);
@@ -348,7 +368,6 @@ export default function EditorPage({ params }: PageProps) {
       } else {
         setSaveStatus('error');
         alert(`❌ Failed to toggle publish: ${result.error || 'Unknown database error'}`);
-        // Revert local state
         const reverted = { ...invitation, is_published: !newPublished };
         setInvitation(reverted);
         localStorage.setItem(`invite_${slug}`, JSON.stringify(reverted));
@@ -357,9 +376,6 @@ export default function EditorPage({ params }: PageProps) {
       setSaveStatus('success');
     }
     setIsSaving(false);
-    setTimeout(() => {
-      setSaveStatus('idle');
-    }, 3000);
   };
 
   // Keyboard shortcuts for undo/redo
@@ -377,6 +393,26 @@ export default function EditorPage({ params }: PageProps) {
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
   }, [undo, redo]);
+
+  // Mobile sheet swipe down handlers
+  const handleTouchStart = (e: React.TouchEvent) => {
+    setTouchStart(e.targetTouches[0].clientY);
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    setTouchMove(e.targetTouches[0].clientY);
+  };
+
+  const handleTouchEnd = () => {
+    if (touchStart !== null && touchMove !== null) {
+      const distance = touchMove - touchStart;
+      if (distance > 60) {
+        setActiveMobileTab(null);
+      }
+    }
+    setTouchStart(null);
+    setTouchMove(null);
+  };
 
   if (isLoading) {
     return (
@@ -396,14 +432,14 @@ export default function EditorPage({ params }: PageProps) {
           <p className="text-gray-400 mb-6 text-sm leading-relaxed">{loadError}</p>
           <div className="flex gap-4 w-full">
             <Link 
-              href="/dashboard"
+              href="/dashboard" 
               className="flex-1 py-2.5 px-4 bg-[#26263b] hover:bg-[#32324e] text-white rounded-lg font-medium transition-all text-sm block"
             >
               Go to Dashboard
             </Link>
             <button 
               onClick={() => window.location.reload()}
-              className="flex-1 py-2.5 px-4 bg-[#d4af37] hover:bg-[#bfa232] text-black rounded-lg font-semibold transition-all text-sm"
+              className="flex-1 py-2.5 px-4 bg-[#d4af37] hover:bg-[#b8962e] text-black rounded-lg font-semibold transition-all text-sm"
             >
               Retry
             </button>
@@ -434,8 +470,8 @@ export default function EditorPage({ params }: PageProps) {
           </div>
         </div>
 
-        {/* Center: Undo / Redo */}
-        <div className="flex items-center gap-1 shrink-0">
+        {/* Center: Undo / Redo + Real-time Auto-Save Status */}
+        <div className="flex items-center gap-2 shrink-0">
           <button
             onClick={undo}
             disabled={!canUndo}
@@ -452,30 +488,41 @@ export default function EditorPage({ params }: PageProps) {
           >
             <Redo2 className="w-4 h-4" />
           </button>
-          <div className="h-4 w-px bg-[#26263b] mx-1 hidden sm:block" />
-          {/* Save status badges */}
-          {!isSupabaseWorking && (
-            <div className="flex items-center gap-1 px-2 py-1 rounded bg-yellow-500/10 border border-yellow-500/20 text-yellow-500 text-[9px] font-semibold">
+          
+          <div className="h-4 w-px bg-[#26263b] mx-0.5 hidden sm:block" />
+
+          {/* Auto-Save Status Pill */}
+          {saveStatus === 'saving' || isSaving ? (
+            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#d4af37]/10 border border-[#d4af37]/30 text-[#d4af37] text-[10px] font-medium animate-pulse">
+              <div className="w-2.5 h-2.5 border-2 border-t-transparent border-[#d4af37] rounded-full animate-spin" />
+              <span>Saving...</span>
+            </div>
+          ) : saveStatus === 'success' ? (
+            <div className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-[10px] font-medium transition-all">
+              <Check className="w-3 h-3 text-emerald-400" />
+              <span className="hidden sm:inline">All changes saved</span>
+              <span className="sm:hidden">Saved</span>
+            </div>
+          ) : !isSupabaseWorking ? (
+            <div className="flex items-center gap-1 px-2 py-1 rounded-full bg-yellow-500/10 border border-yellow-500/20 text-yellow-500 text-[9px] font-semibold">
               <AlertCircle className="w-3 h-3" />
-              <span className="hidden sm:inline">Offline</span>
+              <span>Offline</span>
             </div>
-          )}
-          {saveStatus === 'success' && (
-            <div className="flex items-center gap-1 px-2 py-1 rounded bg-green-500/10 border border-green-500/20 text-green-500 text-[9px]">
-              <Check className="w-3 h-3" />
-              <span className="hidden sm:inline">Saved</span>
-            </div>
-          )}
-          {saveStatus === 'error' && (
-            <div className="flex items-center gap-1 px-2 py-1 rounded bg-red-500/10 border border-red-500/20 text-red-500 text-[9px]">
-              <AlertCircle className="w-3 h-3" />
-              <span className="hidden sm:inline">Error</span>
-            </div>
-          )}
+          ) : null}
         </div>
 
         {/* Right: Action Buttons */}
         <div className="flex items-center gap-2 shrink-0">
+          {/* Mobile Fullscreen Preview Toggle Button */}
+          <button
+            onClick={() => setIsFullScreenPreview(!isFullScreenPreview)}
+            className="md:hidden flex items-center gap-1 px-2.5 py-1.5 rounded bg-[#26263b] text-gray-300 text-[10px] font-semibold"
+            title="Toggle full screen preview"
+          >
+            {isFullScreenPreview ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5 text-[#d4af37]" />}
+            <span>{isFullScreenPreview ? 'Edit' : 'Preview'}</span>
+          </button>
+
           {hasPaid ? (
             <button
               onClick={togglePublish}
@@ -503,7 +550,7 @@ export default function EditorPage({ params }: PageProps) {
             href={`/invite/${slug}`}
             target="_blank"
             rel="noopener noreferrer"
-            className="px-2.5 py-1.5 rounded bg-[#26263b] hover:bg-[#34344d] text-white text-[10px] font-semibold transition-all"
+            className="px-2.5 py-1.5 rounded bg-[#26263b] hover:bg-[#34344d] text-white text-[10px] font-semibold transition-all hidden sm:inline-block"
           >
             Open Live
           </a>
@@ -523,16 +570,22 @@ export default function EditorPage({ params }: PageProps) {
           <Sidebar 
             invitation={invitation} 
             onUpdate={handleUpdate} 
-            onSave={handleSave} 
+            onSave={handleManualSave}
             isSaving={isSaving} 
             hasPaid={hasPaid}
             onPaymentSuccess={handlePaymentSuccess}
+            activeTab={desktopTab}
+            onTabChange={setDesktopTab}
           />
         </aside>
 
         {/* Canvas Area */}
-        <div className="flex-1 h-full overflow-hidden flex flex-col pb-14 md:pb-0">
-          <Canvas invitation={invitation} zoom={zoom} />
+        <div className={`flex-1 h-full overflow-hidden flex flex-col ${isFullScreenPreview ? 'pb-0' : 'pb-14 md:pb-0'}`}>
+          <Canvas 
+            invitation={invitation} 
+            zoom={zoom} 
+            onEditSection={handleEditSection}
+          />
         </div>
       </div>
 
@@ -561,56 +614,62 @@ export default function EditorPage({ params }: PageProps) {
         </button>
       </div>
 
-      {/* ─── Mobile Bottom Navigation Bar ─── */}
-      <nav className="flex border-t border-[#26263b] bg-[#161622] md:hidden text-[9px] uppercase font-bold tracking-wider shrink-0 z-30 justify-around py-1.5 shadow-[0_-4px_12px_rgba(0,0,0,0.4)]">
-        {([
-          { key: 'details' as const, icon: Heart, label: 'Details' },
-          { key: 'design' as const, icon: Palette, label: 'Design' },
-          { key: 'events' as const, icon: Calendar, label: 'Events' },
-          { key: 'gifts' as const, icon: Gift, label: 'Gifts' },
-        ]).map(({ key, icon: Icon, label }) => (
-          <button
-            key={key}
-            onClick={() => setActiveMobileTab(activeMobileTab === key ? null : key)}
-            className={`flex flex-col items-center gap-0.5 py-1.5 px-3 rounded-lg transition-all ${
-              activeMobileTab === key 
-                ? 'text-[#d4af37] bg-[#d4af37]/10' 
-                : 'text-gray-500 active:text-white'
-            }`}
-          >
-            <Icon className="w-5 h-5" />
-            <span>{label}</span>
-          </button>
-        ))}
-      </nav>
+      {/* ─── Mobile Bottom Navigation Bar (Hidden when in Fullscreen Preview) ─── */}
+      {!isFullScreenPreview && (
+        <nav className="flex border-t border-[#26263b] bg-[#161622] md:hidden text-[9px] uppercase font-bold tracking-wider shrink-0 z-30 justify-around py-1.5 shadow-[0_-4px_12px_rgba(0,0,0,0.4)]">
+          {([
+            { key: 'details' as const, icon: Heart, label: 'Details' },
+            { key: 'design' as const, icon: Palette, label: 'Design' },
+            { key: 'events' as const, icon: Calendar, label: 'Events' },
+            { key: 'gifts' as const, icon: Gift, label: 'Gifts' },
+          ]).map(({ key, icon: Icon, label }) => (
+            <button
+              key={key}
+              onClick={() => setActiveMobileTab(activeMobileTab === key ? null : key)}
+              className={`flex flex-col items-center gap-0.5 py-1.5 px-3 rounded-lg transition-all ${
+                activeMobileTab === key 
+                  ? 'text-[#d4af37] bg-[#d4af37]/10' 
+                  : 'text-gray-500 active:text-white'
+              }`}
+            >
+              <Icon className="w-5 h-5" />
+              <span>{label}</span>
+            </button>
+          ))}
+        </nav>
+      )}
 
-      {/* ─── Mobile Sliding Bottom Sheet ─── */}
-      {activeMobileTab && (
+      {/* ─── Mobile Sliding Bottom Sheet with Swipe-Down Dismiss ─── */}
+      {activeMobileTab && !isFullScreenPreview && (
         <div className="fixed inset-0 z-40 md:hidden" onClick={() => setActiveMobileTab(null)}>
-          {/* Dimmed backdrop */}
-          <div className="absolute inset-0 bg-black/40" />
+          <div className="absolute inset-0 bg-black/50 backdrop-blur-xs" />
         </div>
       )}
       <div 
-        className={`fixed inset-x-0 bottom-0 bg-[#161622] border-t border-[#d4af37]/20 rounded-t-2xl shadow-[0_-8px_30px_rgba(0,0,0,0.6)] z-50 transition-transform duration-300 ease-out md:hidden ${
-          activeMobileTab ? 'translate-y-0' : 'translate-y-full'
+        className={`fixed inset-x-0 bottom-0 bg-[#161622] border-t border-[#d4af37]/25 rounded-t-3xl shadow-[0_-12px_35px_rgba(0,0,0,0.8)] z-50 transition-transform duration-300 ease-out md:hidden ${
+          activeMobileTab && !isFullScreenPreview ? 'translate-y-0' : 'translate-y-full'
         }`}
-        style={{ height: '60dvh' }}
+        style={{ height: '68dvh' }}
       >
         <div className="flex flex-col h-full">
-          {/* Sheet drag handle */}
-          <div className="flex justify-center pt-2 pb-1 shrink-0">
-            <div className="w-10 h-1 bg-gray-600 rounded-full" />
+          {/* Sheet drag handle with swipe down gesture */}
+          <div 
+            onTouchStart={handleTouchStart}
+            onTouchMove={handleTouchMove}
+            onTouchEnd={handleTouchEnd}
+            className="flex justify-center pt-3 pb-2 shrink-0 cursor-grab active:cursor-grabbing select-none"
+          >
+            <div className="w-12 h-1.5 bg-gray-500/60 rounded-full" />
           </div>
 
           {/* Sheet Title bar */}
           <div className="px-4 py-2 border-b border-[#26263b] flex items-center justify-between shrink-0">
-            <div className="flex items-center gap-1.5">
+            <div className="flex items-center gap-2">
               {activeMobileTab === 'details' && <Heart className="w-4 h-4 text-[#d4af37]" />}
               {activeMobileTab === 'design' && <Palette className="w-4 h-4 text-[#d4af37]" />}
               {activeMobileTab === 'events' && <Calendar className="w-4 h-4 text-[#d4af37]" />}
               {activeMobileTab === 'gifts' && <Gift className="w-4 h-4 text-[#d4af37]" />}
-              <span className="font-semibold text-white font-cinzel capitalize text-xs tracking-wider">
+              <span className="font-bold text-white font-cinzel capitalize text-xs tracking-wider">
                 {activeMobileTab || ''}
               </span>
             </div>
@@ -629,23 +688,11 @@ export default function EditorPage({ params }: PageProps) {
               >
                 <Redo2 className="w-3.5 h-3.5" />
               </button>
-              <button
-                onClick={handleSave}
-                disabled={isSaving}
-                className="px-2.5 py-1 bg-[#d4af37] hover:bg-[#b8962e] text-[#0d0d11] font-bold rounded flex items-center gap-1 transition-all text-[9px] uppercase tracking-widest disabled:opacity-50"
-              >
-                {isSaving ? (
-                  <div className="w-3 h-3 border-2 border-t-transparent border-[#0d0d11] rounded-full animate-spin" />
-                ) : (
-                  <Save className="w-3 h-3" />
-                )}
-                <span>Save</span>
-              </button>
               <button 
                 onClick={() => setActiveMobileTab(null)}
-                className="text-gray-400 hover:text-white text-lg font-bold px-1 cursor-pointer"
+                className="px-2.5 py-1 bg-[#d4af37] text-[#0d0d11] font-bold text-[10px] rounded-full uppercase tracking-wider"
               >
-                &times;
+                Done
               </button>
             </div>
           </div>
@@ -656,7 +703,7 @@ export default function EditorPage({ params }: PageProps) {
               <Sidebar 
                 invitation={invitation} 
                 onUpdate={handleUpdate} 
-                onSave={handleSave} 
+                onSave={handleManualSave} 
                 isSaving={isSaving} 
                 hasPaid={hasPaid}
                 onPaymentSuccess={handlePaymentSuccess}

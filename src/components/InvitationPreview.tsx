@@ -14,12 +14,16 @@ interface InvitationPreviewProps {
   invitation: Partial<Invitation>;
   onRsvpSubmit?: (rsvp: Omit<RSVPType, 'id' | 'created_at'>) => Promise<boolean>;
   isPreviewMode?: boolean;
+  isEditorMode?: boolean;
+  onEditSection?: (sectionKey: 'details' | 'design' | 'events' | 'gifts') => void;
 }
 
 export default function InvitationPreview({ 
   invitation, 
   onRsvpSubmit,
-  isPreviewMode = false 
+  isPreviewMode = false,
+  isEditorMode = false,
+  onEditSection
 }: InvitationPreviewProps) {
   const styling = (invitation.styling || {
     primary_color: '#d4af37',
@@ -415,6 +419,19 @@ export default function InvitationPreview({
         {/* Soft Vignette overlay */}
         <div className="absolute inset-0 pointer-events-none bg-[radial-gradient(circle_at_center,transparent_30%,rgba(0,0,0,0.85)_100%)]" />
 
+        {/* Floating Edit Cover Button in Editor Mode */}
+        {isEditorMode && onEditSection && (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onEditSection('design');
+            }}
+            className="absolute top-4 right-4 z-50 bg-[#0d0d11]/90 backdrop-blur-md border border-[#d4af37] text-[#d4af37] px-3.5 py-1.5 rounded-full text-[11px] font-bold shadow-2xl flex items-center gap-1.5 font-sans cursor-pointer hover:bg-[#d4af37] hover:text-[#0d0d11] transition-all"
+          >
+            <span>✏️ Edit Cover & Wax Seal</span>
+          </button>
+        )}
+
         {/* Floating Rose Petals and Gold Blossoms */}
         {petals.map((p, idx) => (
           <motion.div 
@@ -751,8 +768,8 @@ export default function InvitationPreview({
     );
   };
 
-  // Render individual sections
-  const renderSection = (sectionName: string) => {
+  // Render raw individual section contents
+  const renderRawSection = (sectionName: string) => {
     const animationVariants = {
       hidden: { opacity: 0, y: 30 },
       visible: { opacity: 1, y: 0, transition: { duration: 0.8, ease: 'easeOut' } }
@@ -1893,6 +1910,58 @@ export default function InvitationPreview({
       default:
         return null;
     }
+  };
+
+  const sectionToTabMap: Record<string, 'details' | 'design' | 'events' | 'gifts'> = {
+    hero: 'details',
+    countdown: 'events',
+    story: 'details',
+    events: 'events',
+    gallery: 'details',
+    rsvp: 'events',
+    gifts: 'gifts',
+  };
+
+  const sectionLabelMap: Record<string, string> = {
+    hero: 'Couple Names & Photos',
+    countdown: 'Wedding Schedule',
+    story: 'Bio & Invitation Message',
+    events: 'Events & Venues',
+    gallery: 'Photo Gallery',
+    rsvp: 'RSVP Form',
+    gifts: 'UPI & Gift Registry',
+  };
+
+  const renderSection = (sectionName: string) => {
+    const raw = renderRawSection(sectionName);
+    if (!raw) return null;
+    if (!isEditorMode || !onEditSection) return raw;
+
+    const targetTab = sectionToTabMap[sectionName] || 'details';
+    const label = sectionLabelMap[sectionName] || 'Section';
+
+    return (
+      <div 
+        key={sectionName}
+        className="relative group/editor cursor-pointer"
+        onClick={(e) => {
+          e.stopPropagation();
+          onEditSection(targetTab);
+        }}
+      >
+        {/* Subtle Gold Dashed Border on Hover */}
+        <div className="absolute inset-0 border-2 border-dashed border-[#d4af37]/0 group-hover/editor:border-[#d4af37]/80 pointer-events-none transition-all z-30 rounded-2xl m-1 shadow-[0_0_20px_rgba(212,175,55,0.15)]" />
+        
+        {/* Floating Edit Pill */}
+        <div className="absolute top-4 right-4 z-40 opacity-0 group-hover/editor:opacity-100 transition-all pointer-events-none transform -translate-y-1 group-hover/editor:translate-y-0 duration-200">
+          <div className="bg-[#0d0d11]/90 backdrop-blur-md border border-[#d4af37] text-[#d4af37] px-3.5 py-1.5 rounded-full text-[11px] font-bold shadow-2xl flex items-center gap-1.5 font-sans tracking-wide">
+            <span>✏️ Edit {label}</span>
+          </div>
+        </div>
+
+        {raw}
+      </div>
+    );
   };
 
   if (!isOpen) {
