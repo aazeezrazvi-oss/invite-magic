@@ -6,13 +6,12 @@ import { useRouter } from 'next/navigation';
 import { 
   Heart, Sparkles, Image as ImageIcon, Phone, MessageCircle, 
   MapPin, Tag, ShieldCheck, CheckCircle2, 
-  AlertCircle, ArrowLeft, Plus, Trash2, Eye, Star, Share2, Copy, Check, Upload 
+  AlertCircle, ArrowLeft, Plus, Trash2, Eye, Star, Share2, Copy, Check, Upload, Lock, Mail, LogOut, User 
 } from 'lucide-react';
 import { VendorProfile, VendorCategory } from '@/types';
 import { submitVendorProfile, getVendorByUserId } from '@/app/vendor-actions';
 import Logo from '@/components/Logo';
 import { supabase } from '@/utils/supabase';
-
 
 const InstagramIcon = ({ className = "w-4 h-4" }: { className?: string }) => (
   <svg className={className} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" strokeLinecap="round" strokeLinejoin="round">
@@ -21,7 +20,6 @@ const InstagramIcon = ({ className = "w-4 h-4" }: { className?: string }) => (
     <line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line>
   </svg>
 );
-
 
 const categoryOptions: { id: VendorCategory; label: string }[] = [
   { id: 'mehendi', label: 'Mehendi Artist' },
@@ -51,12 +49,25 @@ export default function VendorPortalPage() {
     starting_price: '',
   });
 
+  // Account creation states (Option A: for vendors not logged in yet)
+  const [accountEmail, setAccountEmail] = useState('');
+  const [accountPassword, setAccountPassword] = useState('');
+  const [accountConfirmPassword, setAccountConfirmPassword] = useState('');
+
+  // Existing vendor sign-in modal states
+  const [isSignInModalOpen, setIsSignInModalOpen] = useState(false);
+  const [signInEmail, setSignInEmail] = useState('');
+  const [signInPassword, setSignInPassword] = useState('');
+  const [signInLoading, setSignInLoading] = useState(false);
+  const [signInError, setSignInError] = useState<string | null>(null);
+
   const [newPhotoUrl, setNewPhotoUrl] = useState('');
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [statusNotice, setStatusNotice] = useState<{ type: 'success' | 'warning' | 'error'; message: string; pending?: boolean } | null>(null);
   const [existingVendor, setExistingVendor] = useState<VendorProfile | null>(null);
   const [userId, setUserId] = useState<string | null>(null);
+  const [userEmail, setUserEmail] = useState<string | null>(null);
   const [copiedLink, setCopiedLink] = useState(false);
   const [uploadingDp, setUploadingDp] = useState(false);
   const [uploadingPortfolio, setUploadingPortfolio] = useState(false);
@@ -152,13 +163,14 @@ export default function VendorPortalPage() {
     }
   };
 
-  useEffect(() => {
-    async function loadVendorInfo() {
-      setLoading(true);
+  async function loadVendorInfo() {
+    setLoading(true);
+    try {
       const { data: { session } } = await supabase.auth.getSession();
       
       if (session?.user) {
         setUserId(session.user.id);
+        setUserEmail(session.user.email || null);
         const existing = await getVendorByUserId(session.user.id);
         if (existing) {
           setExistingVendor(existing);
@@ -178,10 +190,83 @@ export default function VendorPortalPage() {
           }
         }
       }
+    } catch (e) {
+      console.warn('Vendor load session error:', e);
+    } finally {
       setLoading(false);
     }
+  }
+
+  useEffect(() => {
     loadVendorInfo();
   }, []);
+
+  const handleSignOut = async () => {
+    await supabase.auth.signOut();
+    setUserId(null);
+    setUserEmail(null);
+    setExistingVendor(null);
+    setFormData({
+      business_name: '',
+      category: 'mehendi',
+      tagline: '',
+      description: '',
+      location: '',
+      dp_url: '',
+      portfolio_photos: [],
+      whatsapp_number: '',
+      phone_number: '',
+      instagram_handle: '',
+      starting_price: '',
+    });
+    setStatusNotice(null);
+  };
+
+  const handleSignInExisting = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!signInEmail.trim() || !signInPassword.trim()) return;
+    setSignInLoading(true);
+    setSignInError(null);
+
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: signInEmail.trim(),
+        password: signInPassword,
+      });
+
+      if (error) {
+        throw error;
+      }
+
+      if (data.user) {
+        setUserId(data.user.id);
+        setUserEmail(data.user.email || signInEmail.trim());
+        setIsSignInModalOpen(false);
+        const existing = await getVendorByUserId(data.user.id);
+        if (existing) {
+          setExistingVendor(existing);
+          setFormData(existing);
+          if (!existing.is_approved) {
+            setStatusNotice({
+              type: 'warning',
+              pending: true,
+              message: '⏳ Status: Pending Admin Verification. Your profile is saved, and will become visible on the public directory once verified by admin.',
+            });
+          } else {
+            setStatusNotice({
+              type: 'success',
+              pending: false,
+              message: '✅ Status: Approved & Live! Welcome back to your vendor dashboard.',
+            });
+          }
+        }
+      }
+    } catch (err: any) {
+      setSignInError(err.message || 'Incorrect email or password.');
+    } finally {
+      setSignInLoading(false);
+    }
+  };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -211,9 +296,78 @@ export default function VendorPortalPage() {
     setStatusNotice(null);
 
     try {
+      let currentUserId = userId;
+
+      // Option A: If not logged in, auto-create vendor account in this single click!
+      if (!currentUserId) {
+        if (!accountEmail.trim() || !accountPassword.trim()) {
+          setStatusNotice({
+            type: 'error',
+            message: 'Please provide an account email and password below to secure your vendor listing.',
+          });
+          setSubmitting(false);
+          return;
+        }
+
+        if (accountPassword.length < 6) {
+          setStatusNotice({
+            type: 'error',
+            message: 'Password must be at least 6 characters long.',
+          });
+          setSubmitting(false);
+          return;
+        }
+
+        if (accountConfirmPassword && accountPassword !== accountConfirmPassword) {
+          setStatusNotice({
+            type: 'error',
+            message: 'Passwords do not match. Please verify your password.',
+          });
+          setSubmitting(false);
+          return;
+        }
+
+        // 1. Sign up user
+        const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+          email: accountEmail.trim(),
+          password: accountPassword,
+          options: {
+            data: {
+              full_name: formData.business_name || 'Vendor Partner',
+              role: 'vendor',
+            },
+          },
+        });
+
+        if (signUpError) {
+          // If already registered, try auto sign in
+          const { data: signInData, error: signInErr } = await supabase.auth.signInWithPassword({
+            email: accountEmail.trim(),
+            password: accountPassword,
+          });
+
+          if (signInErr || !signInData?.user) {
+            setStatusNotice({
+              type: 'error',
+              message: signUpError.message || 'Account registration error. Please check your credentials.',
+            });
+            setSubmitting(false);
+            return;
+          }
+          currentUserId = signInData.user.id;
+          setUserId(signInData.user.id);
+          setUserEmail(signInData.user.email || accountEmail);
+        } else if (signUpData?.user) {
+          currentUserId = signUpData.user.id;
+          setUserId(signUpData.user.id);
+          setUserEmail(signUpData.user.email || accountEmail);
+        }
+      }
+
+      // 2. Submit Vendor Profile linked to the authenticated user
       const res = await submitVendorProfile({
         ...formData,
-        user_id: userId,
+        user_id: currentUserId,
       });
 
       if (res.success) {
@@ -225,7 +379,7 @@ export default function VendorPortalPage() {
           setStatusNotice({
             type: 'warning',
             pending: true,
-            message: '🎉 Profile Saved! Status: Pending Approval. Your profile will show on the public directory as soon as the admin approves it.',
+            message: '🎉 Account Created & Profile Registered! Status: Pending Approval. Your profile will be verified and published on the public directory shortly.',
           });
         } else {
           setStatusNotice({
@@ -261,62 +415,6 @@ export default function VendorPortalPage() {
     );
   }
 
-  // Enforce Login Requirement: Vendors must be logged in to register & edit profile details
-  if (!userId) {
-    return (
-      <div className="min-h-screen bg-[#0d0d11] text-[#f3f4f6] flex flex-col font-sans relative overflow-x-hidden">
-        {/* Header */}
-        <header className="border-b border-[#26263b] bg-[#161622]/50 backdrop-blur-md px-6 py-4 flex items-center justify-between">
-          <Logo variant="compact" size="sm" href="/" />
-          <Link 
-            href="/vendors" 
-            className="text-xs uppercase tracking-widest font-semibold flex items-center gap-1.5 hover:text-[#d4af37] transition-all text-gray-300"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            <span>Public Directory</span>
-          </Link>
-        </header>
-
-        {/* Login Prompt Hero Box */}
-        <div className="flex-grow flex items-center justify-center p-6">
-          <div className="bg-[#161622] border border-[#26263b] rounded-2xl p-8 sm:p-12 text-center max-w-lg w-full space-y-6 shadow-2xl relative overflow-hidden">
-            <div className="absolute -top-10 -right-10 w-36 h-36 bg-[#d4af37]/10 rounded-full blur-2xl pointer-events-none" />
-            
-            <div className="w-16 h-16 bg-[#d4af37]/10 border border-[#d4af37]/30 rounded-full flex items-center justify-center mx-auto text-[#d4af37]">
-              <ShieldCheck className="w-8 h-8" />
-            </div>
-
-            <div className="space-y-2">
-              <span className="inline-block px-3 py-1 rounded-full bg-[#d4af37]/10 text-[#d4af37] border border-[#d4af37]/20 text-[10px] font-bold uppercase tracking-wider">
-                Authentication Required
-              </span>
-              <h2 className="text-2xl font-bold text-white font-cinzel">Login to Access Vendor Portal</h2>
-              <p className="text-xs text-gray-400 leading-relaxed">
-                Service providers must log in to register a new business profile or edit existing profile details securely.
-              </p>
-            </div>
-
-            <div className="space-y-3 pt-2">
-              <Link
-                href="/login?redirectTo=/vendors/portal"
-                className="w-full py-3.5 bg-[#d4af37] hover:bg-[#b8962e] text-[#0d0d11] font-bold text-xs uppercase tracking-widest rounded-lg flex items-center justify-center gap-2 transition-all shadow-lg cursor-pointer"
-              >
-                <span>Login or Register Free Account</span>
-              </Link>
-
-              <Link
-                href="/vendors"
-                className="w-full py-3 bg-[#26263b] hover:bg-[#34344d] text-gray-300 font-semibold text-xs uppercase tracking-wider rounded-lg flex items-center justify-center gap-2 transition-all"
-              >
-                <span>Browse Vendor Directory</span>
-              </Link>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="min-h-screen bg-[#0d0d11] text-[#f3f4f6] flex flex-col font-sans relative overflow-x-hidden">
       
@@ -325,32 +423,63 @@ export default function VendorPortalPage() {
       <div className="absolute bottom-10 right-10 w-[400px] h-[400px] bg-[#10b981]/5 rounded-full blur-[120px] pointer-events-none z-0" />
 
       {/* Header */}
-      <header className="border-b border-[#26263b] bg-[#161622]/50 backdrop-blur-md px-4 sm:px-6 py-3.5 flex items-center justify-between z-10">
+      <header className="border-b border-[#26263b] bg-[#161622]/50 backdrop-blur-md px-4 sm:px-6 py-3.5 flex items-center justify-between z-20">
         <Logo variant="compact" size="sm" href="/" />
-        <Link 
-          href="/vendors" 
-          className="text-[11px] sm:text-xs uppercase tracking-widest font-semibold flex items-center gap-1 hover:text-[#d4af37] transition-all text-gray-300 whitespace-nowrap"
-        >
-          <ArrowLeft className="w-3.5 h-3.5" />
-          <span className="hidden sm:inline">View Public Directory</span>
-          <span className="inline sm:hidden">Directory</span>
-        </Link>
+        
+        <div className="flex items-center gap-3 sm:gap-4">
+          {userId ? (
+            <div className="flex items-center gap-2 sm:gap-3">
+              <span className="text-[11px] text-gray-400 font-mono hidden md:inline">
+                {userEmail}
+              </span>
+              <button
+                onClick={handleSignOut}
+                className="px-3 py-1.5 rounded bg-[#26263b] hover:bg-[#34344d] text-gray-300 hover:text-white text-[11px] font-bold flex items-center gap-1.5 transition-all cursor-pointer"
+                title="Sign Out"
+              >
+                <LogOut className="w-3 h-3 text-red-400" />
+                <span>Sign Out</span>
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={() => setIsSignInModalOpen(true)}
+              className="px-3.5 py-1.5 rounded bg-[#26263b] hover:bg-[#34344d] text-[#d4af37] text-[11px] font-bold uppercase tracking-wider flex items-center gap-1.5 transition-all cursor-pointer border border-[#d4af37]/30"
+            >
+              <User className="w-3.5 h-3.5" />
+              <span>Already Registered? Sign In</span>
+            </button>
+          )}
+
+          <Link 
+            href="/vendors" 
+            className="text-[11px] sm:text-xs uppercase tracking-widest font-semibold flex items-center gap-1 hover:text-[#d4af37] transition-all text-gray-300 whitespace-nowrap"
+          >
+            <ArrowLeft className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">Public Directory</span>
+            <span className="inline sm:hidden">Directory</span>
+          </Link>
+        </div>
       </header>
 
       {/* Main Container */}
-      <main className="flex-grow max-w-6xl w-full mx-auto px-6 py-12 space-y-8 z-10">
+      <main className="flex-grow max-w-6xl w-full mx-auto px-6 py-10 space-y-8 z-10">
         
-        {/* Title */}
+        {/* Title Banner */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-[#26263b] pb-6">
           <div>
             <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-[#d4af37]/10 border border-[#d4af37]/20 text-[#d4af37] text-[10px] font-bold uppercase tracking-wider mb-2">
               <Sparkles className="w-3 h-3" />
-              <span>100% Free Service Provider Listing</span>
+              <span>100% Free Service Provider Registration</span>
             </span>
             <h1 className="text-2xl md:text-4xl font-light text-white font-cinzel">
-              Service Provider Registration & Portal
+              {existingVendor ? 'Vendor Management Dashboard' : 'Vendor Registration Portal'}
             </h1>
-            <p className="text-xs text-gray-400 mt-1">Register your Mehendi, Makeup, Photography, or Decor business to connect with wedding couples.</p>
+            <p className="text-xs text-gray-400 mt-1">
+              {existingVendor 
+                ? 'Update your business info, portfolio photos, starting packages, and contact links.' 
+                : 'Enter your business details below to create your free profile and connect directly with wedding couples.'}
+            </p>
           </div>
           <Link
             href="/vendors"
@@ -380,14 +509,14 @@ export default function VendorPortalPage() {
             )}
             <div>
               <span className="font-bold block text-sm mb-0.5">
-                {statusNotice.pending ? 'Profile Verification Pending' : statusNotice.type === 'success' ? 'Profile Verified & Live' : 'Notice'}
+                {statusNotice.pending ? 'Profile Verification Pending' : statusNotice.type === 'success' ? 'Profile Saved & Live' : 'Notice'}
               </span>
               <span>{statusNotice.message}</span>
             </div>
           </div>
         )}
 
-        {/* Direct Share Profile Link Banner */}
+        {/* Direct Share Profile Link Banner (When Vendor Profile Exists) */}
         {existingVendor?.id && (
           <div className="space-y-3">
             {/* Live Real-time Star Rating & Directory Rank Banner */}
@@ -462,7 +591,7 @@ export default function VendorPortalPage() {
           {/* Form Column */}
           <div className="lg:col-span-7 bg-[#161622]/40 border border-[#26263b] rounded-2xl p-6 sm:p-8 space-y-6 shadow-xl">
             <h2 className="text-lg font-bold text-white font-cinzel border-b border-[#26263b] pb-3">
-              {existingVendor ? 'Edit Business Profile' : 'Register New Vendor Profile'}
+              {existingVendor ? 'Edit Business Profile' : '1. Business Profile Details'}
             </h2>
 
             <form onSubmit={handleSubmit} className="space-y-4 text-xs">
@@ -713,13 +842,83 @@ export default function VendorPortalPage() {
                 />
               </div>
 
+              {/* Option A: Account Creation Section (Only shown when not logged in) */}
+              {!userId && (
+                <div className="p-5 bg-[#0d0d11] rounded-2xl border border-[#d4af37]/30 space-y-4 pt-4 mt-6">
+                  <div className="flex items-center gap-2 border-b border-[#26263b] pb-2.5">
+                    <ShieldCheck className="w-4 h-4 text-[#d4af37]" />
+                    <h3 className="font-bold text-white uppercase tracking-wider text-xs font-cinzel">
+                      2. Create Your Account Login Details
+                    </h3>
+                  </div>
+                  <p className="text-[11px] text-gray-400 leading-relaxed">
+                    Set up your email and password so you can log in anytime to update your portfolio, check your ratings, and manage your vendor listing.
+                  </p>
+
+                  <div className="space-y-3">
+                    <div>
+                      <label className="block text-gray-400 font-semibold mb-1 uppercase text-[10px]">Account Email Address *</label>
+                      <div className="relative">
+                        <Mail className="w-4 h-4 text-gray-500 absolute left-3 top-3" />
+                        <input
+                          type="email"
+                          required
+                          value={accountEmail}
+                          onChange={(e) => setAccountEmail(e.target.value)}
+                          placeholder="your.email@example.com"
+                          className="w-full bg-[#161622] border border-[#26263b] rounded-lg pl-9 pr-3.5 py-2.5 text-white outline-none focus:border-[#d4af37] text-xs"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-gray-400 font-semibold mb-1 uppercase text-[10px]">Create Password *</label>
+                        <div className="relative">
+                          <Lock className="w-4 h-4 text-gray-500 absolute left-3 top-3" />
+                          <input
+                            type="password"
+                            required
+                            value={accountPassword}
+                            onChange={(e) => setAccountPassword(e.target.value)}
+                            placeholder="••••••••"
+                            className="w-full bg-[#161622] border border-[#26263b] rounded-lg pl-9 pr-3.5 py-2.5 text-white outline-none focus:border-[#d4af37] text-xs"
+                          />
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className="block text-gray-400 font-semibold mb-1 uppercase text-[10px]">Confirm Password</label>
+                        <div className="relative">
+                          <Lock className="w-4 h-4 text-gray-500 absolute left-3 top-3" />
+                          <input
+                            type="password"
+                            value={accountConfirmPassword}
+                            onChange={(e) => setAccountConfirmPassword(e.target.value)}
+                            placeholder="••••••••"
+                            className="w-full bg-[#161622] border border-[#26263b] rounded-lg pl-9 pr-3.5 py-2.5 text-white outline-none focus:border-[#d4af37] text-xs"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {/* Submit Button */}
               <button
                 type="submit"
                 disabled={submitting}
-                className="w-full py-3.5 bg-[#d4af37] hover:bg-[#b8962e] text-[#0d0d11] font-bold rounded-lg transition-all uppercase tracking-widest cursor-pointer disabled:opacity-50 mt-4 shadow-lg"
+                className="w-full py-3.5 bg-[#d4af37] hover:bg-[#b8962e] text-[#0d0d11] font-bold rounded-xl transition-all uppercase tracking-widest cursor-pointer disabled:opacity-50 mt-4 shadow-[0_4px_20px_rgba(212,175,55,0.25)] flex items-center justify-center gap-2"
               >
-                {submitting ? 'Saving Profile...' : existingVendor ? 'Update Profile' : 'Register Profile (Free)'}
+                {submitting ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-t-transparent border-[#0d0d11] rounded-full animate-spin" />
+                    <span>{existingVendor ? 'Saving Changes...' : 'Creating Account & Submitting Profile...'}</span>
+                  </>
+                ) : (
+                  <span>{existingVendor ? 'Save Profile Changes' : '✨ Register & Create Vendor Profile (Free)'}</span>
+                )}
               </button>
 
             </form>
@@ -813,6 +1012,70 @@ export default function VendorPortalPage() {
         </div>
 
       </main>
+
+      {/* Returning Vendor Sign-In Lightbox Modal */}
+      {isSignInModalOpen && (
+        <div className="fixed inset-0 bg-[#0d0d11]/90 backdrop-blur-md flex items-center justify-center z-50 p-4 animate-in fade-in duration-200">
+          <div className="bg-[#161622] border border-[#26263b] rounded-2xl w-full max-w-md p-6 sm:p-8 space-y-6 shadow-2xl relative">
+            <div className="flex justify-between items-center border-b border-[#26263b] pb-3">
+              <h3 className="font-bold text-white font-cinzel text-base flex items-center gap-2">
+                <User className="w-4 h-4 text-[#d4af37]" />
+                <span>Vendor Partner Sign In</span>
+              </h3>
+              <button
+                onClick={() => setIsSignInModalOpen(false)}
+                className="text-gray-400 hover:text-white text-xs font-bold"
+              >
+                ✕ Close
+              </button>
+            </div>
+
+            {signInError && (
+              <div className="p-3 bg-red-500/10 border border-red-500/30 text-red-400 rounded-lg text-xs">
+                {signInError}
+              </div>
+            )}
+
+            <form onSubmit={handleSignInExisting} className="space-y-4 text-xs">
+              <div>
+                <label className="block text-gray-400 font-semibold mb-1 uppercase tracking-wider text-[10px]">Email Address</label>
+                <input
+                  type="email"
+                  required
+                  value={signInEmail}
+                  onChange={(e) => setSignInEmail(e.target.value)}
+                  placeholder="vendor@example.com"
+                  className="w-full bg-[#0d0d11] border border-[#26263b] rounded-lg px-3.5 py-2.5 text-white outline-none focus:border-[#d4af37]"
+                />
+              </div>
+
+              <div>
+                <label className="block text-gray-400 font-semibold mb-1 uppercase tracking-wider text-[10px]">Password</label>
+                <input
+                  type="password"
+                  required
+                  value={signInPassword}
+                  onChange={(e) => setSignInPassword(e.target.value)}
+                  placeholder="••••••••"
+                  className="w-full bg-[#0d0d11] border border-[#26263b] rounded-lg px-3.5 py-2.5 text-white outline-none focus:border-[#d4af37]"
+                />
+              </div>
+
+              <button
+                type="submit"
+                disabled={signInLoading}
+                className="w-full py-3 bg-[#d4af37] hover:bg-[#b8962e] text-[#0d0d11] font-bold text-xs uppercase tracking-wider rounded-lg transition-all cursor-pointer disabled:opacity-50"
+              >
+                {signInLoading ? 'Signing In...' : 'Sign In to Vendor Dashboard'}
+              </button>
+            </form>
+
+            <p className="text-[11px] text-gray-400 text-center">
+              New vendor? <button onClick={() => setIsSignInModalOpen(false)} className="text-[#d4af37] font-semibold hover:underline">Fill the registration form below</button>
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* Footer */}
       <footer className="border-t border-[#26263b] py-8 px-6 text-center text-xs text-gray-500 z-10">
