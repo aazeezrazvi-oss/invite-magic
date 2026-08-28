@@ -169,8 +169,8 @@ export default function EditorPage({ params }: PageProps) {
   // Mobile full-screen preview toggle
   const [isFullScreenPreview, setIsFullScreenPreview] = useState(false);
 
-  // Canvas zoom (75% default for optimal desktop fit)
-  const [zoom, setZoom] = useState(75);
+  // Canvas zoom (100% default for full borderless preview)
+  const [zoom, setZoom] = useState(100);
 
   // Share modal
   const [showShareModal, setShowShareModal] = useState(false);
@@ -607,8 +607,8 @@ export default function EditorPage({ params }: PageProps) {
           <ZoomIn className="w-4 h-4" />
         </button>
         <button
-          onClick={() => setZoom(75)}
-          className="px-2 py-0.5 rounded text-[9px] text-gray-500 hover:text-white hover:bg-[#26263b] transition-all font-semibold uppercase tracking-wider"
+          onClick={() => setZoom(100)}
+          className="px-2 py-0.5 rounded text-[9px] text-gray-500 hover:text-white hover:bg-[#26263b] transition-all font-semibold uppercase tracking-wider cursor-pointer"
         >
           Reset
         </button>
