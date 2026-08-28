@@ -12,6 +12,38 @@ import { supabase } from '@/utils/supabase';
 import InvitationPreview from '@/components/InvitationPreview';
 import { Invitation } from '@/types';
 import Logo from '@/components/Logo';
+import JsonLd from '@/components/JsonLd';
+
+const faqSchema = {
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "How does the digital gift/UPI collection work?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "When creating your card, you enter your personal UPI ID. Our system automatically renders a secure NPCI-compliant UPI QR code on the invitation card. When guests scan or click the code, their payment app (Google Pay, PhonePe, Paytm) triggers a transfer directly to your account with absolutely 0% processing fees."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Can I integrate my own custom domain?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Yes, our VIP plan supports custom domains (e.g. abdulwedsfatima.com). We integrate with Cloudflare DNS settings to securely configure domain mappings and automatically provision SSL certificates."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Do templates support multilingual fonts?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Yes, we have integrated special multilingual font families from Google Fonts, including Noto Nastaliq Urdu (Urdu), Noto Sans Devanagari (Hindi), Noto Sans Kannada (Kannada), and Cinzel/Playfair Display (English) to match regional requirements."
+      }
+    }
+  ]
+};
 
 export default function LandingPage() {
   const [previewPreset, setPreviewPreset] = useState<TemplatePreset | null>(null);
@@ -91,6 +123,7 @@ export default function LandingPage() {
 
   return (
     <div className="min-h-screen bg-[#0d0d11] text-[#f3f4f6]">
+      <JsonLd data={faqSchema} />
       {/* Premium Header */}
       <header className="border-b border-[#26263b] bg-[#161622]/50 backdrop-blur-md sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-6 py-3.5 flex items-center justify-between">
