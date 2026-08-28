@@ -134,6 +134,7 @@ export const metadata: Metadata = {
 };
 
 import JsonLd from "@/components/JsonLd";
+import Script from "next/script";
 
 export default function RootLayout({
   children,
@@ -178,6 +179,25 @@ export default function RootLayout({
         <JsonLd data={webAppSchema} />
       </head>
       <body className="min-h-full flex flex-col bg-[#0d0d11] text-[#f3f4f6]">
+        {/* Google Analytics (gtag.js) */}
+        <Script
+          strategy="afterInteractive"
+          src="https://www.googletagmanager.com/gtag/js?id=G-5LSEZKX41X"
+        />
+        <Script
+          id="google-analytics"
+          strategy="afterInteractive"
+          dangerouslySetInnerHTML={{
+            __html: `
+              window.dataLayer = window.dataLayer || [];
+              function gtag(){dataLayer.push(arguments);}
+              gtag('js', new Date());
+              gtag('config', 'G-5LSEZKX41X', {
+                page_path: window.location.pathname,
+              });
+            `,
+          }}
+        />
         {children}
       </body>
     </html>
