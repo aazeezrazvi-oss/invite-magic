@@ -2075,9 +2075,9 @@ export default function InvitationPreview({
             setIsCardOut(false);
             setIsCoverFading(false);
           }}
-          className="fixed top-20 right-6 px-3 py-1.5 bg-black/75 hover:bg-black border border-[#d4af37]/35 rounded text-[10px] text-[#d4af37] font-semibold transition-all hover:scale-105 z-50 shadow-lg cursor-pointer"
+          className="absolute top-4 right-4 px-2.5 py-1 bg-black/80 hover:bg-black border border-[#d4af37]/40 rounded-full text-[9px] text-[#d4af37] font-semibold transition-all hover:scale-105 z-50 shadow-md cursor-pointer flex items-center gap-1"
         >
-          Preview Envelope Cover
+          <span>✉️ Envelope Cover</span>
         </button>
       )}
 

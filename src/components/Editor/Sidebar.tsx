@@ -70,6 +70,27 @@ const CURATED_PALETTES = [
   },
 ];
 
+const COVER_HEADING_PRESETS = [
+  { label: '﷽ (Bismillah - In the Name of Allah)', value: 'بِسْمِ اللَّهِ الرَّحْمَنِ الرَّحِيم' },
+  { label: 'ॐ श्री गणेशाय नमः (Om Shri Ganeshaya Namah)', value: 'ॐ श्री गणेशाय नमः' },
+  { label: "With God's Grace & Blessings", value: "With God's Grace & Blessings" },
+  { label: 'Together with Our Families', value: 'Together with Our Families' },
+  { label: 'Two Souls, One Beautiful Journey', value: 'Two Souls, One Beautiful Journey' },
+  { label: 'Shubh Vivah (शुभ विवाह)', value: 'शुभ विवाह' },
+  { label: 'Save The Date', value: 'Save The Date' },
+  { label: 'Royal Wedding Celebration', value: 'Royal Wedding Celebration' },
+  { label: 'Other / Custom Heading...', value: '__custom__' },
+];
+
+const COVER_SUBTITLE_PRESETS = [
+  { label: 'In The Name of God, The Most Gracious, The Most Merciful', value: 'In The Name of God, The Most Gracious, The Most Merciful' },
+  { label: 'Cordially invite you to celebrate the wedding union of', value: 'Cordially invite you to celebrate the wedding union of' },
+  { label: 'Request the honor of your presence and warm blessings at the wedding of', value: 'Request the honor of your presence and warm blessings at the wedding of' },
+  { label: 'Invite you to share in our joy as we begin our new chapter', value: 'Invite you to share in our joy as we begin our new chapter' },
+  { label: 'Together with their families request the pleasure of your company', value: 'Together with their families request the pleasure of your company' },
+  { label: 'Other / Custom Subtitle...', value: '__custom__' },
+];
+
 export default function Sidebar({ 
   invitation, 
   onUpdate, 
@@ -898,26 +919,66 @@ export default function Sidebar({
 
               {openAccordions.cover && (
                 <div className="p-4 border-t border-[#26263b] space-y-3 text-xs">
+                  {/* Cover Heading Dropdown */}
                   <div>
-                    <label className="block text-gray-400 mb-1">Cover Heading</label>
-                    <input
-                      type="text"
-                      value={styling.cover_title || ''}
-                      onChange={(e) => handleStylingChange('cover_title', e.target.value)}
-                      placeholder="e.g. بِسْمِ اللَّهِ / ॐ श्री गणेशाय नमः / With God's Blessings"
-                      className="w-full p-2 rounded bg-[#161622] border border-[#26263b] text-white focus:border-[#d4af37] outline-none"
-                    />
+                    <label className="block text-gray-400 mb-1 text-[11px] font-semibold">Cover Heading</label>
+                    <select
+                      value={COVER_HEADING_PRESETS.some(p => p.value === (styling.cover_title || '')) ? (styling.cover_title || '') : '__custom__'}
+                      onChange={(e) => {
+                        if (e.target.value !== '__custom__') {
+                          handleStylingChange('cover_title', e.target.value);
+                        } else if (COVER_HEADING_PRESETS.some(p => p.value === (styling.cover_title || ''))) {
+                          handleStylingChange('cover_title', '');
+                        }
+                      }}
+                      className="w-full p-2 rounded bg-[#161622] border border-[#26263b] text-white focus:border-[#d4af37] outline-none text-xs"
+                    >
+                      <option value="">Select Heading...</option>
+                      {COVER_HEADING_PRESETS.map((item) => (
+                        <option key={item.value} value={item.value}>{item.label}</option>
+                      ))}
+                    </select>
+
+                    {(!COVER_HEADING_PRESETS.some(p => p.value === (styling.cover_title || '')) || (styling.cover_title && !COVER_HEADING_PRESETS.filter(p => p.value !== '__custom__').map(p => p.value).includes(styling.cover_title))) && (
+                      <input
+                        type="text"
+                        value={styling.cover_title || ''}
+                        onChange={(e) => handleStylingChange('cover_title', e.target.value)}
+                        placeholder="Type custom cover heading..."
+                        className="w-full mt-2 p-2 rounded bg-[#161622] border border-[#26263b] text-white focus:border-[#d4af37] outline-none text-xs"
+                      />
+                    )}
                   </div>
 
+                  {/* Cover Subtitle Dropdown */}
                   <div>
-                    <label className="block text-gray-400 mb-1">Cover Subtitle</label>
-                    <input
-                      type="text"
-                      value={styling.cover_subtitle || ''}
-                      onChange={(e) => handleStylingChange('cover_subtitle', e.target.value)}
-                      placeholder="e.g. In The Name of God, The Most Gracious"
-                      className="w-full p-2 rounded bg-[#161622] border border-[#26263b] text-white focus:border-[#d4af37] outline-none"
-                    />
+                    <label className="block text-gray-400 mb-1 text-[11px] font-semibold">Cover Subtitle</label>
+                    <select
+                      value={COVER_SUBTITLE_PRESETS.some(p => p.value === (styling.cover_subtitle || '')) ? (styling.cover_subtitle || '') : '__custom__'}
+                      onChange={(e) => {
+                        if (e.target.value !== '__custom__') {
+                          handleStylingChange('cover_subtitle', e.target.value);
+                        } else if (COVER_SUBTITLE_PRESETS.some(p => p.value === (styling.cover_subtitle || ''))) {
+                          handleStylingChange('cover_subtitle', '');
+                        }
+                      }}
+                      className="w-full p-2 rounded bg-[#161622] border border-[#26263b] text-white focus:border-[#d4af37] outline-none text-xs"
+                    >
+                      <option value="">Select Subtitle...</option>
+                      {COVER_SUBTITLE_PRESETS.map((item) => (
+                        <option key={item.value} value={item.value}>{item.label}</option>
+                      ))}
+                    </select>
+
+                    {(!COVER_SUBTITLE_PRESETS.some(p => p.value === (styling.cover_subtitle || '')) || (styling.cover_subtitle && !COVER_SUBTITLE_PRESETS.filter(p => p.value !== '__custom__').map(p => p.value).includes(styling.cover_subtitle))) && (
+                      <input
+                        type="text"
+                        value={styling.cover_subtitle || ''}
+                        onChange={(e) => handleStylingChange('cover_subtitle', e.target.value)}
+                        placeholder="Type custom cover subtitle..."
+                        className="w-full mt-2 p-2 rounded bg-[#161622] border border-[#26263b] text-white focus:border-[#d4af37] outline-none text-xs"
+                      />
+                    )}
                   </div>
 
                   <div>
@@ -1183,7 +1244,7 @@ export default function Sidebar({
                         <button
                           type="button"
                           onClick={() => toggleInlineAudio(styling.music_url)}
-                          className="px-3 py-2 bg-[#d4af37] hover:bg-[#b8962e] text-[#0d0d11] rounded font-bold text-xs flex items-center gap-1 shrink-0"
+                          className="px-3 py-2 bg-[#d4af37] hover:bg-[#b8962e] text-[#0d0d11] rounded font-bold text-xs flex items-center gap-1 shrink-0 cursor-pointer"
                           title="Listen Preview"
                         >
                           {playingTrackUrl === styling.music_url ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5" />}
@@ -1193,13 +1254,23 @@ export default function Sidebar({
                     </div>
                   </div>
 
+                  {/* Choose from Music Library */}
+                  <button
+                    type="button"
+                    onClick={() => openMediaModal('music')}
+                    className="w-full py-2 bg-[#1b1b28] hover:bg-[#252538] border border-[#d4af37]/40 rounded text-xs text-[#d4af37] font-semibold transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-sm"
+                  >
+                    <Music className="w-4 h-4 text-[#d4af37]" />
+                    <span>Choose from Uploaded Music Library</span>
+                  </button>
+
                   <div>
                     <label className="block text-[10px] text-gray-400 mb-0.5">Or Paste Custom MP3 Music Link</label>
                     <input
                       type="text"
                       value={styling.music_url || ''}
                       onChange={(e) => handleStylingChange('music_url', e.target.value)}
-                      placeholder="https://example.com/audio.mp3"
+                      placeholder="https://example.com/audio.mp3 or /music/song.mp3"
                       className="w-full bg-[#161622] border border-[#26263b] rounded px-3 py-1.5 text-xs text-white outline-none focus:border-[#d4af37] font-mono"
                     />
                   </div>
