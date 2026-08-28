@@ -73,39 +73,39 @@ export default function LandingPage() {
 
   const createPreviewInvitation = (preset: TemplatePreset): Partial<Invitation> => {
     return {
-      groom_name: 'Aditya',
-      bride_name: 'Anjali',
-      groom_bio: 'A technology lover who enjoys hiking, building software, and planning travels.',
-      bride_bio: 'A designer and flower artist who enjoys painting, green tea, and styling beautiful events.',
-      parents_names: 'Mr. & Mrs. Devendra Sharma & Mr. & Mrs. Ramesh Verma',
-      invitation_message: 'With hearts full of love, we cordially invite you to celebrate the union of our families.',
+      groom_name: 'John',
+      bride_name: 'Lilly',
+      groom_bio: 'A passionate explorer and technologist, excited to embark on this beautiful life journey alongside Lilly.',
+      bride_bio: 'A creative artist and writer who loves nature walks, music, and celebrating life with family and friends.',
+      parents_names: 'Mr. & Mrs. Anderson & Mr. & Mrs. Miller',
+      invitation_message: 'With hearts full of love and gratitude, we cordially invite you to celebrate the union of our lives and families.',
       styling: {
         invitation_id: 'preview-id',
         ...preset.styling,
       },
       events: [
         {
-          event_name: 'Wedding Ceremony (Shaadi)',
+          event_name: 'Wedding Ceremony',
           event_date: '2026-10-24',
-          event_time: '18:30:00',
-          venue_name: 'The Palace Banquet & Gardens',
-          venue_address: '12 Palace Cross Road, Vasanth Nagar, Bengaluru, India',
+          event_time: '11:00:00',
+          venue_name: 'The Royal Grand Lawn & Banquet',
+          venue_address: '10 Palace Road, Bangalore, India',
           google_maps_link: 'https://maps.google.com',
         },
         {
-          event_name: 'Reception Dinner',
+          event_name: 'Evening Reception & Dinner',
           event_date: '2026-10-25',
-          event_time: '19:30:00',
-          venue_name: 'Lotus Grand Palace',
-          venue_address: 'Royal High Street, Bengaluru, India',
+          event_time: '19:00:00',
+          venue_name: 'Emerald Garden Palace',
+          venue_address: 'High Street, Palace Road, Bangalore, India',
           google_maps_link: 'https://maps.google.com',
         },
       ],
       gift_collection: {
         invitation_id: 'preview-id',
-        upi_id: 'couple@okaxis',
-        receiver_name: 'Aditya & Anjali',
-        thank_you_message: 'Your blessings are our greatest gift. Thank you for your love and warm wishes!',
+        upi_id: 'wedding@okaxis',
+        receiver_name: 'John & Lilly',
+        thank_you_message: 'Your presence and blessings are our greatest gift. Thank you for your warm love!',
       },
     };
   };
@@ -947,87 +947,45 @@ export default function LandingPage() {
         </div>
       </footer>
 
-      {/* Fullscreen Interactive Template Preview Modal */}
+      {/* Fullscreen Immersive Template Preview (Edge-to-Edge Responsive) */}
       {previewPreset && (
-        <div className="fixed inset-0 bg-[#0d0d11]/90 backdrop-blur-md flex items-center justify-center z-50 p-4">
-          <div className="bg-[#161622] border border-[#26263b] rounded-2xl w-full max-w-4xl h-[90vh] flex flex-col overflow-hidden shadow-2xl relative animate-in fade-in duration-300">
-            
-            {/* Modal Header */}
-            <div className="bg-[#161622] border-b border-[#26263b] px-6 py-4 flex items-center justify-between z-20">
-              <div>
-                <div className="flex items-center gap-2">
-                  <span className="text-white font-bold text-base md:text-lg font-cinzel">Previewing Theme:</span>
-                  <span className="text-[#d4af37] font-bold text-base md:text-lg font-cinzel">{previewPreset.name}</span>
-                </div>
-                <p className="text-xs text-gray-400">Experience the responsive animated wedding template layout.</p>
-              </div>
-
-              {/* Device Selector Controls */}
-              <div className="flex bg-[#0d0d11] rounded p-1 gap-1 border border-[#26263b] mx-4">
-                <button
-                  onClick={() => setPreviewDevice('mobile')}
-                  className={`px-3 py-1 rounded flex items-center gap-1.5 transition-all text-xs font-semibold ${
-                    previewDevice === 'mobile'
-                      ? 'bg-[#d4af37] text-[#0d0d11]'
-                      : 'text-gray-400 hover:text-white'
-                  }`}
-                >
-                  <Smartphone className="w-3.5 h-3.5" />
-                  <span className="hidden sm:inline">Mobile View</span>
-                </button>
-                <button
-                  onClick={() => setPreviewDevice('desktop')}
-                  className={`px-3 py-1 rounded flex items-center gap-1.5 transition-all text-xs font-semibold ${
-                    previewDevice === 'desktop'
-                      ? 'bg-[#d4af37] text-[#0d0d11]'
-                      : 'text-gray-400 hover:text-white'
-                  }`}
-                >
-                  <Monitor className="w-3.5 h-3.5" />
-                  <span className="hidden sm:inline">Desktop View</span>
-                </button>
-              </div>
-
-              <button
-                onClick={() => setPreviewPreset(null)}
-                className="p-2 rounded-full hover:bg-[#26263b] text-gray-400 hover:text-white transition-all cursor-pointer"
-              >
-                <X className="w-5 h-5" />
-              </button>
+        <div className="fixed inset-0 z-50 bg-[#0d0d11] overflow-y-auto overflow-x-hidden w-full h-full flex flex-col animate-in fade-in duration-200">
+          {/* Floating Top Header Overlay */}
+          <div className="fixed top-4 left-4 right-4 z-50 flex items-center justify-between pointer-events-none">
+            {/* Theme Badge */}
+            <div className="pointer-events-auto bg-[#0d0d11]/90 backdrop-blur-md border border-[#d4af37]/40 px-4 py-2 rounded-full text-xs text-white flex items-center gap-2 shadow-2xl font-cinzel">
+              <span className="text-gray-400 text-[10px] uppercase tracking-widest font-sans">Preview:</span>
+              <span className="text-[#d4af37] font-bold">{previewPreset.name}</span>
             </div>
 
-            {/* Modal Body / Preview Canvas */}
-            <div className="flex-1 bg-[#0d0d11] flex items-center justify-center p-6 overflow-hidden">
-              {previewDevice === 'mobile' ? (
-                <div className="relative w-[340px] h-full max-h-[640px] rounded-[36px] border-[10px] border-[#1e1e2d] shadow-2xl bg-[#0d0d11] overflow-hidden flex flex-col">
-                  {/* Notch */}
-                  <div className="absolute top-0 left-1/2 transform -translate-x-1/2 w-28 h-5 bg-[#1e1e2d] rounded-b-xl z-50 flex items-center justify-center">
-                    <div className="w-10 h-1 bg-gray-700 rounded-full mb-0.5" />
-                  </div>
-                  {/* Scrollable Area */}
-                  <div className="flex-1 overflow-y-auto w-full h-full scroll-smooth pt-3">
-                    <InvitationPreview invitation={createPreviewInvitation(previewPreset)} isPreviewMode={true} />
-                  </div>
-                </div>
-              ) : (
-                <div className="w-full h-full border border-[#26263b] bg-[#0d0d11] rounded-xl shadow-2xl overflow-hidden flex flex-col">
-                  <div className="flex-1 overflow-y-auto scroll-smooth">
-                    <InvitationPreview invitation={createPreviewInvitation(previewPreset)} isPreviewMode={true} />
-                  </div>
-                </div>
-              )}
-            </div>
+            {/* Exit Preview Close Button */}
+            <button
+              onClick={() => setPreviewPreset(null)}
+              className="pointer-events-auto px-3.5 py-2 rounded-full bg-[#0d0d11]/90 backdrop-blur-md border border-[#26263b] hover:border-[#d4af37] text-gray-300 hover:text-white transition-all shadow-2xl cursor-pointer flex items-center gap-1.5 text-xs font-bold font-sans"
+              title="Close Preview"
+            >
+              <X className="w-4 h-4 text-[#d4af37]" />
+              <span>Close</span>
+            </button>
+          </div>
 
-            {/* Modal Footer */}
-            <div className="border-t border-[#26263b] bg-[#161622] px-6 py-4 flex justify-between items-center z-20">
-              <span className="text-xs text-gray-400 hidden sm:inline">Like this theme? Customize and share it with your guests!</span>
-              <Link
-                href={`/dashboard/edit/${previewPreset.slug}`}
-                className="px-6 py-2 rounded bg-[#d4af37] hover:bg-[#b8962e] text-[#0d0d11] text-xs font-bold uppercase tracking-wider transition-all w-full sm:w-auto text-center"
-              >
-                Customize Theme
-              </Link>
-            </div>
+          {/* Full-bleed Invitation Experience */}
+          <div className="w-full min-h-screen">
+            <InvitationPreview 
+              invitation={createPreviewInvitation(previewPreset)} 
+              isPreviewMode={false} 
+            />
+          </div>
+
+          {/* Floating Bottom Primary Action: Customize Theme Button */}
+          <div className="fixed bottom-6 left-1/2 -translate-x-1/2 sm:left-auto sm:translate-x-0 sm:right-8 z-50 pointer-events-auto">
+            <Link
+              href={`/dashboard/edit/${previewPreset.slug}`}
+              className="px-7 py-3.5 rounded-full bg-[#d4af37] hover:bg-[#b8962e] text-[#0d0d11] font-bold text-xs uppercase tracking-wider transition-all shadow-[0_4px_25px_rgba(212,175,55,0.4)] flex items-center gap-2.5 whitespace-nowrap group hover:scale-105"
+            >
+              <span>Customize Theme</span>
+              <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
+            </Link>
           </div>
         </div>
       )}
