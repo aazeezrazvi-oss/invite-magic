@@ -20,9 +20,9 @@ export default function Dashboard() {
   
   // Invitation states
   const [invitationId, setInvitationId] = useState<string>('');
-  const [slug, setSlug] = useState('abdul-sana');
-  const [groomName, setGroomName] = useState('Abdul');
-  const [brideName, setBrideName] = useState('Sana');
+  const [slug, setSlug] = useState('jhon-lilly');
+  const [groomName, setGroomName] = useState('John');
+  const [brideName, setBrideName] = useState('Lilly');
   const [rsvps, setRsvps] = useState<RSVP[]>([]);
   const [gifts, setGifts] = useState<GiftTransaction[]>([]);
   const [views, setViews] = useState(0);

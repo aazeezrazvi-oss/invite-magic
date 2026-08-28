@@ -16,8 +16,8 @@ interface PageProps {
 }
 
 const mockInvitation: Partial<Invitation> = {
-  groom_name: 'Abdul',
-  bride_name: 'Sana',
+  groom_name: 'John',
+  bride_name: 'Lilly',
   groom_photo: '',
   groom_bio: '',
   bride_photo: '',
@@ -44,27 +44,27 @@ const mockInvitation: Partial<Invitation> = {
   },
   events: [
     {
-      event_name: 'Nikah Ceremony',
-      event_date: '2025-09-14',
+      event_name: 'Wedding Ceremony',
+      event_date: '2026-10-24',
       event_time: '11:00',
-      venue_name: 'Jamia Masjid, Tolichowki',
-      venue_address: 'Tolichowki, Hyderabad, India',
+      venue_name: 'The Royal Grand Lawn & Banquet',
+      venue_address: 'Palace Cross Road, Bangalore, India',
       google_maps_link: '',
     },
     {
-      event_name: 'Walima Reception',
-      event_date: '2025-09-15',
+      event_name: 'Evening Reception',
+      event_date: '2026-10-25',
       event_time: '19:00',
-      venue_name: 'Royal Palace Banquet Hall',
-      venue_address: 'Plot 42, MG Road, Hyderabad, India',
+      venue_name: 'Emerald Palace Banquet Hall',
+      venue_address: 'High Street, Bangalore, India',
       google_maps_link: '',
     },
   ],
   gift_collection: {
     invitation_id: '',
-    upi_id: 'wedding@upi',
-    receiver_name: 'Abdul & Sana',
-    thank_you_message: 'Your blessings are enough, but if you wish to bless us further, you may send a digital shagun.',
+    upi_id: 'wedding@okaxis',
+    receiver_name: 'John & Lilly',
+    thank_you_message: 'Your presence and blessings are our greatest gift. Thank you for your warm love!',
   },
 };
 

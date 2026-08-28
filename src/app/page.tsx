@@ -5,7 +5,8 @@ import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { 
   Heart, Sparkles, Smartphone, Gift, 
-  CheckCircle, ArrowRight, Layers, X, Monitor, Menu 
+  CheckCircle, ArrowRight, Layers, X, Monitor, Menu,
+  Palette, MapPin, Music, Send, BarChart2, ShieldCheck, Check, Globe, Share2, Play, Users, Zap
 } from 'lucide-react';
 import { TEMPLATE_PRESETS, TemplatePreset } from '@/utils/presets';
 import { supabase } from '@/utils/supabase';
@@ -48,6 +49,7 @@ const faqSchema = {
 export default function LandingPage() {
   const [previewPreset, setPreviewPreset] = useState<TemplatePreset | null>(null);
   const [previewDevice, setPreviewDevice] = useState<'mobile' | 'desktop'>('mobile');
+  const [experienceTab, setExperienceTab] = useState<'guest' | 'couple'>('guest');
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
   const [userEmail, setUserEmail] = useState<string>('');
   const [mobileMenuOpen, setMobileMenuOpen] = useState<boolean>(false);
@@ -128,9 +130,10 @@ export default function LandingPage() {
       <header className="border-b border-[#26263b] bg-[#161622]/50 backdrop-blur-md sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-6 py-3.5 flex items-center justify-between">
           <Logo variant="full" size="md" href="/" />
-          <nav className="hidden md:flex items-center gap-8 text-xs uppercase tracking-widest text-gray-300">
+          <nav className="hidden md:flex items-center gap-7 text-xs uppercase tracking-widest text-gray-300">
+            <a href="#how-it-works" className="hover:text-white transition-all text-[#d4af37] font-semibold">How It Works</a>
             <a href="#features" className="hover:text-white transition-all">Features</a>
-            <a href="#templates" className="hover:text-white transition-all">Templates</a>
+            <a href="#templates" className="hover:text-white transition-all">Themes</a>
             <a href="#pricing" className="hover:text-white transition-all">Pricing</a>
             <Link href="/vendors" className="hover:text-white transition-all text-gray-200">Vendors Directory</Link>
             <Link href="/bespoke" className="hover:text-[#d4af37] text-[#d4af37] transition-all font-semibold">Bespoke Designs</Link>
@@ -151,7 +154,7 @@ export default function LandingPage() {
               </Link>
             )}
             <Link 
-              href="/dashboard/edit/abdul-sana" 
+              href="/dashboard/edit/jhon-lilly" 
               className="px-4 py-2 rounded bg-[#d4af37] hover:bg-[#b8962e] text-[#0d0d11] text-xs font-bold uppercase tracking-wider transition-all"
             >
               Try Editor
@@ -161,7 +164,7 @@ export default function LandingPage() {
           {/* Mobile Action Controls (Right side of header on mobile) */}
           <div className="flex md:hidden items-center gap-2">
             <Link 
-              href="/dashboard/edit/abdul-sana" 
+              href="/dashboard/edit/jhon-lilly" 
               className="px-2.5 py-1.5 rounded bg-[#d4af37] hover:bg-[#b8962e] text-[#0d0d11] text-[10px] font-bold uppercase tracking-wider transition-all shrink-0"
             >
               Try Editor
@@ -206,6 +209,13 @@ export default function LandingPage() {
               )}
             </div>
 
+            <a 
+              href="#how-it-works" 
+              onClick={() => setMobileMenuOpen(false)}
+              className="block py-2 text-[#d4af37] font-semibold hover:text-white transition-colors"
+            >
+              How It Works
+            </a>
             <a 
               href="#features" 
               onClick={() => setMobileMenuOpen(false)}
@@ -299,7 +309,7 @@ export default function LandingPage() {
             className="flex flex-col sm:flex-row justify-center gap-4 text-sm"
           >
             <Link 
-              href="/dashboard/edit/abdul-sana" 
+              href="/dashboard/edit/jhon-lilly" 
               className="px-8 py-3.5 rounded bg-[#d4af37] hover:bg-[#b8962e] text-[#0d0d11] font-bold flex items-center justify-center gap-2 shadow-[0_4px_20px_rgba(212,175,55,0.25)] transition-all"
             >
               <span>Design Your Card Free</span>
@@ -313,6 +323,342 @@ export default function LandingPage() {
             </a>
           </motion.div>
         </motion.div>
+      </section>
+
+      {/* 1. How It Works - 4-Step Interactive Workflow */}
+      <section id="how-it-works" className="py-24 px-6 bg-[#0f0f16] border-t border-[#26263b] relative">
+        <div className="max-w-7xl mx-auto">
+          <div className="text-center mb-16">
+            <span className="text-[#d4af37] uppercase tracking-widest text-xs font-bold inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#d4af37]/10 border border-[#d4af37]/20 mb-3">
+              <Zap className="w-3.5 h-3.5" />
+              <span>Simple 4-Step Process</span>
+            </span>
+            <h2 className="text-3xl md:text-5xl font-light text-white mt-2 font-cinzel">
+              How InviteMagic <span className="text-[#d4af37] font-semibold">Works</span>
+            </h2>
+            <p className="text-xs md:text-sm text-gray-400 max-w-xl mx-auto mt-3 leading-relaxed">
+              From picking your royal theme to live RSVP tracking — create and share a luxury animated wedding website in less than 5 minutes.
+            </p>
+            <div className="w-16 h-[1px] bg-[#d4af37] mx-auto mt-4 opacity-50" />
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 relative">
+            {/* Step 1 */}
+            <div className="bg-[#161622] border border-[#26263b] hover:border-[#d4af37]/50 rounded-2xl p-7 flex flex-col justify-between transition-all group relative overflow-hidden">
+              <div className="absolute top-0 right-0 w-24 h-24 bg-[#d4af37]/5 rounded-bl-full pointer-events-none" />
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="w-12 h-12 rounded-xl bg-[#d4af37]/10 border border-[#d4af37]/30 flex items-center justify-center text-[#d4af37]">
+                    <Palette className="w-6 h-6" />
+                  </div>
+                  <span className="font-mono text-3xl font-extrabold text-gray-700 group-hover:text-[#d4af37] transition-colors">01</span>
+                </div>
+                <h3 className="text-lg font-bold text-white font-cinzel">Choose Theme &amp; Music</h3>
+                <p className="text-xs text-gray-400 leading-relaxed">
+                  Select from handcrafted luxury presets (Nikah Burgundy, Kalyanam Gold, Royal Violet, Minimal Modern). Customize colors, elegant typography, and add your romantic background audio.
+                </p>
+              </div>
+              <div className="mt-6 pt-4 border-t border-[#26263b]/60 flex items-center gap-1.5 text-[11px] text-[#d4af37]">
+                <Sparkles className="w-3.5 h-3.5" />
+                <span>20+ Luxury Themes</span>
+              </div>
+            </div>
+
+            {/* Step 2 */}
+            <div className="bg-[#161622] border border-[#26263b] hover:border-[#d4af37]/50 rounded-2xl p-7 flex flex-col justify-between transition-all group relative overflow-hidden">
+              <div className="absolute top-0 right-0 w-24 h-24 bg-[#d4af37]/5 rounded-bl-full pointer-events-none" />
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="w-12 h-12 rounded-xl bg-purple-500/10 border border-purple-500/30 flex items-center justify-center text-purple-400">
+                    <MapPin className="w-6 h-6" />
+                  </div>
+                  <span className="font-mono text-3xl font-extrabold text-gray-700 group-hover:text-purple-400 transition-colors">02</span>
+                </div>
+                <h3 className="text-lg font-bold text-white font-cinzel">Add Timeline, Maps &amp; UPI</h3>
+                <p className="text-xs text-gray-400 leading-relaxed">
+                  Enter ceremony dates, pin exact 1-tap Google Maps directions to your venues, and connect your UPI ID to receive direct digital shagun with 0% platform deductions.
+                </p>
+              </div>
+              <div className="mt-6 pt-4 border-t border-[#26263b]/60 flex items-center gap-1.5 text-[11px] text-purple-400">
+                <Gift className="w-3.5 h-3.5" />
+                <span>0% Commission UPI Gifts</span>
+              </div>
+            </div>
+
+            {/* Step 3 */}
+            <div className="bg-[#161622] border border-[#26263b] hover:border-[#d4af37]/50 rounded-2xl p-7 flex flex-col justify-between transition-all group relative overflow-hidden">
+              <div className="absolute top-0 right-0 w-24 h-24 bg-[#d4af37]/5 rounded-bl-full pointer-events-none" />
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="w-12 h-12 rounded-xl bg-green-500/10 border border-green-500/30 flex items-center justify-center text-green-400">
+                    <Send className="w-6 h-6" />
+                  </div>
+                  <span className="font-mono text-3xl font-extrabold text-gray-700 group-hover:text-green-400 transition-colors">03</span>
+                </div>
+                <h3 className="text-lg font-bold text-white font-cinzel">Share on WhatsApp</h3>
+                <p className="text-xs text-gray-400 leading-relaxed">
+                  Get your custom link <code className="text-[#d4af37] bg-[#0d0d11] px-1 py-0.5 rounded text-[10px]">invitemagic.com/invite/jhon-lilly</code>. Share on WhatsApp or Instagram with rich preview cards.
+                </p>
+              </div>
+              <div className="mt-6 pt-4 border-t border-[#26263b]/60 flex items-center gap-1.5 text-[11px] text-green-400">
+                <Smartphone className="w-3.5 h-3.5" />
+                <span>Instant Wax-Seal Unboxing</span>
+              </div>
+            </div>
+
+            {/* Step 4 */}
+            <div className="bg-[#161622] border border-[#26263b] hover:border-[#d4af37]/50 rounded-2xl p-7 flex flex-col justify-between transition-all group relative overflow-hidden">
+              <div className="absolute top-0 right-0 w-24 h-24 bg-[#d4af37]/5 rounded-bl-full pointer-events-none" />
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="w-12 h-12 rounded-xl bg-blue-500/10 border border-blue-500/30 flex items-center justify-center text-blue-400">
+                    <BarChart2 className="w-6 h-6" />
+                  </div>
+                  <span className="font-mono text-3xl font-extrabold text-gray-700 group-hover:text-blue-400 transition-colors">04</span>
+                </div>
+                <h3 className="text-lg font-bold text-white font-cinzel">Track RSVPs in Real-Time</h3>
+                <p className="text-xs text-gray-400 leading-relaxed">
+                  Monitor confirmed guest headcount, dietary notes, and guestbook messages in your private dashboard. Zero manual calling or confusion.
+                </p>
+              </div>
+              <div className="mt-6 pt-4 border-t border-[#26263b]/60 flex items-center gap-1.5 text-[11px] text-blue-400">
+                <CheckCircle className="w-3.5 h-3.5" />
+                <span>Live Headcount &amp; Analytics</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* 2. Interactive Experience Showcase: Guest View vs Couple View */}
+      <section className="py-24 px-6 bg-[#161622]/40 border-y border-[#26263b] relative">
+        <div className="max-w-6xl mx-auto">
+          <div className="text-center mb-12">
+            <span className="text-[#d4af37] uppercase tracking-widest text-xs font-bold">Interactive Experience</span>
+            <h2 className="text-3xl md:text-5xl font-light text-white mt-2 font-cinzel">
+              Designed for <span className="text-[#d4af37] font-semibold">Guests</span> &amp; <span className="text-[#d4af37] font-semibold">Couples</span>
+            </h2>
+            <div className="w-16 h-[1px] bg-[#d4af37] mx-auto mt-4 opacity-50" />
+            
+            {/* Toggle Switcher */}
+            <div className="flex justify-center mt-8">
+              <div className="bg-[#0d0d11] p-1.5 rounded-full border border-[#26263b] flex gap-2">
+                <button
+                  onClick={() => setExperienceTab('guest')}
+                  className={`px-5 py-2 rounded-full text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${
+                    experienceTab === 'guest'
+                      ? 'bg-[#d4af37] text-[#0d0d11] shadow-[0_2px_12px_rgba(212,175,55,0.3)]'
+                      : 'text-gray-400 hover:text-white'
+                  }`}
+                >
+                  <span>✉️ What Your Guests Experience</span>
+                </button>
+                <button
+                  onClick={() => setExperienceTab('couple')}
+                  className={`px-5 py-2 rounded-full text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${
+                    experienceTab === 'couple'
+                      ? 'bg-[#d4af37] text-[#0d0d11] shadow-[0_2px_12px_rgba(212,175,55,0.3)]'
+                      : 'text-gray-400 hover:text-white'
+                  }`}
+                >
+                  <span>👑 What You (The Host) Get</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {experienceTab === 'guest' ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 animate-fadeIn">
+              <div className="bg-[#12121c] border border-[#26263b] rounded-xl p-6 space-y-3">
+                <span className="text-2xl">💌</span>
+                <h4 className="font-bold text-white text-base font-cinzel">Wax-Seal Envelope Unboxing</h4>
+                <p className="text-xs text-gray-400 leading-relaxed">
+                  Guests tap a realistic gold wax seal to watch the envelope smoothly unfold and reveal their personalized wedding card.
+                </p>
+              </div>
+              <div className="bg-[#12121c] border border-[#26263b] rounded-xl p-6 space-y-3">
+                <span className="text-2xl">🎵</span>
+                <h4 className="font-bold text-white text-base font-cinzel">Romantic Background Music</h4>
+                <p className="text-xs text-gray-400 leading-relaxed">
+                  Atmospheric music automatically accompanies the unboxing experience with floating play/mute controls.
+                </p>
+              </div>
+              <div className="bg-[#12121c] border border-[#26263b] rounded-xl p-6 space-y-3">
+                <span className="text-2xl">📜</span>
+                <h4 className="font-bold text-white text-base font-cinzel">Hands-Free Auto Scrolling</h4>
+                <p className="text-xs text-gray-400 leading-relaxed">
+                  Gentle auto-scrolling presents your love story, schedule of events, and photo gallery with instant pause on touch.
+                </p>
+              </div>
+              <div className="bg-[#12121c] border border-[#26263b] rounded-xl p-6 space-y-3">
+                <span className="text-2xl">🗺️</span>
+                <h4 className="font-bold text-white text-base font-cinzel">1-Tap Google Maps Navigation</h4>
+                <p className="text-xs text-gray-400 leading-relaxed">
+                  Guests open driving directions directly in Google Maps or Apple Maps without having to type complex venue addresses.
+                </p>
+              </div>
+              <div className="bg-[#12121c] border border-[#26263b] rounded-xl p-6 space-y-3">
+                <span className="text-2xl">🎁</span>
+                <h4 className="font-bold text-white text-base font-cinzel">0% Fee UPI Digital Shagun</h4>
+                <p className="text-xs text-gray-400 leading-relaxed">
+                  Guests can scan or click the UPI QR code to instantly send warm monetary blessings directly into your bank account.
+                </p>
+              </div>
+              <div className="bg-[#12121c] border border-[#26263b] rounded-xl p-6 space-y-3">
+                <span className="text-2xl">✍️</span>
+                <h4 className="font-bold text-white text-base font-cinzel">10-Second Instant RSVP</h4>
+                <p className="text-xs text-gray-400 leading-relaxed">
+                  Guests confirm attendance, select guest headcount, and leave heartfelt blessing notes in under 10 seconds.
+                </p>
+              </div>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 animate-fadeIn">
+              <div className="bg-[#12121c] border border-[#26263b] rounded-xl p-6 space-y-3">
+                <span className="text-2xl">🎨</span>
+                <h4 className="font-bold text-white text-base font-cinzel">Live Visual Canvas Editor</h4>
+                <p className="text-xs text-gray-400 leading-relaxed">
+                  Intuitive drag-and-drop live editor. Edit bride/groom details, events, music, and styles on mobile or desktop with instant preview.
+                </p>
+              </div>
+              <div className="bg-[#12121c] border border-[#26263b] rounded-xl p-6 space-y-3">
+                <span className="text-2xl">📊</span>
+                <h4 className="font-bold text-white text-base font-cinzel">Real-Time RSVP Tracker</h4>
+                <p className="text-xs text-gray-400 leading-relaxed">
+                  Track total confirmed attendees, dietary preferences, and export guest lists to simplify catering and seating arrangements.
+                </p>
+              </div>
+              <div className="bg-[#12121c] border border-[#26263b] rounded-xl p-6 space-y-3">
+                <span className="text-2xl">💰</span>
+                <h4 className="font-bold text-white text-base font-cinzel">100% Direct UPI Payouts</h4>
+                <p className="text-xs text-gray-400 leading-relaxed">
+                  Zero commission or platform fees. Every rupee sent by guests lands directly into your bank account instantly via standard NPCI UPI.
+                </p>
+              </div>
+              <div className="bg-[#12121c] border border-[#26263b] rounded-xl p-6 space-y-3">
+                <span className="text-2xl">🌐</span>
+                <h4 className="font-bold text-white text-base font-cinzel">Custom Domain Option</h4>
+                <p className="text-xs text-gray-400 leading-relaxed">
+                  Link your personal wedding domain (e.g. <code className="text-[#d4af37]">jhonwedslilly.com</code>) with automated Cloudflare SSL certificate provisioning.
+                </p>
+              </div>
+              <div className="bg-[#12121c] border border-[#26263b] rounded-xl p-6 space-y-3">
+                <span className="text-2xl">🌿</span>
+                <h4 className="font-bold text-white text-base font-cinzel">Eco-Friendly &amp; Instant Edits</h4>
+                <p className="text-xs text-gray-400 leading-relaxed">
+                  Need to update a ceremony time? Edit anytime with instant updates across all guest links without costly re-printing.
+                </p>
+              </div>
+              <div className="bg-[#12121c] border border-[#26263b] rounded-xl p-6 space-y-3">
+                <span className="text-2xl">📍</span>
+                <h4 className="font-bold text-white text-base font-cinzel">Verified Vendor Recommendations</h4>
+                <p className="text-xs text-gray-400 leading-relaxed">
+                  Connect directly with verified local mehendi artists, photographers, bridal makeup artists, and banquet venues near you.
+                </p>
+              </div>
+            </div>
+          )}
+        </div>
+      </section>
+
+      {/* 3. Digital Invitations vs Traditional Paper Cards Comparison Matrix */}
+      <section className="py-24 px-6 max-w-6xl mx-auto">
+        <div className="text-center mb-16">
+          <span className="text-[#d4af37] uppercase tracking-widest text-xs font-bold">The Smarter Choice</span>
+          <h2 className="text-3xl md:text-5xl font-light text-white mt-2 font-cinzel">
+            InviteMagic vs <span className="text-gray-400">Traditional Paper Cards</span>
+          </h2>
+          <div className="w-16 h-[1px] bg-[#d4af37] mx-auto mt-4 opacity-50" />
+        </div>
+
+        <div className="overflow-x-auto border border-[#26263b] rounded-2xl bg-[#161622]/60 shadow-xl">
+          <table className="w-full text-left border-collapse text-xs">
+            <thead>
+              <tr className="border-b border-[#26263b] bg-[#12121c]">
+                <th className="py-4 px-6 font-cinzel text-white font-bold text-sm">Feature</th>
+                <th className="py-4 px-6 font-cinzel text-gray-400 font-semibold">Traditional Paper Card</th>
+                <th className="py-4 px-6 font-cinzel text-[#d4af37] font-bold text-sm bg-[#d4af37]/10">InviteMagic Digital Card</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-[#26263b]/60 text-gray-300">
+              <tr className="hover:bg-[#1f1f30]/40 transition-colors">
+                <td className="py-4 px-6 font-semibold text-white">Cost &amp; Printing</td>
+                <td className="py-4 px-6 text-gray-400">₹15,000 – ₹50,000+ for print &amp; courier</td>
+                <td className="py-4 px-6 font-bold text-[#d4af37] bg-[#d4af37]/5">Free to Start / One-Time Affordable Pass</td>
+              </tr>
+              <tr className="hover:bg-[#1f1f30]/40 transition-colors">
+                <td className="py-4 px-6 font-semibold text-white">Delivery Speed</td>
+                <td className="py-4 px-6 text-gray-400">2–4 weeks for printing + days for postal courier</td>
+                <td className="py-4 px-6 font-bold text-green-400 bg-[#d4af37]/5">Instant in 5 seconds via WhatsApp &amp; Socials</td>
+              </tr>
+              <tr className="hover:bg-[#1f1f30]/40 transition-colors">
+                <td className="py-4 px-6 font-semibold text-white">RSVP Tracking</td>
+                <td className="py-4 px-6 text-gray-400">Manual phone calling &amp; guest list confusion</td>
+                <td className="py-4 px-6 font-bold text-green-400 bg-[#d4af37]/5">Automated real-time guest headcount tracker</td>
+              </tr>
+              <tr className="hover:bg-[#1f1f30]/40 transition-colors">
+                <td className="py-4 px-6 font-semibold text-white">Venue Directions</td>
+                <td className="py-4 px-6 text-gray-400">Static printed text (guests get lost)</td>
+                <td className="py-4 px-6 font-bold text-green-400 bg-[#d4af37]/5">1-Tap Live Google Maps &amp; Apple Maps Navigation</td>
+              </tr>
+              <tr className="hover:bg-[#1f1f30]/40 transition-colors">
+                <td className="py-4 px-6 font-semibold text-white">Digital Shagun / Gifts</td>
+                <td className="py-4 px-6 text-gray-400">Physical cash envelopes (easy to misplace)</td>
+                <td className="py-4 px-6 font-bold text-green-400 bg-[#d4af37]/5">Direct UPI QR code (0% fee into bank account)</td>
+              </tr>
+              <tr className="hover:bg-[#1f1f30]/40 transition-colors">
+                <td className="py-4 px-6 font-semibold text-white">Music &amp; Animation</td>
+                <td className="py-4 px-6 text-gray-400">Static physical paper</td>
+                <td className="py-4 px-6 font-bold text-green-400 bg-[#d4af37]/5">Wax seal unboxing, background song &amp; auto-scroll</td>
+              </tr>
+              <tr className="hover:bg-[#1f1f30]/40 transition-colors">
+                <td className="py-4 px-6 font-semibold text-white">Last-Minute Updates</td>
+                <td className="py-4 px-6 text-gray-400">Impossible without costly re-printing</td>
+                <td className="py-4 px-6 font-bold text-green-400 bg-[#d4af37]/5">Edit details anytime with 1 click</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      {/* 4. Live Interactive Demo CTA Banner */}
+      <section className="py-12 px-6 max-w-6xl mx-auto">
+        <div className="bg-gradient-to-r from-[#181826] via-[#222238] to-[#181826] border border-[#d4af37]/30 rounded-3xl p-8 md:p-12 relative overflow-hidden shadow-2xl flex flex-col lg:flex-row items-center justify-between gap-8">
+          <div className="absolute top-0 right-0 w-96 h-96 bg-[#d4af37]/10 rounded-full blur-3xl pointer-events-none" />
+          
+          <div className="space-y-4 max-w-xl text-center lg:text-left z-10">
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#d4af37]/20 border border-[#d4af37]/40 text-[#d4af37] text-xs font-bold uppercase tracking-wider">
+              <Play className="w-3.5 h-3.5 fill-[#d4af37]" />
+              <span>Live Sample Experience</span>
+            </span>
+            <h3 className="text-2xl md:text-4xl font-light text-white font-cinzel">
+              Experience the Invitation for <span className="text-[#d4af37] font-semibold">John &amp; Lilly</span>
+            </h3>
+            <p className="text-xs md:text-sm text-gray-300 leading-relaxed">
+              Open the sample live invitation website to experience wax-seal opening, soothing music, event timeline, and digital RSVP in action.
+            </p>
+            <div className="font-mono text-xs text-[#d4af37] bg-[#0d0d11]/80 px-3.5 py-1.5 rounded-lg inline-block border border-[#26263b]">
+              invitemagic.com/invite/jhon-lilly
+            </div>
+          </div>
+
+          <div className="flex flex-col sm:flex-row gap-3 shrink-0 z-10 w-full lg:w-auto">
+            <Link
+              href="/invite/jhon-lilly"
+              target="_blank"
+              className="px-8 py-4 bg-[#d4af37] hover:bg-[#b8962e] text-[#0d0d11] font-bold text-xs uppercase tracking-wider rounded-xl transition-all shadow-[0_4px_20px_rgba(212,175,55,0.3)] flex items-center justify-center gap-2 text-center"
+            >
+              <span>Open Live Invitation Demo</span>
+              <ArrowRight className="w-4 h-4" />
+            </Link>
+            <Link
+              href="/dashboard/edit/jhon-lilly"
+              className="px-6 py-4 bg-[#161622] hover:bg-[#202032] border border-[#26263b] text-white font-bold text-xs uppercase tracking-wider rounded-xl transition-all text-center"
+            >
+              Customize This Card
+            </Link>
+          </div>
+        </div>
       </section>
 
       {/* Features Grid */}
@@ -574,7 +920,7 @@ export default function LandingPage() {
           <div className="bg-[#161622] border border-[#26263b] rounded-lg p-6">
             <h4 className="font-bold text-white mb-2 text-sm font-cinzel">Can I integrate my own custom domain?</h4>
             <p className="text-gray-400 text-xs leading-relaxed">
-              Yes, our VIP plan supports custom domains (e.g. abdulwedsfatima.com). We integrate with Cloudflare DNS settings to securely configure domain mappings and automatically provision SSL certificates.
+              Yes, our VIP plan supports custom domains (e.g. jhonwedslilly.com). We integrate with Cloudflare DNS settings to securely configure domain mappings and automatically provision SSL certificates.
             </p>
           </div>
           <div className="bg-[#161622] border border-[#26263b] rounded-lg p-6">

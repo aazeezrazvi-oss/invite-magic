@@ -186,7 +186,7 @@ export default function LoginPage() {
               const { applySignupPromoCode } = await import('@/app/actions');
               const promoRes = await applySignupPromoCode(data.user.id, promoCode);
               if (promoRes.success) {
-                localStorage.setItem('invite_abdul-sana_paid', 'true');
+                localStorage.setItem('invite_jhon-lilly_paid', 'true');
               }
             }
           } catch (profileErr) {

@@ -16,15 +16,15 @@ interface PageProps {
 const mockInvitation: Invitation = {
   id: 'mock-id-123',
   user_id: 'mock-user-123',
-  slug: 'abdul-sana',
-  groom_name: 'Abdul',
+  slug: 'jhon-lilly',
+  groom_name: 'John',
   groom_photo: '',
-  groom_bio: 'A technology enthusiast who loves exploration, excited to build this beautiful life alongside Sana.',
-  bride_name: 'Sana',
+  groom_bio: 'A passionate explorer and technologist, excited to embark on this beautiful life journey alongside Lilly.',
+  bride_name: 'Lilly',
   bride_photo: '',
-  bride_bio: 'A creative designer and writer who loves nature walks, hot tea, and family get-togethers.',
-  parents_names: 'Mr. & Mrs. Rahman & Mr. & Mrs. Siddiqui',
-  invitation_message: 'With hearts full of love, we cordially invite you to celebrate the union of our families.',
+  bride_bio: 'A creative artist and writer who loves nature walks, music, and celebrating life with family and friends.',
+  parents_names: 'Mr. & Mrs. Anderson & Mr. & Mrs. Miller',
+  invitation_message: 'With hearts full of love and gratitude, we cordially invite you to celebrate the union of our lives and families.',
   is_published: true,
   styling: {
     invitation_id: 'mock-id-123',
@@ -45,15 +45,15 @@ const mockInvitation: Invitation = {
   },
   events: [
     {
-      event_name: 'Wedding Ceremony (Nikah)',
+      event_name: 'Wedding Ceremony',
       event_date: '2026-10-24',
       event_time: '11:00:00',
-      venue_name: 'The Royal Lawn & Banquet',
+      venue_name: 'The Royal Grand Lawn & Banquet',
       venue_address: '10 Palace Road, Bangalore, India',
       google_maps_link: 'https://maps.google.com',
     },
     {
-      event_name: 'Reception (Valima)',
+      event_name: 'Evening Reception & Dinner',
       event_date: '2026-10-25',
       event_time: '19:00:00',
       venue_name: 'Emerald Garden Palace',
@@ -63,9 +63,9 @@ const mockInvitation: Invitation = {
   ],
   gift_collection: {
     invitation_id: 'mock-id-123',
-    upi_id: 'shadi@okaxis',
-    receiver_name: 'Abdul & Sana',
-    thank_you_message: 'Your blessings are our greatest gift. Thank you for your warm love!',
+    upi_id: 'wedding@okaxis',
+    receiver_name: 'John & Lilly',
+    thank_you_message: 'Your presence and blessings are our greatest gift. Thank you for your love and warmth!',
   },
 };
 
