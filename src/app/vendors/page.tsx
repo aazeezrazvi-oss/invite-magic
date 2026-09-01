@@ -8,10 +8,12 @@ import {
   MessageCircle, Star, CheckCircle2, 
   X, ExternalLink, Tag, ShieldCheck, ArrowRight, PlusCircle, Share2, Copy, Check 
 } from 'lucide-react';
-import { VendorProfile, VendorCategory } from '@/types';
-import { getPublicVendors, rateVendor } from '@/app/vendor-actions';
+import { VendorProfile, VendorCategory, VendorAd } from '@/types';
+import { getPublicVendors, rateVendor, getActiveVendorAds } from '@/app/vendor-actions';
 import Logo from '@/components/Logo';
 import JsonLd from '@/components/JsonLd';
+import TopAdCarousel from '@/components/ads/TopAdCarousel';
+import InFeedAdCard from '@/components/ads/InFeedAdCard';
 
 const InstagramIcon = ({ className = "w-4 h-4" }: { className?: string }) => (
   <svg className={className} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" strokeLinecap="round" strokeLinejoin="round">
@@ -79,6 +81,8 @@ const vendorFaqSchema = {
 
 export default function PublicVendorsPage() {
   const [vendors, setVendors] = useState<VendorProfile[]>([]);
+  const [topAds, setTopAds] = useState<VendorAd[]>([]);
+  const [inFeedAds, setInFeedAds] = useState<VendorAd[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<VendorCategory>('all');
   const [selectedCity, setSelectedCity] = useState<string>('All Cities');
   const [searchQuery, setSearchQuery] = useState('');
@@ -150,6 +154,23 @@ export default function PublicVendorsPage() {
       setTimeout(() => setCopiedVendorId(null), 2500);
     }
   };
+
+  // Fetch ads for top carousel and in-feed
+  useEffect(() => {
+    async function loadAds() {
+      try {
+        const [top, inFeed] = await Promise.all([
+          getActiveVendorAds('top', selectedCategory, selectedCity),
+          getActiveVendorAds('in_feed', selectedCategory, selectedCity)
+        ]);
+        setTopAds(top);
+        setInFeedAds(inFeed);
+      } catch (err) {
+        console.warn('Error loading vendor ads:', err);
+      }
+    }
+    loadAds();
+  }, [selectedCategory, selectedCity]);
 
   useEffect(() => {
     async function loadVendors() {
@@ -236,6 +257,11 @@ export default function PublicVendorsPage() {
         </div>
       </section>
 
+      {/* Top Billboard Ad Carousel */}
+      {topAds.length > 0 && (
+        <TopAdCarousel ads={topAds} />
+      )}
+
       {/* Category Tabs */}
       <section className="px-6 max-w-7xl mx-auto w-full mb-4 z-10">
         <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-none justify-start md:justify-center">
@@ -304,14 +330,23 @@ export default function PublicVendorsPage() {
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {vendors.map((vendor) => (
-              <motion.div
-                key={vendor.id}
-                initial={{ opacity: 0, y: 15 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.3 }}
-                className="bg-[#161622] border border-[#26263b] rounded-2xl overflow-hidden flex flex-col justify-between hover:border-[#d4af37]/40 transition-all group shadow-xl"
-              >
+            {vendors.map((vendor, index) => {
+              const shouldInsertAd = inFeedAds.length > 0 && index > 0 && index % 4 === 0;
+              const adIndex = Math.floor(index / 4) - 1;
+              const adToRender = shouldInsertAd ? inFeedAds[adIndex % inFeedAds.length] : null;
+
+              return (
+                <React.Fragment key={vendor.id}>
+                  {adToRender && (
+                    <InFeedAdCard key={`in-feed-ad-${adToRender.id}-${index}`} ad={adToRender} />
+                  )}
+                  <motion.div
+                    key={vendor.id}
+                    initial={{ opacity: 0, y: 15 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.3 }}
+                    className="bg-[#161622] border border-[#26263b] rounded-2xl overflow-hidden flex flex-col justify-between hover:border-[#d4af37]/40 transition-all group shadow-xl"
+                  >
                 {/* Card Banner / Portfolio Cover */}
                 <div 
                   className="relative h-48 bg-[#0d0d11] overflow-hidden cursor-pointer"
@@ -447,8 +482,10 @@ export default function PublicVendorsPage() {
                 </div>
 
               </motion.div>
-            ))}
-          </div>
+            </React.Fragment>
+          );
+        })}
+      </div>
         )}
       </main>
 

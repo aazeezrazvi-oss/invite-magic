@@ -2,7 +2,7 @@
 
 import { createClient } from '@supabase/supabase-js';
 import { cookies, headers } from 'next/headers';
-import { VendorProfile, VendorCategory } from '@/types';
+import { VendorProfile, VendorCategory, VendorAd } from '@/types';
 import { sanitizeText, sanitizeUrl } from '@/utils/sanitizer';
 
 // Supabase Helpers for Server Actions
@@ -419,5 +419,250 @@ export async function deleteVendorAdmin(vendorId: string): Promise<boolean> {
     return true;
   } catch (err) {
     return false;
+  }
+}
+
+/**
+ * Public: Fetch active vendor ads filtered by placement, category, and city
+ */
+export async function getActiveVendorAds(
+  placement?: 'top' | 'in_feed' | 'both',
+  category?: string,
+  city?: string
+): Promise<VendorAd[]> {
+  const supabase = await getSupabase();
+  const supabaseAdmin = getServiceSupabase();
+  const client = supabaseAdmin || supabase;
+
+  try {
+    const now = new Date().toISOString();
+    let query = client
+      .from('vendor_ads')
+      .select('*')
+      .eq('is_active', true)
+      .lte('start_date', now)
+      .or(`end_date.is.null,end_date.gte.${now}`)
+      .order('display_order', { ascending: true })
+      .order('created_at', { ascending: false });
+
+    if (placement && placement !== 'both') {
+      query = query.or(`placement.eq.${placement},placement.eq.both`);
+    }
+
+    const { data, error } = await query;
+
+    if (error) {
+      // If table doesn't exist yet or other query error, gracefully log and return empty
+      console.warn('[getActiveVendorAds] Note:', error.message);
+      return [];
+    }
+
+    let ads = (data || []) as VendorAd[];
+
+    // In-memory filter for category and city targeting if specified
+    if (category && category !== 'all') {
+      ads = ads.filter(ad => !ad.category || ad.category === 'all' || ad.category === category);
+    }
+
+    if (city && city !== 'All Cities') {
+      ads = ads.filter(ad => !ad.city || ad.city === 'All Cities' || ad.city.toLowerCase() === city.toLowerCase());
+    }
+
+    return ads;
+  } catch (err) {
+    console.error('[getActiveVendorAds] Error:', err);
+    return [];
+  }
+}
+
+/**
+ * Admin: Get all ads (active, inactive, scheduled)
+ */
+export async function getAllVendorAdsAdmin(): Promise<VendorAd[]> {
+  const supabase = await getSupabase();
+  const authorized = await checkAdmin(supabase);
+  if (!authorized) return [];
+
+  const supabaseAdmin = getServiceSupabase();
+  const client = supabaseAdmin || supabase;
+
+  try {
+    const { data, error } = await client
+      .from('vendor_ads')
+      .select('*')
+      .order('display_order', { ascending: true })
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('[getAllVendorAdsAdmin] Error:', error);
+      return [];
+    }
+    return (data || []) as VendorAd[];
+  } catch (err) {
+    console.error('[getAllVendorAdsAdmin] Exception:', err);
+    return [];
+  }
+}
+
+/**
+ * Admin: Create a new vendor ad
+ */
+export async function createVendorAdAdmin(adData: Partial<VendorAd>): Promise<{ success: boolean; data?: VendorAd; error?: string }> {
+  const supabase = await getSupabase();
+  const authorized = await checkAdmin(supabase);
+  if (!authorized) return { success: false, error: 'Unauthorized admin access' };
+
+  const supabaseAdmin = getServiceSupabase();
+  const client = supabaseAdmin || supabase;
+
+  try {
+    const payload = {
+      title: sanitizeText(adData.title || 'Untitled Ad'),
+      subtitle: adData.subtitle ? sanitizeText(adData.subtitle) : null,
+      ad_type: adData.ad_type || 'image',
+      placement: adData.placement || 'top',
+      category: adData.category || 'all',
+      city: adData.city || 'All Cities',
+      media_url: adData.media_url ? sanitizeUrl(adData.media_url) : null,
+      redirect_url: adData.redirect_url ? sanitizeUrl(adData.redirect_url) : null,
+      cta_text: adData.cta_text ? sanitizeText(adData.cta_text) : 'Learn More',
+      google_ad_client: adData.google_ad_client ? sanitizeText(adData.google_ad_client) : null,
+      google_ad_slot: adData.google_ad_slot ? sanitizeText(adData.google_ad_slot) : null,
+      raw_embed_code: adData.raw_embed_code || null,
+      is_active: adData.is_active !== undefined ? adData.is_active : true,
+      display_order: adData.display_order || 0,
+      start_date: adData.start_date || new Date().toISOString(),
+      end_date: adData.end_date || null,
+      updated_at: new Date().toISOString(),
+    };
+
+    const { data, error } = await client
+      .from('vendor_ads')
+      .insert(payload)
+      .select()
+      .single();
+
+    if (error) {
+      console.error('[createVendorAdAdmin] Error:', error);
+      return { success: false, error: error.message };
+    }
+
+    return { success: true, data: data as VendorAd };
+  } catch (err: any) {
+    return { success: false, error: err.message || 'Failed to create ad' };
+  }
+}
+
+/**
+ * Admin: Update an existing vendor ad
+ */
+export async function updateVendorAdAdmin(adId: string, adData: Partial<VendorAd>): Promise<{ success: boolean; data?: VendorAd; error?: string }> {
+  const supabase = await getSupabase();
+  const authorized = await checkAdmin(supabase);
+  if (!authorized) return { success: false, error: 'Unauthorized' };
+
+  const supabaseAdmin = getServiceSupabase();
+  const client = supabaseAdmin || supabase;
+
+  try {
+    const payload: any = {
+      updated_at: new Date().toISOString(),
+    };
+
+    if (adData.title !== undefined) payload.title = sanitizeText(adData.title);
+    if (adData.subtitle !== undefined) payload.subtitle = adData.subtitle ? sanitizeText(adData.subtitle) : null;
+    if (adData.ad_type !== undefined) payload.ad_type = adData.ad_type;
+    if (adData.placement !== undefined) payload.placement = adData.placement;
+    if (adData.category !== undefined) payload.category = adData.category;
+    if (adData.city !== undefined) payload.city = adData.city;
+    if (adData.media_url !== undefined) payload.media_url = adData.media_url ? sanitizeUrl(adData.media_url) : null;
+    if (adData.redirect_url !== undefined) payload.redirect_url = adData.redirect_url ? sanitizeUrl(adData.redirect_url) : null;
+    if (adData.cta_text !== undefined) payload.cta_text = adData.cta_text ? sanitizeText(adData.cta_text) : 'Learn More';
+    if (adData.google_ad_client !== undefined) payload.google_ad_client = adData.google_ad_client ? sanitizeText(adData.google_ad_client) : null;
+    if (adData.google_ad_slot !== undefined) payload.google_ad_slot = adData.google_ad_slot ? sanitizeText(adData.google_ad_slot) : null;
+    if (adData.raw_embed_code !== undefined) payload.raw_embed_code = adData.raw_embed_code;
+    if (adData.is_active !== undefined) payload.is_active = adData.is_active;
+    if (adData.display_order !== undefined) payload.display_order = adData.display_order;
+    if (adData.start_date !== undefined) payload.start_date = adData.start_date;
+    if (adData.end_date !== undefined) payload.end_date = adData.end_date;
+
+    const { data, error } = await client
+      .from('vendor_ads')
+      .update(payload)
+      .eq('id', adId)
+      .select()
+      .single();
+
+    if (error) {
+      return { success: false, error: error.message };
+    }
+
+    return { success: true, data: data as VendorAd };
+  } catch (err: any) {
+    return { success: false, error: err.message || 'Failed to update ad' };
+  }
+}
+
+/**
+ * Admin: Delete a vendor ad
+ */
+export async function deleteVendorAdAdmin(adId: string): Promise<boolean> {
+  const supabase = await getSupabase();
+  const authorized = await checkAdmin(supabase);
+  if (!authorized) return false;
+
+  const supabaseAdmin = getServiceSupabase();
+  const client = supabaseAdmin || supabase;
+
+  try {
+    const { error } = await client
+      .from('vendor_ads')
+      .delete()
+      .eq('id', adId);
+
+    if (error) return false;
+    return true;
+  } catch (err) {
+    return false;
+  }
+}
+
+/**
+ * Public: Record ad impression count
+ */
+export async function recordAdImpression(adId: string): Promise<void> {
+  const supabase = await getSupabase();
+  const supabaseAdmin = getServiceSupabase();
+  const client = supabaseAdmin || supabase;
+
+  try {
+    const { error } = await client.rpc('increment_ad_impressions', { ad_id: adId });
+    if (error) {
+      // Fallback manual increment if RPC function is not installed
+      const { data } = await client.from('vendor_ads').select('impressions_count').eq('id', adId).single();
+      if (data) {
+        await client.from('vendor_ads').update({ impressions_count: (data.impressions_count || 0) + 1 }).eq('id', adId);
+      }
+    }
+  } catch (e) {
+    // Non-blocking
+  }
+}
+
+/**
+ * Public: Record ad click count
+ */
+export async function recordAdClick(adId: string): Promise<void> {
+  const supabase = await getSupabase();
+  const supabaseAdmin = getServiceSupabase();
+  const client = supabaseAdmin || supabase;
+
+  try {
+    const { data } = await client.from('vendor_ads').select('clicks_count').eq('id', adId).single();
+    if (data) {
+      await client.from('vendor_ads').update({ clicks_count: (data.clicks_count || 0) + 1 }).eq('id', adId);
+    }
+  } catch (e) {
+    // Non-blocking
   }
 }

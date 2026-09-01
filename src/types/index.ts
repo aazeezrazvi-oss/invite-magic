@@ -158,4 +158,38 @@ export interface VendorProfile {
   updated_at?: string;
 }
 
+export type AdType = 'image' | 'video' | 'google_ads';
+export type AdPlacement = 'top' | 'in_feed' | 'both';
 
+export interface VendorAd {
+  id: string;
+  title: string;
+  subtitle?: string | null;
+  ad_type: AdType;
+  placement: AdPlacement;
+  category?: VendorCategory | string;
+  city?: string;
+  
+  // Media & Redirect
+  media_url?: string | null;
+  redirect_url?: string | null;
+  cta_text?: string | null;
+  
+  // Google Ads / Embed Code
+  google_ad_client?: string | null;
+  google_ad_slot?: string | null;
+  raw_embed_code?: string | null;
+  
+  // Visibility & Scheduling
+  is_active: boolean;
+  display_order: number;
+  start_date?: string | null;
+  end_date?: string | null;
+  
+  // Analytics
+  impressions_count?: number;
+  clicks_count?: number;
+  
+  created_at?: string;
+  updated_at?: string;
+}

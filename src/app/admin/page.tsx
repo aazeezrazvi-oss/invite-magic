@@ -6,7 +6,8 @@ import { useRouter } from 'next/navigation';
 import { 
   Heart, Users, Layers, CreditCard, Power, Eye, CheckCircle2,
   Tag, Film, Image, Music, Plus, Trash2, ShieldAlert, Store, ShieldCheck, Check, Clock,
-  ExternalLink, ZoomIn, XCircle, Copy, AlertTriangle, Filter, QrCode
+  ExternalLink, ZoomIn, XCircle, Copy, AlertTriangle, Filter, QrCode, Megaphone,
+  Edit2, Globe, Play, Sparkles, UploadCloud, Radio
 } from 'lucide-react';
 import { 
   getAdminDashboardData, 
@@ -21,8 +22,16 @@ import {
 } from '@/app/actions';
 import Logo from '@/components/Logo';
 import { supabase } from '@/utils/supabase';
-import { getAllVendorsAdmin, approveVendorAdmin, deleteVendorAdmin } from '@/app/vendor-actions';
-import { ReferralCode, MediaAsset, VendorProfile } from '@/types';
+import { 
+  getAllVendorsAdmin, 
+  approveVendorAdmin, 
+  deleteVendorAdmin,
+  getAllVendorAdsAdmin,
+  createVendorAdAdmin,
+  updateVendorAdAdmin,
+  deleteVendorAdAdmin
+} from '@/app/vendor-actions';
+import { ReferralCode, MediaAsset, VendorProfile, VendorAd, AdType, AdPlacement } from '@/types';
 
 export default function AdminDashboard() {
   const router = useRouter();
@@ -34,10 +43,11 @@ export default function AdminDashboard() {
   const [referrals, setReferrals] = useState<ReferralCode[]>([]);
   const [mediaAssets, setMediaAssets] = useState<MediaAsset[]>([]);
   const [vendors, setVendors] = useState<VendorProfile[]>([]);
+  const [ads, setAds] = useState<VendorAd[]>([]);
   
   // UI & Loading States
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'users' | 'invites' | 'payments' | 'referrals' | 'media' | 'vendors'>('users');
+  const [activeTab, setActiveTab] = useState<'users' | 'invites' | 'payments' | 'referrals' | 'media' | 'vendors' | 'ads'>('users');
   const [isAdmin, setIsAdmin] = useState(false);
 
   const [verifying, setVerifying] = useState(true);
@@ -157,8 +167,11 @@ export default function AdminDashboard() {
 
       if (mediaErr) throw mediaErr;
 
-      // 6. Fetch Vendors
-      const vendorData = await getAllVendorsAdmin();
+      // 6. Fetch Vendors & Ads
+      const [vendorData, adsData] = await Promise.all([
+        getAllVendorsAdmin(),
+        getAllVendorAdsAdmin()
+      ]);
 
       // Format data using userMap lookup
       const formattedInvitations = (invData || []).map((inv: any) => ({
@@ -192,6 +205,7 @@ export default function AdminDashboard() {
       setReferrals(refData || []);
       setMediaAssets(mediaData || []);
       setVendors(vendorData || []);
+      setAds(adsData || []);
     } catch (err: any) {
       console.error("Error loading admin dashboard data:", err);
       alert("Error loading dashboard data: " + err.message);
@@ -199,6 +213,167 @@ export default function AdminDashboard() {
       setLoading(false);
     }
   }
+
+  // --- Ad Management States & Handlers ---
+  const [showAdModal, setShowAdModal] = useState(false);
+  const [editingAdId, setEditingAdId] = useState<string | null>(null);
+  const [adFormTitle, setAdFormTitle] = useState('');
+  const [adFormSubtitle, setAdFormSubtitle] = useState('');
+  const [adFormType, setAdFormType] = useState<AdType>('image');
+  const [adFormPlacement, setAdFormPlacement] = useState<AdPlacement>('top');
+  const [adFormCategory, setAdFormCategory] = useState<string>('all');
+  const [adFormCity, setAdFormCity] = useState<string>('All Cities');
+  const [adFormMediaUrl, setAdFormMediaUrl] = useState('');
+  const [adFormRedirectUrl, setAdFormRedirectUrl] = useState('');
+  const [adFormCtaText, setAdFormCtaText] = useState('Learn More');
+  const [adFormGoogleClient, setAdFormGoogleClient] = useState('');
+  const [adFormGoogleSlot, setAdFormGoogleSlot] = useState('');
+  const [adFormRawEmbed, setAdFormRawEmbed] = useState('');
+  const [adFormIsActive, setAdFormIsActive] = useState(true);
+  const [adFormDisplayOrder, setAdFormDisplayOrder] = useState(0);
+  const [adFormStartDate, setAdFormStartDate] = useState('');
+  const [adFormEndDate, setAdFormEndDate] = useState('');
+  const [savingAd, setSavingAd] = useState(false);
+  const [uploadingAdMedia, setUploadingAdMedia] = useState(false);
+
+  const openCreateAdModal = () => {
+    setEditingAdId(null);
+    setAdFormTitle('');
+    setAdFormSubtitle('');
+    setAdFormType('image');
+    setAdFormPlacement('top');
+    setAdFormCategory('all');
+    setAdFormCity('All Cities');
+    setAdFormMediaUrl('');
+    setAdFormRedirectUrl('');
+    setAdFormCtaText('Learn More');
+    setAdFormGoogleClient('');
+    setAdFormGoogleSlot('');
+    setAdFormRawEmbed('');
+    setAdFormIsActive(true);
+    setAdFormDisplayOrder(0);
+    setAdFormStartDate(new Date().toISOString().split('T')[0]);
+    setAdFormEndDate('');
+    setShowAdModal(true);
+  };
+
+  const openEditAdModal = (ad: VendorAd) => {
+    setEditingAdId(ad.id);
+    setAdFormTitle(ad.title || '');
+    setAdFormSubtitle(ad.subtitle || '');
+    setAdFormType(ad.ad_type);
+    setAdFormPlacement(ad.placement);
+    setAdFormCategory(ad.category || 'all');
+    setAdFormCity(ad.city || 'All Cities');
+    setAdFormMediaUrl(ad.media_url || '');
+    setAdFormRedirectUrl(ad.redirect_url || '');
+    setAdFormCtaText(ad.cta_text || 'Learn More');
+    setAdFormGoogleClient(ad.google_ad_client || '');
+    setAdFormGoogleSlot(ad.google_ad_slot || '');
+    setAdFormRawEmbed(ad.raw_embed_code || '');
+    setAdFormIsActive(ad.is_active);
+    setAdFormDisplayOrder(ad.display_order || 0);
+    setAdFormStartDate(ad.start_date ? ad.start_date.split('T')[0] : '');
+    setAdFormEndDate(ad.end_date ? ad.end_date.split('T')[0] : '');
+    setShowAdModal(true);
+  };
+
+  const handleSaveAd = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!adFormTitle.trim()) {
+      alert('Please provide an ad title.');
+      return;
+    }
+    setSavingAd(true);
+
+    const payload: Partial<VendorAd> = {
+      title: adFormTitle.trim(),
+      subtitle: adFormSubtitle.trim() || null,
+      ad_type: adFormType,
+      placement: adFormPlacement,
+      category: adFormCategory,
+      city: adFormCity,
+      media_url: adFormMediaUrl.trim() || null,
+      redirect_url: adFormRedirectUrl.trim() || null,
+      cta_text: adFormCtaText.trim() || 'Learn More',
+      google_ad_client: adFormGoogleClient.trim() || null,
+      google_ad_slot: adFormGoogleSlot.trim() || null,
+      raw_embed_code: adFormRawEmbed.trim() || null,
+      is_active: adFormIsActive,
+      display_order: Number(adFormDisplayOrder) || 0,
+      start_date: adFormStartDate ? new Date(adFormStartDate).toISOString() : new Date().toISOString(),
+      end_date: adFormEndDate ? new Date(adFormEndDate).toISOString() : null,
+    };
+
+    let res;
+    if (editingAdId) {
+      res = await updateVendorAdAdmin(editingAdId, payload);
+    } else {
+      res = await createVendorAdAdmin(payload);
+    }
+
+    if (res.success) {
+      setShowAdModal(false);
+      loadAllData();
+      alert(editingAdId ? 'Ad updated successfully!' : 'Ad created successfully!');
+    } else {
+      alert('Failed to save ad: ' + (res.error || 'Unknown error'));
+    }
+    setSavingAd(false);
+  };
+
+  const handleDeleteAd = async (adId: string) => {
+    if (!confirm('Are you sure you want to delete this ad?')) return;
+    const success = await deleteVendorAdAdmin(adId);
+    if (success) {
+      setAds(prev => prev.filter(a => a.id !== adId));
+      alert('Ad deleted successfully.');
+    } else {
+      alert('Failed to delete ad.');
+    }
+  };
+
+  const handleToggleAdActive = async (ad: VendorAd) => {
+    const newStatus = !ad.is_active;
+    const res = await updateVendorAdAdmin(ad.id, { is_active: newStatus });
+    if (res.success) {
+      setAds(prev => prev.map(a => a.id === ad.id ? { ...a, is_active: newStatus } : a));
+    } else {
+      alert('Failed to update ad status.');
+    }
+  };
+
+  const handleAdMediaUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadingAdMedia(true);
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `ad_${Date.now()}_${Math.random().toString(36).substring(2, 7)}.${fileExt}`;
+      const filePath = `ads/${fileName}`;
+
+      const { error } = await supabase.storage
+        .from('photos')
+        .upload(filePath, file, {
+          cacheControl: '3600',
+          upsert: true,
+        });
+
+      if (error) throw error;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('photos')
+        .getPublicUrl(filePath);
+
+      setAdFormMediaUrl(publicUrl);
+      alert('Media uploaded successfully!');
+    } catch (err: any) {
+      console.error(err);
+      alert('Media upload failed: ' + err.message);
+    } finally {
+      setUploadingAdMedia(false);
+    }
+  };
 
   // Handle Approve / Verify Vendor Profile
   const handleApproveVendor = async (vendorId: string, currentApproved: boolean) => {
@@ -529,6 +704,20 @@ export default function AdminDashboard() {
             {vendors.filter(v => !v.is_approved).length > 0 && (
               <span className="px-1.5 py-0.5 bg-yellow-500/20 text-yellow-400 rounded-full text-[9px] font-bold border border-yellow-500/30 animate-pulse">
                 {vendors.filter(v => !v.is_approved).length} Pending
+              </span>
+            )}
+          </button>
+          <button
+            onClick={() => setActiveTab('ads')}
+            className={`py-3 px-5 font-semibold border-b-2 capitalize transition-all flex items-center gap-1.5 ${
+              activeTab === 'ads' ? 'border-[#d4af37] text-[#d4af37]' : 'border-transparent text-gray-400 hover:text-white'
+            }`}
+          >
+            <Megaphone className="w-4 h-4 text-[#d4af37]" />
+            <span>Ads & Sponsors ({ads.length})</span>
+            {ads.filter(a => a.is_active).length > 0 && (
+              <span className="px-1.5 py-0.5 bg-green-500/20 text-green-400 rounded-full text-[9px] font-bold border border-green-500/30">
+                {ads.filter(a => a.is_active).length} Live
               </span>
             )}
           </button>
@@ -1265,11 +1454,499 @@ export default function AdminDashboard() {
                 </div>
               )}
 
+              {activeTab === 'ads' && (
+                <div className="p-6 space-y-6">
+                  {/* Action Top Bar */}
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-4 border-b border-[#26263b]">
+                    <div>
+                      <h3 className="text-base font-bold text-white flex items-center gap-2">
+                        <Megaphone className="w-5 h-5 text-[#d4af37]" />
+                        <span>Vendor Directory Ads & Sponsorships</span>
+                      </h3>
+                      <p className="text-xs text-gray-400 mt-0.5">
+                        Manage hero carousel banners, in-feed sponsored vendor cards, and Google Ads units.
+                      </p>
+                    </div>
+
+                    <button
+                      onClick={openCreateAdModal}
+                      className="px-4 py-2 bg-[#d4af37] hover:bg-[#b8962e] text-[#0d0d11] font-bold text-xs uppercase tracking-wider rounded-lg flex items-center gap-2 transition-all shadow-[0_2px_15px_rgba(212,175,55,0.25)] cursor-pointer"
+                    >
+                      <Plus className="w-4 h-4" />
+                      <span>Create New Ad</span>
+                    </button>
+                  </div>
+
+                  {/* Summary Metric Cards */}
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                    <div className="bg-[#0f0f18] p-4 rounded-xl border border-[#26263b] space-y-1">
+                      <span className="text-[10px] text-gray-400 uppercase font-semibold">Total Campaigns</span>
+                      <p className="text-xl font-bold text-white">{ads.length}</p>
+                    </div>
+                    <div className="bg-[#0f0f18] p-4 rounded-xl border border-[#26263b] space-y-1">
+                      <span className="text-[10px] text-gray-400 uppercase font-semibold">Active & Live</span>
+                      <p className="text-xl font-bold text-green-400">{ads.filter(a => a.is_active).length}</p>
+                    </div>
+                    <div className="bg-[#0f0f18] p-4 rounded-xl border border-[#26263b] space-y-1">
+                      <span className="text-[10px] text-gray-400 uppercase font-semibold">Total Impressions</span>
+                      <p className="text-xl font-bold text-[#d4af37]">
+                        {ads.reduce((acc, a) => acc + (a.impressions_count || 0), 0).toLocaleString()}
+                      </p>
+                    </div>
+                    <div className="bg-[#0f0f18] p-4 rounded-xl border border-[#26263b] space-y-1">
+                      <span className="text-[10px] text-gray-400 uppercase font-semibold">Total Clicks</span>
+                      <p className="text-xl font-bold text-blue-400">
+                        {ads.reduce((acc, a) => acc + (a.clicks_count || 0), 0).toLocaleString()}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Ads Table */}
+                  <div className="overflow-x-auto rounded-lg border border-[#26263b]">
+                    <table className="w-full text-left border-collapse min-w-[800px]">
+                      <thead>
+                        <tr className="bg-[#0f0f18] text-gray-400 border-b border-[#26263b]">
+                          <th className="p-4">Ad Title & Creative</th>
+                          <th className="p-4">Type</th>
+                          <th className="p-4">Placement</th>
+                          <th className="p-4">Targeting</th>
+                          <th className="p-4">Status</th>
+                          <th className="p-4">Performance</th>
+                          <th className="p-4 text-right">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-[#26263b]">
+                        {ads.map((ad) => (
+                          <tr key={ad.id} className="hover:bg-[#1c1c2b] transition-all">
+                            {/* Ad Title & Media Thumbnail */}
+                            <td className="p-4">
+                              <div className="flex items-center gap-3">
+                                {ad.ad_type === 'image' && ad.media_url ? (
+                                  <img
+                                    src={ad.media_url}
+                                    alt={ad.title}
+                                    className="w-12 h-12 rounded-lg object-cover border border-[#26263b] shrink-0"
+                                  />
+                                ) : ad.ad_type === 'video' ? (
+                                  <div className="w-12 h-12 rounded-lg bg-purple-500/20 border border-purple-500/30 flex items-center justify-center shrink-0">
+                                    <Play className="w-5 h-5 text-purple-400" />
+                                  </div>
+                                ) : (
+                                  <div className="w-12 h-12 rounded-lg bg-blue-500/20 border border-blue-500/30 flex items-center justify-center shrink-0">
+                                    <Globe className="w-5 h-5 text-blue-400" />
+                                  </div>
+                                )}
+                                <div>
+                                  <span className="font-bold text-white block text-sm">{ad.title}</span>
+                                  {ad.subtitle && (
+                                    <span className="text-[10px] text-gray-400 line-clamp-1 block">{ad.subtitle}</span>
+                                  )}
+                                  {ad.redirect_url && (
+                                    <a
+                                      href={ad.redirect_url}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="text-[10px] text-[#d4af37] hover:underline flex items-center gap-1 mt-0.5"
+                                    >
+                                      <span>{ad.cta_text || 'Visit'}</span>
+                                      <ExternalLink className="w-2.5 h-2.5" />
+                                    </a>
+                                  )}
+                                </div>
+                              </div>
+                            </td>
+
+                            {/* Ad Type */}
+                            <td className="p-4">
+                              <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
+                                ad.ad_type === 'image' ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20' :
+                                ad.ad_type === 'video' ? 'bg-purple-500/10 text-purple-400 border border-purple-500/20' :
+                                'bg-blue-500/10 text-blue-400 border border-blue-500/20'
+                              }`}>
+                                {ad.ad_type.replace('_', ' ')}
+                              </span>
+                            </td>
+
+                            {/* Placement */}
+                            <td className="p-4">
+                              <span className="px-2 py-0.5 rounded text-[10px] font-medium bg-[#0f0f18] border border-[#26263b] text-gray-300 capitalize">
+                                {ad.placement === 'top' ? 'Top Carousel' : ad.placement === 'in_feed' ? 'In-Feed Grid' : 'Top & In-Feed'}
+                              </span>
+                            </td>
+
+                            {/* Targeting */}
+                            <td className="p-4">
+                              <div className="text-[10px] space-y-0.5">
+                                <div className="text-gray-300 font-semibold capitalize">Cat: {ad.category || 'all'}</div>
+                                <div className="text-gray-400">City: {ad.city || 'All Cities'}</div>
+                              </div>
+                            </td>
+
+                            {/* Status Toggle */}
+                            <td className="p-4">
+                              <button
+                                onClick={() => handleToggleAdActive(ad)}
+                                className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase transition-all flex items-center gap-1 cursor-pointer ${
+                                  ad.is_active
+                                    ? 'bg-green-500/20 text-green-400 border border-green-500/30'
+                                    : 'bg-gray-500/20 text-gray-400 border border-gray-500/30'
+                                }`}
+                              >
+                                <span className={`w-1.5 h-1.5 rounded-full ${ad.is_active ? 'bg-green-400 animate-pulse' : 'bg-gray-400'}`} />
+                                <span>{ad.is_active ? 'Active' : 'Paused'}</span>
+                              </button>
+                            </td>
+
+                            {/* Performance */}
+                            <td className="p-4">
+                              <div className="text-[11px] space-y-0.5">
+                                <div className="text-gray-300">
+                                  <span className="text-gray-500 text-[10px]">Views:</span> {ad.impressions_count || 0}
+                                </div>
+                                <div className="text-[#d4af37] font-semibold">
+                                  <span className="text-gray-500 text-[10px]">Clicks:</span> {ad.clicks_count || 0}
+                                  {ad.impressions_count ? (
+                                    <span className="text-[9px] text-gray-400 font-normal ml-1">
+                                      ({(((ad.clicks_count || 0) / ad.impressions_count) * 100).toFixed(1)}%)
+                                    </span>
+                                  ) : null}
+                                </div>
+                              </div>
+                            </td>
+
+                            {/* Actions */}
+                            <td className="p-4 text-right">
+                              <div className="flex justify-end items-center gap-2">
+                                <button
+                                  onClick={() => openEditAdModal(ad)}
+                                  className="p-1.5 text-gray-300 hover:text-white hover:bg-white/10 rounded transition-all cursor-pointer"
+                                  title="Edit Ad"
+                                >
+                                  <Edit2 className="w-4 h-4" />
+                                </button>
+                                <button
+                                  onClick={() => handleDeleteAd(ad.id)}
+                                  className="p-1.5 text-red-400 hover:bg-red-500/10 rounded transition-all cursor-pointer"
+                                  title="Delete Ad"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+
+                        {ads.length === 0 && (
+                          <tr>
+                            <td colSpan={7} className="p-8 text-center text-gray-500">
+                              No ads configured yet. Click "Create New Ad" to add your first banner or video campaign!
+                            </td>
+                          </tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+
             </>
           )}
 
         </div>
       </div>
+
+      {/* CREATE / EDIT AD MODAL */}
+      {showAdModal && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
+          <div className="bg-[#161622] border border-[#d4af37]/40 rounded-2xl max-w-2xl w-full p-6 space-y-5 shadow-2xl text-xs max-h-[90vh] overflow-y-auto">
+            
+            {/* Modal Header */}
+            <div className="flex items-center justify-between pb-3 border-b border-[#26263b]">
+              <div className="flex items-center gap-2">
+                <Megaphone className="w-5 h-5 text-[#d4af37]" />
+                <h3 className="text-base font-bold text-white">
+                  {editingAdId ? 'Edit Ad Campaign' : 'Create New Ad Campaign'}
+                </h3>
+              </div>
+              <button
+                onClick={() => setShowAdModal(false)}
+                className="text-gray-400 hover:text-white p-1 rounded-lg hover:bg-[#26263b]"
+              >
+                <XCircle className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Form */}
+            <form onSubmit={handleSaveAd} className="space-y-4">
+              
+              {/* Title & Subtitle */}
+              <div className="space-y-3">
+                <div>
+                  <label className="block text-gray-300 font-semibold mb-1">
+                    Ad Title / Main Headline <span className="text-red-400">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={adFormTitle}
+                    onChange={(e) => setAdFormTitle(e.target.value)}
+                    placeholder="e.g. Royal Heritage Palace - 20% Off Wedding Bookings"
+                    className="w-full bg-[#0d0d11] border border-[#26263b] rounded-lg p-2.5 text-white outline-none focus:border-[#d4af37]"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-gray-300 font-semibold mb-1">
+                    Subtitle / Short Description
+                  </label>
+                  <input
+                    type="text"
+                    value={adFormSubtitle}
+                    onChange={(e) => setAdFormSubtitle(e.target.value)}
+                    placeholder="e.g. Complimentary bridal suite & luxury decor package for bookings made this week."
+                    className="w-full bg-[#0d0d11] border border-[#26263b] rounded-lg p-2.5 text-white outline-none focus:border-[#d4af37]"
+                  />
+                </div>
+              </div>
+
+              {/* Ad Type & Placement */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-gray-300 font-semibold mb-1">Ad Format</label>
+                  <select
+                    value={adFormType}
+                    onChange={(e) => setAdFormType(e.target.value as AdType)}
+                    className="w-full bg-[#0d0d11] border border-[#26263b] rounded-lg p-2.5 text-white outline-none focus:border-[#d4af37]"
+                  >
+                    <option value="image">🖼️ Image Banner</option>
+                    <option value="video">🎬 Video Teaser / Loop</option>
+                    <option value="google_ads">🌐 Google AdSense / Script</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-gray-300 font-semibold mb-1">Placement Location</label>
+                  <select
+                    value={adFormPlacement}
+                    onChange={(e) => setAdFormPlacement(e.target.value as AdPlacement)}
+                    className="w-full bg-[#0d0d11] border border-[#26263b] rounded-lg p-2.5 text-white outline-none focus:border-[#d4af37]"
+                  >
+                    <option value="top">Top Billboard Carousel</option>
+                    <option value="in_feed">In-Feed Cards Grid</option>
+                    <option value="both">Both (Top & In-Feed)</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Category & City Targeting */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-gray-300 font-semibold mb-1">Target Category</label>
+                  <select
+                    value={adFormCategory}
+                    onChange={(e) => setAdFormCategory(e.target.value)}
+                    className="w-full bg-[#0d0d11] border border-[#26263b] rounded-lg p-2.5 text-white outline-none focus:border-[#d4af37] capitalize"
+                  >
+                    <option value="all">All Categories</option>
+                    <option value="mehendi">Mehendi Artists</option>
+                    <option value="makeup">Makeup & Hair</option>
+                    <option value="photography">Photography</option>
+                    <option value="decor">Decor & Floral</option>
+                    <option value="catering">Catering & Food</option>
+                    <option value="dj_music">DJ & Music</option>
+                    <option value="planner">Planners</option>
+                    <option value="venue">Venues</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-gray-300 font-semibold mb-1">Target City</label>
+                  <select
+                    value={adFormCity}
+                    onChange={(e) => setAdFormCity(e.target.value)}
+                    className="w-full bg-[#0d0d11] border border-[#26263b] rounded-lg p-2.5 text-white outline-none focus:border-[#d4af37]"
+                  >
+                    {['All Cities', 'Bengaluru', 'Mumbai', 'Delhi NCR', 'Hyderabad', 'Chennai', 'Pune', 'Kolkata', 'Jaipur', 'Lucknow'].map(city => (
+                      <option key={city} value={city}>{city}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              {/* Creative Media (For Image or Video ads) */}
+              {adFormType !== 'google_ads' ? (
+                <div className="p-4 bg-[#0f0f18] rounded-xl border border-[#26263b] space-y-3">
+                  <span className="font-bold text-white block">Media Creative Asset</span>
+                  
+                  <div className="space-y-2">
+                    <label className="block text-gray-400 text-[11px]">Upload Image/Video File</label>
+                    <input
+                      type="file"
+                      accept={adFormType === 'video' ? 'video/mp4,video/webm' : 'image/*'}
+                      onChange={handleAdMediaUpload}
+                      disabled={uploadingAdMedia}
+                      className="block w-full text-xs text-gray-400 file:mr-3 file:py-1.5 file:px-3 file:rounded file:border-0 file:text-xs file:font-semibold file:bg-[#d4af37] file:text-[#0d0d11] hover:file:bg-[#b8962e] cursor-pointer"
+                    />
+                    {uploadingAdMedia && <span className="text-[10px] text-[#d4af37] animate-pulse">Uploading file to storage...</span>}
+                  </div>
+
+                  <div>
+                    <label className="block text-gray-400 text-[11px] mb-1">Or Paste Direct Media URL</label>
+                    <input
+                      type="url"
+                      value={adFormMediaUrl}
+                      onChange={(e) => setAdFormMediaUrl(e.target.value)}
+                      placeholder="https://images.unsplash.com/... or https://domain.com/video.mp4"
+                      className="w-full bg-[#0d0d11] border border-[#26263b] rounded-lg p-2 text-white outline-none focus:border-[#d4af37]"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+                    <div>
+                      <label className="block text-gray-300 font-semibold mb-1">Destination URL</label>
+                      <input
+                        type="url"
+                        value={adFormRedirectUrl}
+                        onChange={(e) => setAdFormRedirectUrl(e.target.value)}
+                        placeholder="https://..."
+                        className="w-full bg-[#0d0d11] border border-[#26263b] rounded-lg p-2 text-white outline-none focus:border-[#d4af37]"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-gray-300 font-semibold mb-1">CTA Button Text</label>
+                      <input
+                        type="text"
+                        value={adFormCtaText}
+                        onChange={(e) => setAdFormCtaText(e.target.value)}
+                        placeholder="e.g. Book Now, Claim 20% Off"
+                        className="w-full bg-[#0d0d11] border border-[#26263b] rounded-lg p-2 text-white outline-none focus:border-[#d4af37]"
+                      />
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                /* Google Ads Config */
+                <div className="p-4 bg-[#0f0f18] rounded-xl border border-[#26263b] space-y-3">
+                  <span className="font-bold text-white block">Google AdSense Configuration</span>
+                  
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-gray-400 text-[11px] mb-1">Google Ad Client (data-ad-client)</label>
+                      <input
+                        type="text"
+                        value={adFormGoogleClient}
+                        onChange={(e) => setAdFormGoogleClient(e.target.value)}
+                        placeholder="ca-pub-XXXXXXXXXXXXXXXX"
+                        className="w-full bg-[#0d0d11] border border-[#26263b] rounded-lg p-2 text-white outline-none focus:border-[#d4af37]"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-gray-400 text-[11px] mb-1">Google Ad Slot (data-ad-slot)</label>
+                      <input
+                        type="text"
+                        value={adFormGoogleSlot}
+                        onChange={(e) => setAdFormGoogleSlot(e.target.value)}
+                        placeholder="XXXXXXXXXX"
+                        className="w-full bg-[#0d0d11] border border-[#26263b] rounded-lg p-2 text-white outline-none focus:border-[#d4af37]"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-gray-400 text-[11px] mb-1">Or Raw Script / Embed HTML Code</label>
+                    <textarea
+                      rows={3}
+                      value={adFormRawEmbed}
+                      onChange={(e) => setAdFormRawEmbed(e.target.value)}
+                      placeholder='<ins class="adsbygoogle" ...></ins>'
+                      className="w-full bg-[#0d0d11] border border-[#26263b] rounded-lg p-2 text-white font-mono text-[11px] outline-none focus:border-[#d4af37]"
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* Scheduling & Ordering */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div>
+                  <label className="block text-gray-300 font-semibold mb-1">Display Priority Order</label>
+                  <input
+                    type="number"
+                    value={adFormDisplayOrder}
+                    onChange={(e) => setAdFormDisplayOrder(Number(e.target.value))}
+                    className="w-full bg-[#0d0d11] border border-[#26263b] rounded-lg p-2 text-white outline-none focus:border-[#d4af37]"
+                  />
+                  <span className="text-[9px] text-gray-500">Lower numbers appear first</span>
+                </div>
+
+                <div>
+                  <label className="block text-gray-300 font-semibold mb-1">Start Date</label>
+                  <input
+                    type="date"
+                    value={adFormStartDate}
+                    onChange={(e) => setAdFormStartDate(e.target.value)}
+                    className="w-full bg-[#0d0d11] border border-[#26263b] rounded-lg p-2 text-white outline-none focus:border-[#d4af37]"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-gray-300 font-semibold mb-1">End Date (Optional)</label>
+                  <input
+                    type="date"
+                    value={adFormEndDate}
+                    onChange={(e) => setAdFormEndDate(e.target.value)}
+                    className="w-full bg-[#0d0d11] border border-[#26263b] rounded-lg p-2 text-white outline-none focus:border-[#d4af37]"
+                  />
+                </div>
+              </div>
+
+              {/* Active Toggle Switch */}
+              <div className="flex items-center gap-2 pt-2">
+                <input
+                  type="checkbox"
+                  id="adActiveCheck"
+                  checked={adFormIsActive}
+                  onChange={(e) => setAdFormIsActive(e.target.checked)}
+                  className="w-4 h-4 accent-[#d4af37] rounded cursor-pointer"
+                />
+                <label htmlFor="adActiveCheck" className="text-gray-300 font-semibold cursor-pointer">
+                  Activate Ad immediately upon saving
+                </label>
+              </div>
+
+              {/* Submit Buttons */}
+              <div className="flex justify-end gap-3 pt-4 border-t border-[#26263b]">
+                <button
+                  type="button"
+                  onClick={() => setShowAdModal(false)}
+                  className="px-4 py-2 bg-gray-800 hover:bg-gray-700 text-gray-300 rounded-lg font-semibold cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={savingAd}
+                  className="px-6 py-2 bg-[#d4af37] hover:bg-[#b8962e] text-[#0d0d11] font-bold uppercase tracking-wider rounded-lg shadow-[0_2px_15px_rgba(212,175,55,0.3)] transition-all flex items-center gap-2 cursor-pointer disabled:opacity-50"
+                >
+                  {savingAd ? (
+                    <>
+                      <div className="w-3.5 h-3.5 border-2 border-black border-t-transparent rounded-full animate-spin" />
+                      <span>Saving...</span>
+                    </>
+                  ) : (
+                    <span>{editingAdId ? 'Save Changes' : 'Publish Ad Campaign'}</span>
+                  )}
+                </button>
+              </div>
+
+            </form>
+
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }
+
