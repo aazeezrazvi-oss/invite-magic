@@ -450,10 +450,24 @@ export async function createDefaultInvitation(userId: string, email: string): Pr
   }
 
   const supabase = await getSupabase();
-  const baseSlug = email ? email.split('@')[0].replace(/[^a-zA-Z0-9]/g, '') : 'wedding';
-  const newSlug = `${baseSlug}-${Math.random().toString(36).substring(2, 6)}`.toLowerCase();
 
   try {
+    // Strictly enforce 1 invitation per user/gmail: return existing if one already exists
+    const { data: existingUserInvite } = await supabase
+      .from('invitations')
+      .select('*')
+      .eq('user_id', userId)
+      .order('updated_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (existingUserInvite) {
+      return existingUserInvite;
+    }
+
+    const baseSlug = email ? email.split('@')[0].replace(/[^a-zA-Z0-9]/g, '') : 'wedding';
+    const newSlug = `${baseSlug}-${Math.random().toString(36).substring(2, 6)}`.toLowerCase();
+
     const { data: createdInvite, error: inviteErr } = await supabase
       .from('invitations')
       .insert({
@@ -538,35 +552,53 @@ export async function saveInvitation(invitationData: Partial<Invitation>): Promi
   try {
     // If ID is missing or temporary, find or create the invitation record
     if (!targetId || targetId.startsWith('temp-')) {
-      const { data: existing } = await supabase
-        .from('invitations')
-        .select('id')
-        .eq('slug', cleanSlug)
-        .maybeSingle();
+      const { data: { user } } = await supabase.auth.getUser();
+      const ownerId = user?.id || invitationData.user_id;
 
-      if (existing) {
-        targetId = existing.id;
-      } else {
-        const { data: { user } } = await supabase.auth.getUser();
-        const ownerId = user?.id || invitationData.user_id;
-
-        const { data: inserted, error: insertErr } = await supabase
+      // 1. Strictly enforce 1 invitation per Gmail: check if user already has an invitation
+      if (ownerId && ownerId !== '00000000-0000-0000-0000-000000000000') {
+        const { data: userExisting } = await supabase
           .from('invitations')
-          .insert({
-            user_id: ownerId || '00000000-0000-0000-0000-000000000000',
-            slug: cleanSlug,
-            groom_name: sanitizeText(invitationData.groom_name || 'Groom'),
-            bride_name: sanitizeText(invitationData.bride_name || 'Bride'),
-            is_published: invitationData.is_published || false,
-          })
-          .select('id')
-          .single();
+          .select('id, slug')
+          .eq('user_id', ownerId)
+          .order('updated_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
 
-        if (insertErr || !inserted) {
-          console.warn('[saveInvitation] Could not create new invitation row:', insertErr?.message);
+        if (userExisting) {
+          targetId = userExisting.id;
+        }
+      }
+
+      // 2. If not found by user, check if slug exists
+      if (!targetId || targetId.startsWith('temp-')) {
+        const { data: existing } = await supabase
+          .from('invitations')
+          .select('id')
+          .eq('slug', cleanSlug)
+          .maybeSingle();
+
+        if (existing) {
+          targetId = existing.id;
         } else {
-          targetId = inserted.id;
-          await addSlugToFilter(cleanSlug);
+          const { data: inserted, error: insertErr } = await supabase
+            .from('invitations')
+            .insert({
+              user_id: ownerId || '00000000-0000-0000-0000-000000000000',
+              slug: cleanSlug,
+              groom_name: sanitizeText(invitationData.groom_name || 'Groom'),
+              bride_name: sanitizeText(invitationData.bride_name || 'Bride'),
+              is_published: invitationData.is_published || false,
+            })
+            .select('id')
+            .single();
+
+          if (insertErr || !inserted) {
+            console.warn('[saveInvitation] Could not create new invitation row:', insertErr?.message);
+          } else {
+            targetId = inserted.id;
+            await addSlugToFilter(cleanSlug);
+          }
         }
       }
     }
@@ -1508,6 +1540,151 @@ export async function toggleInvitationSuspensionAdmin(invitationId: string, isSu
   } catch (error) {
     console.error('Error in toggleInvitationSuspensionAdmin:', error);
     return false;
+  }
+}
+
+// Admin action to delete an unnecessary/duplicate invitation and all associated relations
+export async function deleteInvitationAdmin(invitationId: string): Promise<{ success: boolean; error?: string }> {
+  const supabase = await getSupabase();
+  const authorized = await checkAdmin(supabase);
+  if (!authorized) {
+    return { success: false, error: 'Unauthorized: Admin access required.' };
+  }
+
+  const supabaseAdmin = getServiceSupabase();
+  const client = supabaseAdmin || supabase;
+
+  try {
+    // 1. Get the slug first to invalidate cache
+    const { data: inv } = await client
+      .from('invitations')
+      .select('slug')
+      .eq('id', invitationId)
+      .maybeSingle();
+
+    // 2. Explicitly remove associated child relations
+    await Promise.allSettled([
+      client.from('events').delete().eq('invitation_id', invitationId),
+      client.from('styling_preferences').delete().eq('invitation_id', invitationId),
+      client.from('gift_collection_details').delete().eq('invitation_id', invitationId),
+      client.from('rsvp').delete().eq('invitation_id', invitationId),
+      client.from('analytics').delete().eq('invitation_id', invitationId),
+    ]);
+
+    // 3. Delete the invitation row
+    const { error: delErr } = await client
+      .from('invitations')
+      .delete()
+      .eq('id', invitationId);
+
+    if (delErr) {
+      return { success: false, error: delErr.message };
+    }
+
+    if (inv?.slug) {
+      await invalidateInvitationCache(inv.slug);
+      revalidatePath(`/invite/${inv.slug}`);
+      revalidatePath(`/dashboard/edit/${inv.slug}`);
+    }
+    revalidatePath('/admin');
+    revalidatePath('/dashboard');
+
+    return { success: true };
+  } catch (err: any) {
+    console.error('Error in deleteInvitationAdmin:', err);
+    return { success: false, error: err.message || 'Failed to delete invitation.' };
+  }
+}
+
+// Admin action: Cleanup all duplicate invitations across all users, keeping only 1 per Gmail
+export async function cleanupDuplicateInvitationsAdmin(): Promise<{ success: boolean; deletedCount: number; error?: string }> {
+  const supabase = await getSupabase();
+  const authorized = await checkAdmin(supabase);
+  if (!authorized) {
+    return { success: false, deletedCount: 0, error: 'Unauthorized: Admin access required.' };
+  }
+
+  const supabaseAdmin = getServiceSupabase();
+  const client = supabaseAdmin || supabase;
+
+  try {
+    // 1. Fetch all invitations ordered by updated_at desc
+    const { data: allInvites, error: fetchErr } = await client
+      .from('invitations')
+      .select('id, user_id, slug, is_published, updated_at, created_at')
+      .order('updated_at', { ascending: false });
+
+    if (fetchErr || !allInvites) {
+      return { success: false, deletedCount: 0, error: fetchErr?.message || 'Could not fetch invitations.' };
+    }
+
+    // 2. Group by user_id
+    const userInvitesMap = new Map<string, any[]>();
+    for (const inv of allInvites) {
+      if (!inv.user_id) continue;
+      const list = userInvitesMap.get(inv.user_id) || [];
+      list.push(inv);
+      userInvitesMap.set(inv.user_id, list);
+    }
+
+    const idsToDelete: string[] = [];
+    const slugsToDelete: string[] = [];
+
+    // For each user with more than 1 invitation:
+    for (const [, userInvList] of userInvitesMap.entries()) {
+      if (userInvList.length > 1) {
+        // Sort: published first, then newest updated_at
+        userInvList.sort((a, b) => {
+          if (a.is_published && !b.is_published) return -1;
+          if (!a.is_published && b.is_published) return 1;
+          return new Date(b.updated_at || b.created_at).getTime() - new Date(a.updated_at || a.created_at).getTime();
+        });
+
+        // The first one is kept; the remaining ones are duplicates to delete
+        const duplicates = userInvList.slice(1);
+        for (const dup of duplicates) {
+          idsToDelete.push(dup.id);
+          if (dup.slug) slugsToDelete.push(dup.slug);
+        }
+      }
+    }
+
+    if (idsToDelete.length === 0) {
+      return { success: true, deletedCount: 0 };
+    }
+
+    // 3. Batch delete child records for all duplicate invitations
+    await Promise.allSettled([
+      client.from('events').delete().in('invitation_id', idsToDelete),
+      client.from('styling_preferences').delete().in('invitation_id', idsToDelete),
+      client.from('gift_collection_details').delete().in('invitation_id', idsToDelete),
+      client.from('rsvp').delete().in('invitation_id', idsToDelete),
+      client.from('analytics').delete().in('invitation_id', idsToDelete),
+    ]);
+
+    // 4. Batch delete the duplicate invitations
+    const { error: delErr } = await client
+      .from('invitations')
+      .delete()
+      .in('id', idsToDelete);
+
+    if (delErr) {
+      return { success: false, deletedCount: 0, error: delErr.message };
+    }
+
+    // 5. Invalidate caches
+    for (const slug of slugsToDelete) {
+      await invalidateInvitationCache(slug);
+      revalidatePath(`/invite/${slug}`);
+      revalidatePath(`/dashboard/edit/${slug}`);
+    }
+    revalidatePath('/admin');
+    revalidatePath('/dashboard');
+
+    return { success: true, deletedCount: idsToDelete.length };
+  } catch (err: any) {
+    console.error('Error in cleanupDuplicateInvitationsAdmin:', err);
+    return { success: false, deletedCount: 0, error: err.message || 'Failed to cleanup duplicates.' };
   }
 }
 

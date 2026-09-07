@@ -149,11 +149,13 @@ export default function Dashboard() {
     if (currentUserId) {
       setLoadingInvite(true);
       try {
-        let { data: userInvite } = await supabase
+        const { data: userInvites } = await supabase
           .from('invitations')
           .select('*')
           .eq('user_id', currentUserId)
-          .maybeSingle();
+          .order('updated_at', { ascending: false });
+
+        let userInvite = userInvites && userInvites.length > 0 ? userInvites[0] : null;
 
         if (!userInvite) {
           // Auto-create default invitation securely on server (registers slug in Bloom Filter)

@@ -13,6 +13,8 @@ import {
   getAdminDashboardData, 
   updateUserTierAdmin, 
   toggleInvitationSuspensionAdmin, 
+  deleteInvitationAdmin,
+  cleanupDuplicateInvitationsAdmin,
   createReferralCodeAdmin, 
   deleteReferralCodeAdmin, 
   createMediaAssetAdmin, 
@@ -49,8 +51,12 @@ export default function AdminDashboard() {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'users' | 'invites' | 'payments' | 'referrals' | 'media' | 'vendors' | 'ads'>('users');
   const [isAdmin, setIsAdmin] = useState(false);
-
   const [verifying, setVerifying] = useState(true);
+
+  // Invitation Management States
+  const [invitationSearch, setInvitationSearch] = useState('');
+  const [cleaningDuplicates, setCleaningDuplicates] = useState(false);
+  const [deletingInvitationId, setDeletingInvitationId] = useState<string | null>(null);
 
   // Form States - Referral Code
   const [newRefCode, setNewRefCode] = useState('');
@@ -423,6 +429,48 @@ export default function AdminDashboard() {
     }
   };
 
+  // Delete unnecessary / single invitation
+  const handleDeleteInvitation = async (invitationId: string, slug: string) => {
+    if (!confirm(`Are you sure you want to permanently delete invitation /invite/${slug}? This will remove all its events, styling, and data.`)) {
+      return;
+    }
+    setDeletingInvitationId(invitationId);
+    try {
+      const res = await deleteInvitationAdmin(invitationId);
+      if (res.success) {
+        setInvitations(prev => prev.filter(inv => inv.id !== invitationId));
+        alert('✅ Invitation deleted successfully.');
+      } else {
+        alert(`❌ Failed to delete invitation: ${res.error}`);
+      }
+    } catch (e: any) {
+      alert(`Error deleting invitation: ${e.message}`);
+    } finally {
+      setDeletingInvitationId(null);
+    }
+  };
+
+  // Clean all duplicate invitations (keep only 1 per user)
+  const handleCleanupDuplicates = async () => {
+    if (!confirm('This will find all users with multiple invitations and keep only 1 primary invitation per Gmail, permanently removing all redundant links. Do you want to proceed?')) {
+      return;
+    }
+    setCleaningDuplicates(true);
+    try {
+      const res = await cleanupDuplicateInvitationsAdmin();
+      if (res.success) {
+        alert(`🎉 Cleanup Complete! Deleted ${res.deletedCount} duplicate invitations. Each user now has exactly 1 invitation.`);
+        loadAllData();
+      } else {
+        alert(`❌ Failed to cleanup duplicates: ${res.error}`);
+      }
+    } catch (e: any) {
+      alert(`Error during cleanup: ${e.message}`);
+    } finally {
+      setCleaningDuplicates(false);
+    }
+  };
+
   // Add Referral Code
   const handleAddReferral = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -784,68 +832,172 @@ export default function AdminDashboard() {
                 </div>
               )}
 
-              {activeTab === 'invites' && (
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left border-collapse min-w-[700px]">
-                    <thead>
-                      <tr className="bg-[#0f0f18] text-gray-400 border-b border-[#26263b]">
-                        <th className="p-4">Invitation Link</th>
-                        <th className="p-4">Owner Email</th>
-                        <th className="p-4">Publish Mode</th>
-                        <th className="p-4">Suspended</th>
-                        <th className="p-4 text-right">Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-[#26263b]">
-                      {invitations.map((inv) => (
-                        <tr key={inv.id} className="hover:bg-[#1c1c2b] transition-all">
-                          <td className="p-4 font-mono text-[#d4af37] font-semibold">/invite/{inv.slug}</td>
-                          <td className="p-4">{inv.owner}</td>
-                          <td className="p-4">
-                            <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
-                              inv.is_published ? 'bg-green-500/10 text-green-500' : 'bg-yellow-500/10 text-yellow-500'
-                            }`}>
-                              {inv.is_published ? 'Published' : 'Draft'}
-                            </span>
-                          </td>
-                          <td className="p-4 uppercase">
-                            <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
-                              inv.is_suspended ? 'bg-red-500/15 text-red-500 border border-red-500/20' : 'bg-green-500/10 text-green-500'
-                            }`}>
-                              {inv.is_suspended ? 'SUSPENDED' : 'ACTIVE'}
-                            </span>
-                          </td>
-                          <td className="p-4 text-right">
-                            <div className="flex justify-end items-center gap-2">
-                              <a
-                                href={`/invite/${inv.slug}`}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#d4af37]/10 hover:bg-[#d4af37]/20 border border-[#d4af37]/30 rounded text-[#d4af37] text-[10px] font-bold uppercase tracking-wider transition-all"
-                              >
-                                <Eye className="w-3.5 h-3.5" />
-                                Open Live
-                              </a>
-                              <button
-                                onClick={() => handleToggleSuspension(inv.id, inv.is_suspended)}
-                                className={`inline-flex items-center gap-1 px-3 py-1.5 rounded text-[10px] font-bold uppercase tracking-wider border transition-all ${
-                                  inv.is_suspended 
-                                    ? 'bg-green-500/10 hover:bg-green-500/20 border-green-500/30 text-green-500' 
-                                    : 'bg-red-500/10 hover:bg-red-500/20 border-red-500/30 text-red-500'
-                                }`}
-                                title={inv.is_suspended ? 'Unsuspend Link' : 'Suspend Link'}
-                              >
-                                <Power className="w-3.5 h-3.5" />
-                                {inv.is_suspended ? 'Activate' : 'Suspend'}
-                              </button>
-                            </div>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
+              {activeTab === 'invites' && (() => {
+                const ownerCounts = invitations.reduce((acc: Record<string, number>, inv) => {
+                  if (inv.owner) acc[inv.owner] = (acc[inv.owner] || 0) + 1;
+                  return acc;
+                }, {});
+
+                const totalDuplicates = Object.values(ownerCounts).reduce((sum: number, count) => {
+                  return (count as number) > 1 ? sum + ((count as number) - 1) : sum;
+                }, 0);
+
+                const filteredInvitations = invitations.filter((inv) => {
+                  if (!invitationSearch.trim()) return true;
+                  const q = invitationSearch.toLowerCase();
+                  return inv.slug?.toLowerCase().includes(q) || inv.owner?.toLowerCase().includes(q);
+                });
+
+                return (
+                  <div className="space-y-0">
+                    {/* Header Actions & Clean Duplicates Toolbar */}
+                    <div className="p-4 bg-[#0d0d11]/70 border-b border-[#26263b] flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+                      <div className="flex items-center gap-3 flex-1 w-full md:w-auto">
+                        <div className="relative flex-1 max-w-sm">
+                          <input
+                            type="text"
+                            value={invitationSearch}
+                            onChange={(e) => setInvitationSearch(e.target.value)}
+                            placeholder="Search by slug or email..."
+                            className="w-full bg-[#161622] border border-[#26263b] rounded-lg px-3 py-1.5 text-xs text-white placeholder-gray-500 focus:border-[#d4af37] outline-none"
+                          />
+                          {invitationSearch && (
+                            <button
+                              onClick={() => setInvitationSearch('')}
+                              className="absolute right-2.5 top-2 text-gray-500 hover:text-white"
+                            >
+                              ✕
+                            </button>
+                          )}
+                        </div>
+                        <span className="text-[11px] text-gray-400 whitespace-nowrap">
+                          Showing {filteredInvitations.length} of {invitations.length}
+                        </span>
+                      </div>
+
+                      <div className="flex items-center gap-2 w-full md:w-auto justify-end">
+                        {totalDuplicates > 0 && (
+                          <span className="px-2.5 py-1 bg-amber-500/10 border border-amber-500/30 text-amber-400 text-[11px] font-semibold rounded-lg flex items-center gap-1.5">
+                            <AlertTriangle className="w-3.5 h-3.5 text-amber-400" />
+                            <span>{totalDuplicates} duplicate link{totalDuplicates > 1 ? 's' : ''} detected</span>
+                          </span>
+                        )}
+                        <button
+                          onClick={handleCleanupDuplicates}
+                          disabled={cleaningDuplicates || totalDuplicates === 0}
+                          className={`px-3.5 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider flex items-center gap-1.5 transition-all shadow-sm ${
+                            totalDuplicates > 0
+                              ? 'bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 text-black cursor-pointer'
+                              : 'bg-[#26263b] text-gray-500 cursor-not-allowed opacity-60'
+                          }`}
+                          title={totalDuplicates > 0 ? 'Purge all duplicates so each Gmail has strictly 1 invitation' : 'No duplicates found'}
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                          <span>{cleaningDuplicates ? 'Cleaning...' : 'Clean Duplicates (1 per Gmail)'}</span>
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-left border-collapse min-w-[750px]">
+                        <thead>
+                          <tr className="bg-[#0f0f18] text-gray-400 border-b border-[#26263b]">
+                            <th className="p-4">Invitation Link</th>
+                            <th className="p-4">Owner Email</th>
+                            <th className="p-4">Publish Mode</th>
+                            <th className="p-4">Suspended</th>
+                            <th className="p-4 text-right">Actions</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-[#26263b]">
+                          {filteredInvitations.length === 0 ? (
+                            <tr>
+                              <td colSpan={5} className="p-8 text-center text-gray-500">
+                                No invitations found matching your search.
+                              </td>
+                            </tr>
+                          ) : (
+                            filteredInvitations.map((inv) => {
+                              const isDuplicate = (ownerCounts[inv.owner] || 0) > 1;
+                              const isDeleting = deletingInvitationId === inv.id;
+                              return (
+                                <tr key={inv.id} className={`transition-all ${isDuplicate ? 'bg-amber-500/5 hover:bg-amber-500/10' : 'hover:bg-[#1c1c2b]'}`}>
+                                  <td className="p-4 font-mono text-[#d4af37] font-semibold">
+                                    <div className="flex items-center gap-2">
+                                      <span>/invite/{inv.slug}</span>
+                                      {isDuplicate && (
+                                        <span className="px-1.5 py-0.5 rounded bg-amber-500/20 border border-amber-500/30 text-amber-300 text-[9px] font-bold uppercase tracking-wider">
+                                          Duplicate
+                                        </span>
+                                      )}
+                                    </div>
+                                  </td>
+                                  <td className="p-4">
+                                    <span className="text-white font-medium">{inv.owner}</span>
+                                    {isDuplicate && (
+                                      <span className="block text-[10px] text-amber-400/80 mt-0.5">
+                                        {ownerCounts[inv.owner]} invites under this Gmail
+                                      </span>
+                                    )}
+                                  </td>
+                                  <td className="p-4">
+                                    <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                                      inv.is_published ? 'bg-green-500/10 text-green-500' : 'bg-yellow-500/10 text-yellow-500'
+                                    }`}>
+                                      {inv.is_published ? 'Published' : 'Draft'}
+                                    </span>
+                                  </td>
+                                  <td className="p-4 uppercase">
+                                    <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                                      inv.is_suspended ? 'bg-red-500/15 text-red-500 border border-red-500/20' : 'bg-green-500/10 text-green-500'
+                                    }`}>
+                                      {inv.is_suspended ? 'SUSPENDED' : 'ACTIVE'}
+                                    </span>
+                                  </td>
+                                  <td className="p-4 text-right">
+                                    <div className="flex justify-end items-center gap-2">
+                                      <a
+                                        href={`/invite/${inv.slug}`}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#d4af37]/10 hover:bg-[#d4af37]/20 border border-[#d4af37]/30 rounded text-[#d4af37] text-[10px] font-bold uppercase tracking-wider transition-all"
+                                      >
+                                        <Eye className="w-3.5 h-3.5" />
+                                        Open Live
+                                      </a>
+                                      <button
+                                        onClick={() => handleToggleSuspension(inv.id, inv.is_suspended)}
+                                        className={`inline-flex items-center gap-1 px-3 py-1.5 rounded text-[10px] font-bold uppercase tracking-wider border transition-all ${
+                                          inv.is_suspended 
+                                            ? 'bg-green-500/10 hover:bg-green-500/20 border-green-500/30 text-green-500' 
+                                            : 'bg-red-500/10 hover:bg-red-500/20 border-red-500/30 text-red-500'
+                                        }`}
+                                        title={inv.is_suspended ? 'Unsuspend Link' : 'Suspend Link'}
+                                      >
+                                        <Power className="w-3.5 h-3.5" />
+                                        {inv.is_suspended ? 'Activate' : 'Suspend'}
+                                      </button>
+                                      <button
+                                        onClick={() => handleDeleteInvitation(inv.id, inv.slug)}
+                                        disabled={isDeleting}
+                                        className="inline-flex items-center gap-1 px-3 py-1.5 rounded text-[10px] font-bold uppercase tracking-wider border border-red-500/30 bg-red-500/10 hover:bg-red-500/20 text-red-400 hover:text-red-300 transition-all cursor-pointer disabled:opacity-50"
+                                        title="Delete this unnecessary invitation permanently"
+                                      >
+                                        <Trash2 className="w-3.5 h-3.5" />
+                                        {isDeleting ? 'Deleting...' : 'Delete'}
+                                      </button>
+                                    </div>
+                                  </td>
+                                </tr>
+                              );
+                            })
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                );
+              })()}
 
               {activeTab === 'payments' && (
                 <div className="p-6 space-y-6">
