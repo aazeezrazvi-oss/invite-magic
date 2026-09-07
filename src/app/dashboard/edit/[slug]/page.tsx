@@ -5,7 +5,7 @@ import { use } from 'react';
 import Sidebar from '@/components/Editor/Sidebar';
 import Canvas from '@/components/Editor/Canvas';
 import { Invitation } from '@/types';
-import { getInvitationBySlug, saveInvitation } from '@/app/actions';
+import { getInvitationBySlugFresh, saveInvitation } from '@/app/actions';
 import { TEMPLATE_PRESETS } from '@/utils/presets';
 import { ArrowLeft, Check, AlertCircle, Heart, Palette, Calendar, Gift, Save, Undo2, Redo2, ZoomIn, ZoomOut, Globe, Eye, EyeOff, Sparkles } from 'lucide-react';
 import Link from 'next/link';
@@ -229,7 +229,7 @@ export default function EditorPage({ params }: PageProps) {
         }
 
         if (isSupabaseWorking) {
-          const data = await getInvitationBySlug(slug);
+          const data = await getInvitationBySlugFresh(slug);
           if (data) {
             setInvitation(data);
             resetHistory(data);
@@ -299,9 +299,12 @@ export default function EditorPage({ params }: PageProps) {
           if (result.id && result.id !== dataToSave.id) {
             setInvitation((prev) => ({ ...prev, id: result.id }));
           }
-          localStorage.setItem(`invite_${slug}`, JSON.stringify({ ...dataToSave, id: result.id || dataToSave.id }));
+          // Clear localStorage draft after successful DB save — prevents stale drafts
+          localStorage.removeItem(`invite_${slug}`);
         } else {
           setSaveStatus('error');
+          // DB save failed — keep a localStorage backup so work isn't lost
+          localStorage.setItem(`invite_${slug}`, JSON.stringify(dataToSave));
         }
       } else {
         localStorage.setItem(`invite_${slug}`, JSON.stringify(dataToSave));
@@ -319,7 +322,6 @@ export default function EditorPage({ params }: PageProps) {
   const handleUpdate = (updatedFields: Partial<Invitation>) => {
     const nextVal = { ...invitation, ...updatedFields };
     setInvitation(nextVal);
-    localStorage.setItem(`invite_${slug}`, JSON.stringify(nextVal));
 
     // Debounce history push
     if (historyTimer.current) clearTimeout(historyTimer.current);
@@ -356,7 +358,6 @@ export default function EditorPage({ params }: PageProps) {
     
     setInvitation(nextVal);
     pushHistory(nextVal);
-    localStorage.setItem(`invite_${slug}`, JSON.stringify(nextVal));
 
     setIsSaving(true);
     setSaveStatus('saving');
@@ -365,12 +366,12 @@ export default function EditorPage({ params }: PageProps) {
       const result = await saveInvitation(nextVal);
       if (result.success) {
         setSaveStatus('success');
+        localStorage.removeItem(`invite_${slug}`);
       } else {
         setSaveStatus('error');
         alert(`❌ Failed to toggle publish: ${result.error || 'Unknown database error'}`);
         const reverted = { ...invitation, is_published: !newPublished };
         setInvitation(reverted);
-        localStorage.setItem(`invite_${slug}`, JSON.stringify(reverted));
       }
     } else {
       setSaveStatus('success');

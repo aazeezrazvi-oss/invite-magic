@@ -353,6 +353,94 @@ export async function getInvitationBySlug(slug: string): Promise<Partial<Invitat
 }
 
 // Action to auto-create a default invitation securely on the server (adds slug to Bloom Filter)
+// Fresh (cache-bypassing) version of getInvitationBySlug — used by the editor page to always load the latest saved data.
+// Bypasses Bloom Filter, Redis/Memory cache, and request coalescing to guarantee a live database read.
+export async function getInvitationBySlugFresh(slug: string): Promise<Partial<Invitation> | null> {
+  const cleanSlug = slug.trim().toLowerCase();
+  console.log(`[Database Fetch FRESH] Querying invitation for slug: "${cleanSlug}" (cache bypassed)`);
+
+  const supabase = await getSupabase();
+
+  try {
+    const { data: invitation, error: inviteError } = await supabase
+      .from('invitations')
+      .select('*')
+      .eq('slug', cleanSlug)
+      .single();
+
+    if (inviteError || !invitation) {
+      return null;
+    }
+
+    // Fetch the owner's subscription tier using service role client if available
+    const supabaseAdmin = getServiceSupabase();
+    let owner = null;
+    if (supabaseAdmin) {
+      const { data: ownerData } = await supabaseAdmin
+        .from('users')
+        .select('subscription_tier')
+        .eq('id', invitation.user_id)
+        .single();
+      owner = ownerData;
+    } else {
+      try {
+        const { data: ownerData } = await supabase
+          .from('users')
+          .select('subscription_tier')
+          .eq('id', invitation.user_id)
+          .single();
+        owner = ownerData;
+      } catch (e) {
+        console.warn('[getInvitationBySlugFresh] Failed to fetch user subscription tier:', e);
+      }
+    }
+
+    const { data: styling } = await supabase
+      .from('styling_preferences')
+      .select('*')
+      .eq('invitation_id', invitation.id)
+      .single();
+
+    const { data: events } = await supabase
+      .from('events')
+      .select('*')
+      .eq('invitation_id', invitation.id);
+
+    const { data: gift_collection } = await supabase
+      .from('gift_collection_details')
+      .select('*')
+      .eq('invitation_id', invitation.id)
+      .single();
+
+    const result = {
+      ...invitation,
+      owner_tier: owner?.subscription_tier || 'free',
+      styling: styling || undefined,
+      events: events || [],
+      gift_collection: gift_collection || undefined,
+    };
+
+    // Also update the cache so subsequent cached reads (e.g. public invite page) are fresh
+    const cacheKey = INVITATION_CACHE_KEY_PREFIX + cleanSlug;
+    if (redis) {
+      try {
+        await redis.set(cacheKey, JSON.stringify(result), 'EX', CACHE_TTL_SECONDS);
+      } catch (e) { /* ignore */ }
+    } else {
+      localCache.set(cacheKey, {
+        value: result,
+        expiresAt: Date.now() + CACHE_TTL_SECONDS * 1000,
+      });
+    }
+
+    return result;
+  } catch (error) {
+    console.error('Error in getInvitationBySlugFresh:', error);
+    return null;
+  }
+}
+
+// Action to auto-create a default invitation securely on the server (adds slug to Bloom Filter)
 export async function createDefaultInvitation(userId: string, email: string): Promise<any> {
   const ip = await getClientIp();
   const rateLimit = await rateLimitRequest(`rate_limit:create_invite:${ip}`, 5, 0.1);

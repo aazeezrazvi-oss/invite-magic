@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { use } from 'react';
 import InvitationPreview from '@/components/InvitationPreview';
 import { Invitation, RSVP } from '@/types';
-import { getInvitationBySlug, submitRsvp } from '@/app/actions';
+import { getInvitationBySlugFresh, submitRsvp } from '@/app/actions';
 import { AlertCircle, Heart, Globe } from 'lucide-react';
 import Link from 'next/link';
 import { supabase } from '@/utils/supabase';
@@ -102,7 +102,7 @@ export default function GuestInvitePage({ params }: PageProps) {
       }
 
       try {
-        const data = await getInvitationBySlug(slug);
+        const data = await getInvitationBySlugFresh(slug);
         if (data) {
           if (data.is_suspended) {
             setIsSuspended(true);
