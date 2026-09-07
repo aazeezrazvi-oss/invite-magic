@@ -10,6 +10,17 @@ import { VendorAd } from '@/types';
 import { recordAdClick, recordAdImpression } from '@/app/vendor-actions';
 import GoogleAdUnit from './GoogleAdUnit';
 
+function decodeHtml(html: string | null | undefined): string {
+  if (!html) return '';
+  return html
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#x27;/g, "'")
+    .replace(/&#x2F;/g, '/');
+}
+
 interface TopAdCarouselProps {
   ads: VendorAd[];
   className?: string;
@@ -52,7 +63,7 @@ export default function TopAdCarousel({ ads, className = '' }: TopAdCarouselProp
     return null;
   }
 
-  const currentAd = validAds[currentIndex];
+  const currentAd = validAds[currentIndex % validAds.length] || validAds[0];
 
   const handleNext = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -153,12 +164,12 @@ export default function TopAdCarousel({ ads, className = '' }: TopAdCarouselProp
                     </div>
 
                     <h3 className="text-base sm:text-xl font-bold text-white font-cinzel leading-snug">
-                      {currentAd.title}
+                      {decodeHtml(currentAd.title)}
                     </h3>
 
                     {currentAd.subtitle && (
                       <p className="text-xs sm:text-sm text-gray-300 line-clamp-2 leading-relaxed">
-                        {currentAd.subtitle}
+                        {decodeHtml(currentAd.subtitle)}
                       </p>
                     )}
                   </div>
@@ -183,7 +194,7 @@ export default function TopAdCarousel({ ads, className = '' }: TopAdCarouselProp
                         }}
                         className="px-4 py-2 sm:px-5 sm:py-2.5 rounded-xl bg-[#d4af37] hover:bg-[#b8962e] text-[#0d0d11] text-xs font-bold uppercase tracking-wider flex items-center gap-1.5 transition-all shadow-[0_2px_15px_rgba(212,175,55,0.3)] cursor-pointer"
                       >
-                        <span>{currentAd.cta_text || 'Explore Now'}</span>
+                        <span>{decodeHtml(currentAd.cta_text) || 'Explore Now'}</span>
                         <ArrowRight className="w-3.5 h-3.5" />
                       </button>
                     )}
@@ -199,7 +210,7 @@ export default function TopAdCarousel({ ads, className = '' }: TopAdCarouselProp
                   {currentAd.media_url && (
                     <img
                       src={currentAd.media_url}
-                      alt={currentAd.title}
+                      alt={decodeHtml(currentAd.title)}
                       className="absolute inset-0 w-full h-full object-cover opacity-25 md:opacity-30"
                     />
                   )}
@@ -220,12 +231,12 @@ export default function TopAdCarousel({ ads, className = '' }: TopAdCarouselProp
                     </div>
 
                     <h3 className="text-base sm:text-xl font-bold text-white font-cinzel leading-tight">
-                      {currentAd.title}
+                      {decodeHtml(currentAd.title)}
                     </h3>
 
                     {currentAd.subtitle && (
                       <p className="text-xs sm:text-sm text-gray-300 line-clamp-2 leading-relaxed">
-                        {currentAd.subtitle}
+                        {decodeHtml(currentAd.subtitle)}
                       </p>
                     )}
                   </div>
@@ -240,7 +251,7 @@ export default function TopAdCarousel({ ads, className = '' }: TopAdCarouselProp
                         }}
                         className="px-4 py-2 sm:px-5 sm:py-2.5 rounded-xl bg-[#d4af37] hover:bg-[#b8962e] text-[#0d0d11] text-xs font-bold uppercase tracking-wider flex items-center gap-1.5 transition-all shadow-[0_2px_15px_rgba(212,175,55,0.3)] cursor-pointer"
                       >
-                        <span>{currentAd.cta_text || 'View Offer'}</span>
+                        <span>{decodeHtml(currentAd.cta_text) || 'View Offer'}</span>
                         <ExternalLink className="w-3.5 h-3.5" />
                       </button>
                     </div>

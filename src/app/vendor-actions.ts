@@ -435,35 +435,55 @@ export async function getActiveVendorAds(
   const client = supabaseAdmin || supabase;
 
   try {
-    const now = new Date().toISOString();
-    let query = client
+    const { data, error } = await client
       .from('vendor_ads')
       .select('*')
       .eq('is_active', true)
-      .lte('start_date', now)
-      .or(`end_date.is.null,end_date.gte.${now}`)
       .order('display_order', { ascending: true })
       .order('created_at', { ascending: false });
 
-    if (placement && placement !== 'both') {
-      query = query.or(`placement.eq.${placement},placement.eq.both`);
-    }
-
-    const { data, error } = await query;
-
     if (error) {
-      // If table doesn't exist yet or other query error, gracefully log and return empty
       console.warn('[getActiveVendorAds] Note:', error.message);
       return [];
     }
 
+    const nowTime = Date.now();
     let ads = (data || []) as VendorAd[];
 
-    // In-memory filter for category and city targeting if specified
-    if (category && category !== 'all') {
-      ads = ads.filter(ad => !ad.category || ad.category === 'all' || ad.category === category);
+    // 1. Placement filter (top, in_feed, both)
+    if (placement && placement !== 'both') {
+      ads = ads.filter(ad => {
+        if (!ad.placement) return true;
+        const p = ad.placement.toLowerCase();
+        return p === 'both' || p === placement.toLowerCase() || p.includes(placement.toLowerCase());
+      });
     }
 
+    // 2. Date schedule filter (graceful handling of start/end dates & timezones)
+    ads = ads.filter(ad => {
+      if (ad.start_date) {
+        const startTime = new Date(ad.start_date).getTime();
+        // Give 24h timezone buffer for start date
+        if (!isNaN(startTime) && startTime > nowTime + 24 * 60 * 60 * 1000) {
+          return false;
+        }
+      }
+      if (ad.end_date) {
+        const endTime = new Date(ad.end_date).getTime();
+        // Allow full end day
+        if (!isNaN(endTime) && endTime + 24 * 60 * 60 * 1000 < nowTime) {
+          return false;
+        }
+      }
+      return true;
+    });
+
+    // 3. Category targeting filter
+    if (category && category !== 'all') {
+      ads = ads.filter(ad => !ad.category || ad.category === 'all' || ad.category.toLowerCase() === category.toLowerCase());
+    }
+
+    // 4. City targeting filter
     if (city && city !== 'All Cities') {
       ads = ads.filter(ad => !ad.city || ad.city === 'All Cities' || ad.city.toLowerCase() === city.toLowerCase());
     }

@@ -7,6 +7,17 @@ import { VendorAd } from '@/types';
 import { recordAdClick, recordAdImpression } from '@/app/vendor-actions';
 import GoogleAdUnit from './GoogleAdUnit';
 
+function decodeHtml(html: string | null | undefined): string {
+  if (!html) return '';
+  return html
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#x27;/g, "'")
+    .replace(/&#x2F;/g, '/');
+}
+
 interface InFeedAdCardProps {
   ad: VendorAd;
 }
@@ -56,7 +67,7 @@ export default function InFeedAdCard({ ad }: InFeedAdCardProps) {
 
         {ad.title && (
           <div className="pt-2 text-center text-xs text-gray-400">
-            {ad.title}
+            {decodeHtml(ad.title)}
           </div>
         )}
       </motion.div>
@@ -87,7 +98,7 @@ export default function InFeedAdCard({ ad }: InFeedAdCardProps) {
         ) : (
           <img
             src={ad.media_url || 'https://images.unsplash.com/photo-1519741497674-611481863552?q=80&w=800&auto=format&fit=crop'}
-            alt={ad.title}
+            alt={decodeHtml(ad.title)}
             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
           />
         )}
@@ -115,13 +126,13 @@ export default function InFeedAdCard({ ad }: InFeedAdCardProps) {
             <span>Special Promotion</span>
           </div>
           <h3 className="text-lg font-bold text-white font-cinzel group-hover:text-[#d4af37] transition-colors leading-snug">
-            {ad.title}
+            {decodeHtml(ad.title)}
           </h3>
         </div>
 
         {ad.subtitle && (
           <p className="text-xs text-gray-400 line-clamp-3 leading-relaxed">
-            {ad.subtitle}
+            {decodeHtml(ad.subtitle)}
           </p>
         )}
       </div>
@@ -132,7 +143,7 @@ export default function InFeedAdCard({ ad }: InFeedAdCardProps) {
           onClick={handleCardClick}
           className="w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-[#d4af37] to-[#b8962e] hover:from-[#b8962e] hover:to-[#9c7e23] text-[#0d0d11] font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-1.5 transition-all shadow-[0_2px_15px_rgba(212,175,55,0.2)] cursor-pointer"
         >
-          <span>{ad.cta_text || 'Learn More'}</span>
+          <span>{decodeHtml(ad.cta_text) || 'Learn More'}</span>
           <ArrowRight className="w-3.5 h-3.5" />
         </button>
       </div>
