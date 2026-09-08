@@ -1373,106 +1373,156 @@ export default function InvitationPreview({
               </div>
 
               {isHexagonFrame ? (
-                <div className="relative max-w-sm mx-auto h-[380px] flex items-center justify-center mt-12">
-                  {events.map((event, idx) => {
-                    const isActive = idx === activeEventIndex;
-                    const isPrev = idx === (activeEventIndex - 1 + events.length) % events.length;
-                    const isNext = idx === (activeEventIndex + 1) % events.length;
-                    
-                    let transform = 'scale(0.8) translate(0px, 0px) rotate(0deg)';
-                    let zIndex = 0;
-                    let opacity = 0;
-                    
-                    if (isActive) {
-                      transform = 'scale(1) translate(0px, 0px) rotate(0deg)';
-                      zIndex = 30;
-                      opacity = 1;
-                    } else if (isPrev) {
-                      transform = 'scale(0.9) translate(-70px, 0px) rotate(-8deg)';
-                      zIndex = 20;
-                      opacity = 0.6;
-                    } else if (isNext) {
-                      transform = 'scale(0.9) translate(70px, 0px) rotate(8deg)';
-                      zIndex = 20;
-                      opacity = 0.6;
-                    }
-                    
-                    return (
-                      <div
-                        key={idx}
-                        className="absolute w-72 h-[330px] bg-gradient-to-b from-[#2e0854]/95 to-[#1a0033]/95 border border-[#d4af37]/40 rounded-2xl p-6 shadow-2xl flex flex-col justify-between transition-all duration-500 ease-in-out cursor-pointer"
-                        style={{
-                          transform,
-                          zIndex,
-                          opacity,
-                          pointerEvents: isActive ? 'auto' : 'none'
-                        }}
-                        onClick={() => setActiveEventIndex(idx)}
-                      >
-                        {isActive && (
-                          <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(212,175,55,0.12)_0%,transparent_70%)] pointer-events-none rounded-2xl" />
-                        )}
-                        
-                        <div className="relative z-10">
-                          <div className="flex justify-between items-start mb-4">
-                            <h4 className={`${getHeadingFontClass()} text-xl text-[#d4af37] font-medium`}>
-                              {event.event_name}
-                            </h4>
-                            <span className="p-2 rounded bg-purple-900/30 text-[#d4af37]">
-                              <Heart className="w-4 h-4 fill-[#d4af37]" />
-                            </span>
-                          </div>
-                          
-                          <div className="space-y-4 my-6 text-sm opacity-90 text-[#fcf8f2] font-sans">
-                            <div className="flex items-center gap-3">
-                              <Calendar className="w-4 h-4 text-[#d4af37] shrink-0" />
-                              <span>{new Date(event.event_date + 'T00:00:00').toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}</span>
+                <div className="relative w-full max-w-[360px] mx-auto flex flex-col items-center justify-center mt-8 select-none">
+                  {/* Card Carousel Stack */}
+                  <div className="relative w-full h-[360px] flex items-center justify-center">
+                    {events.map((event, idx) => {
+                      const isActive = idx === activeEventIndex;
+                      let transform = 'scale(0.8) translate(0px, 0px) rotate(0deg)';
+                      let zIndex = 0;
+                      let opacity = 0;
+
+                      if (isActive) {
+                        transform = 'scale(1) translate(0px, 0px) rotate(0deg)';
+                        zIndex = 30;
+                        opacity = 1;
+                      } else if (events.length === 2) {
+                        const offset = activeEventIndex === 0 ? 32 : -32;
+                        const rot = activeEventIndex === 0 ? 4 : -4;
+                        transform = `scale(0.9) translate(${offset}px, 0px) rotate(${rot}deg)`;
+                        zIndex = 20;
+                        opacity = 0.65;
+                      } else {
+                        const isPrev = idx === (activeEventIndex - 1 + events.length) % events.length;
+                        const isNext = idx === (activeEventIndex + 1) % events.length;
+                        if (isPrev) {
+                          transform = 'scale(0.9) translate(-36px, 0px) rotate(-5deg)';
+                          zIndex = 20;
+                          opacity = 0.65;
+                        } else if (isNext) {
+                          transform = 'scale(0.9) translate(36px, 0px) rotate(5deg)';
+                          zIndex = 20;
+                          opacity = 0.65;
+                        }
+                      }
+
+                      return (
+                        <div
+                          key={idx}
+                          className={`absolute w-72 h-[335px] bg-gradient-to-b from-[#2e0854]/95 to-[#1a0033]/95 border border-[#d4af37]/40 rounded-2xl p-6 shadow-2xl flex flex-col justify-between transition-all duration-500 ease-in-out cursor-pointer ${
+                            !isActive ? 'hover:opacity-90 hover:scale-[0.92]' : ''
+                          }`}
+                          style={{
+                            transform,
+                            zIndex,
+                            opacity,
+                          }}
+                          onClick={() => {
+                            if (!isActive) setActiveEventIndex(idx);
+                          }}
+                        >
+                          {isActive && (
+                            <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(212,175,55,0.12)_0%,transparent_70%)] pointer-events-none rounded-2xl" />
+                          )}
+
+                          <div className="relative z-10">
+                            <div className="flex justify-between items-start mb-4">
+                              <h4 className={`${getHeadingFontClass()} text-xl text-[#d4af37] font-medium`}>
+                                {event.event_name}
+                              </h4>
+                              <span className="p-2 rounded bg-purple-900/30 text-[#d4af37]">
+                                <Heart className="w-4 h-4 fill-[#d4af37]" />
+                              </span>
                             </div>
-                            <div className="flex items-center gap-3">
-                              <Clock className="w-4 h-4 text-[#d4af37] shrink-0" />
-                              <span>{event.event_time.slice(0, 5)}</span>
-                            </div>
-                            <div className="flex items-start gap-3">
-                              <MapPin className="w-4 h-4 text-[#d4af37] shrink-0 mt-0.5" />
-                              <div>
-                                <span className="font-semibold block text-white">{event.venue_name}</span>
-                                <span className="text-xs opacity-75">{event.venue_address}</span>
+
+                            <div className="space-y-4 my-6 text-sm opacity-90 text-[#fcf8f2] font-sans">
+                              <div className="flex items-center gap-3">
+                                <Calendar className="w-4 h-4 text-[#d4af37] shrink-0" />
+                                <span>{new Date(event.event_date + 'T00:00:00').toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}</span>
+                              </div>
+                              <div className="flex items-center gap-3">
+                                <Clock className="w-4 h-4 text-[#d4af37] shrink-0" />
+                                <span>{event.event_time.slice(0, 5)}</span>
+                              </div>
+                              <div className="flex items-start gap-3">
+                                <MapPin className="w-4 h-4 text-[#d4af37] shrink-0 mt-0.5" />
+                                <div>
+                                  <span className="font-semibold block text-white">{event.venue_name}</span>
+                                  <span className="text-xs opacity-75">{event.venue_address}</span>
+                                </div>
                               </div>
                             </div>
                           </div>
+
+                          {event.google_maps_link && (
+                            <a 
+                              href={event.google_maps_link}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              onClick={(e) => e.stopPropagation()}
+                              className="relative z-10 w-full py-2.5 rounded bg-gradient-to-r from-[#d4af37] to-[#aa7c11] hover:from-[#aa7c11] hover:to-[#8a5d07] text-[#1a0033] font-bold text-xs flex items-center justify-center gap-1.5 shadow-lg active:scale-95 transition-all"
+                            >
+                              <MapPin className="w-3.5 h-3.5" />
+                              <span>VIEW ON MAP</span>
+                            </a>
+                          )}
                         </div>
+                      );
+                    })}
 
-                        {event.google_maps_link && (
-                          <a 
-                            href={event.google_maps_link}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="relative z-10 w-full py-2.5 rounded bg-gradient-to-r from-[#d4af37] to-[#aa7c11] hover:from-[#aa7c11] hover:to-[#8a5d07] text-[#1a0033] font-bold text-xs flex items-center justify-center gap-1.5 shadow-lg active:scale-95 transition-all"
-                          >
-                            <MapPin className="w-3.5 h-3.5" />
-                            <span>VIEW ON MAP</span>
-                          </a>
-                        )}
-                      </div>
-                    );
-                  })}
+                    {/* Arrow Navigation Buttons - Cleanly positioned inside view bounds */}
+                    {events.length > 1 && (
+                      <>
+                        <button 
+                          type="button"
+                          onClick={(e) => { 
+                            e.stopPropagation(); 
+                            setActiveEventIndex((prev) => (prev - 1 + events.length) % events.length); 
+                          }}
+                          className="absolute left-1 sm:left-2 top-1/2 -translate-y-1/2 z-40 bg-[#1a0033]/90 hover:bg-[#2e0854] border border-[#d4af37]/60 hover:border-[#d4af37] text-[#d4af37] w-10 h-10 rounded-full flex items-center justify-center transition-all hover:scale-110 active:scale-90 cursor-pointer shadow-[0_4px_16px_rgba(0,0,0,0.6)] backdrop-blur-md"
+                          title="Previous Event"
+                          aria-label="Previous Event"
+                        >
+                          <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+                          </svg>
+                        </button>
+                        <button 
+                          type="button"
+                          onClick={(e) => { 
+                            e.stopPropagation(); 
+                            setActiveEventIndex((prev) => (prev + 1) % events.length); 
+                          }}
+                          className="absolute right-1 sm:right-2 top-1/2 -translate-y-1/2 z-40 bg-[#1a0033]/90 hover:bg-[#2e0854] border border-[#d4af37]/60 hover:border-[#d4af37] text-[#d4af37] w-10 h-10 rounded-full flex items-center justify-center transition-all hover:scale-110 active:scale-90 cursor-pointer shadow-[0_4px_16px_rgba(0,0,0,0.6)] backdrop-blur-md"
+                          title="Next Event"
+                          aria-label="Next Event"
+                        >
+                          <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                          </svg>
+                        </button>
+                      </>
+                    )}
+                  </div>
 
-                  <button 
-                    onClick={(e) => { e.stopPropagation(); setActiveEventIndex((prev) => (prev - 1 + events.length) % events.length); }}
-                    className="absolute left-[-45px] z-40 bg-purple-950/80 border border-[#d4af37]/35 hover:border-[#d4af37] text-[#d4af37] p-2.5 rounded-full transition-all hover:scale-105 active:scale-95 cursor-pointer shadow-lg"
-                  >
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
-                    </svg>
-                  </button>
-                  <button 
-                    onClick={(e) => { e.stopPropagation(); setActiveEventIndex((prev) => (prev + 1) % events.length); }}
-                    className="absolute right-[-45px] z-40 bg-purple-950/80 border border-[#d4af37]/35 hover:border-[#d4af37] text-[#d4af37] p-2.5 rounded-full transition-all hover:scale-105 active:scale-95 cursor-pointer shadow-lg"
-                  >
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
-                    </svg>
-                  </button>
+                  {/* Dot Indicators */}
+                  {events.length > 1 && (
+                    <div className="flex items-center justify-center gap-2 mt-4 z-30">
+                      {events.map((_, i) => (
+                        <button
+                          key={i}
+                          type="button"
+                          onClick={() => setActiveEventIndex(i)}
+                          className={`h-2 rounded-full transition-all duration-300 cursor-pointer ${
+                            i === activeEventIndex
+                              ? 'w-7 bg-gradient-to-r from-[#d4af37] to-[#aa7c11] shadow-[0_0_8px_rgba(212,175,55,0.5)]'
+                              : 'w-2 bg-white/25 hover:bg-white/50'
+                          }`}
+                          aria-label={`Go to event ${i + 1}`}
+                        />
+                      ))}
+                    </div>
+                  )}
                 </div>
               ) : (
                 <div className="grid grid-cols-1 @md:grid-cols-2 @lg:grid-cols-3 gap-8">
