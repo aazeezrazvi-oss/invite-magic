@@ -223,7 +223,8 @@ export default function Sidebar({
     if (invitation.events && invitation.events.length > 0) score += 1;
     if (invitation.invitation_message && invitation.invitation_message.trim()) score += 1;
     if (invitation.gallery_photos && invitation.gallery_photos.length > 0) score += 1;
-    if (invitation.gift_collection?.upi_id) score += 1;
+    const giftsOn = invitation.styling?.section_order ? invitation.styling.section_order.includes('gifts') : true;
+    if (!giftsOn || invitation.gift_collection?.upi_id) score += 1;
     return Math.round((score / total) * 100);
   };
 
@@ -366,6 +367,28 @@ export default function Sidebar({
         [field]: value,
       } as StylingPreferences,
     });
+  };
+
+  // Gift section toggle state and handler
+  const isGiftsEnabled = styling.section_order ? styling.section_order.includes('gifts') : true;
+
+  const toggleGifts = (enabled: boolean) => {
+    const currentOrder = styling.section_order && styling.section_order.length > 0
+      ? [...styling.section_order]
+      : ['hero', 'countdown', 'story', 'events', 'gallery', 'rsvp', 'gifts'];
+
+    let newOrder: string[];
+    if (enabled) {
+      if (!currentOrder.includes('gifts')) {
+        newOrder = [...currentOrder, 'gifts'];
+      } else {
+        newOrder = currentOrder;
+      }
+    } else {
+      newOrder = currentOrder.filter((sec) => sec !== 'gifts');
+    }
+
+    handleStylingChange('section_order', newOrder);
   };
 
   const applyPreset = (presetSlug: string) => {
@@ -595,7 +618,14 @@ export default function Sidebar({
                   : 'border-transparent text-gray-400 hover:text-white'
               }`}
             >
-              {tab}
+              <span className="flex items-center justify-center gap-1">
+                <span>{tab}</span>
+                {tab === 'gifts' && !isGiftsEnabled && (
+                  <span className="text-[8px] px-1 py-0.2 rounded bg-gray-800 text-gray-400 font-mono font-normal uppercase">
+                    off
+                  </span>
+                )}
+              </span>
             </button>
           ))}
         </div>
@@ -1455,46 +1485,110 @@ export default function Sidebar({
 
         {/* GIFTS TAB */}
         {activeTab === 'gifts' && (
-          <div className="space-y-3">
-            <div className="bg-[#0d0d11] p-4 rounded-xl border border-[#26263b] space-y-3">
-              <div className="flex items-center gap-2 border-b border-[#26263b] pb-2">
-                <Gift className="w-4 h-4 text-[#d4af37]" />
-                <h3 className="font-bold text-white text-xs font-cinzel">Direct Digital Shagun & UPI Registry</h3>
+          <div className="space-y-4">
+            {/* Enable / Disable Gift Registry Toggle Card */}
+            <div className={`p-4 rounded-xl border transition-all ${
+              isGiftsEnabled 
+                ? 'bg-[#161622] border-[#d4af37]/40 shadow-[0_0_15px_rgba(212,175,55,0.08)]' 
+                : 'bg-[#0d0d11] border-[#26263b]'
+            }`}>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className={`w-9 h-9 rounded-lg flex items-center justify-center transition-colors ${
+                    isGiftsEnabled ? 'bg-[#d4af37]/15 text-[#d4af37]' : 'bg-[#161622] text-gray-500'
+                  }`}>
+                    <Gift className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-white text-xs font-cinzel">
+                      Accept Wedding Gifts / Shagun
+                    </h3>
+                    <p className="text-[11px] text-gray-400 mt-0.5">
+                      {isGiftsEnabled 
+                        ? 'Gift section is ON and visible on your invitation' 
+                        : 'Gift section is OFF and hidden on your invitation'}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Toggle Switch */}
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={isGiftsEnabled}
+                  onClick={() => toggleGifts(!isGiftsEnabled)}
+                  className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                    isGiftsEnabled ? 'bg-[#d4af37]' : 'bg-gray-700'
+                  }`}
+                  title={isGiftsEnabled ? 'Turn OFF Gift Section' : 'Turn ON Gift Section'}
+                >
+                  <span
+                    aria-hidden="true"
+                    className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-lg ring-0 transition duration-200 ease-in-out ${
+                      isGiftsEnabled ? 'translate-x-5' : 'translate-x-0'
+                    }`}
+                  />
+                </button>
               </div>
 
-              <div>
-                <label className="block text-xs text-gray-400 mb-1">Your UPI ID (100% Direct to Your Bank, 0% Fee)</label>
-                <input
-                  type="text"
-                  value={giftDetails.upi_id}
-                  onChange={(e) => handleGiftChange('upi_id', e.target.value)}
-                  placeholder="e.g. couple@okaxis / 9876543210@paytm"
-                  className="w-full bg-[#161622] border border-[#26263b] rounded px-3 py-2 text-white outline-none focus:border-[#d4af37] text-xs font-mono"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs text-gray-400 mb-1">Receiver Account Name</label>
-                <input
-                  type="text"
-                  value={giftDetails.receiver_name}
-                  onChange={(e) => handleGiftChange('receiver_name', e.target.value)}
-                  placeholder="e.g. John & Lilly"
-                  className="w-full bg-[#161622] border border-[#26263b] rounded px-3 py-2 text-white outline-none focus:border-[#d4af37] text-xs"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs text-gray-400 mb-1">Thank You Note</label>
-                <textarea
-                  rows={3}
-                  value={giftDetails.thank_you_message}
-                  onChange={(e) => handleGiftChange('thank_you_message', e.target.value)}
-                  placeholder="Your blessings and presence are our greatest gift..."
-                  className="w-full bg-[#161622] border border-[#26263b] rounded px-3 py-2 text-white outline-none focus:border-[#d4af37] resize-none text-xs"
-                />
-              </div>
+              {!isGiftsEnabled && (
+                <div className="mt-3 pt-3 border-t border-[#26263b] flex items-center gap-2 text-[11px] text-amber-400/90 bg-amber-500/5 px-3 py-2 rounded-lg border border-amber-500/15">
+                  <span className="text-base leading-none">ℹ️</span>
+                  <span>Gift and UPI QR section will not appear on your invitation website.</span>
+                </div>
+              )}
             </div>
+
+            {/* Gift Details Form */}
+            {isGiftsEnabled ? (
+              <div className="bg-[#0d0d11] p-4 rounded-xl border border-[#26263b] space-y-3 animate-in fade-in duration-200">
+                <div className="flex items-center gap-2 border-b border-[#26263b] pb-2">
+                  <Gift className="w-4 h-4 text-[#d4af37]" />
+                  <h3 className="font-bold text-white text-xs font-cinzel">Direct Digital Shagun & UPI Registry</h3>
+                </div>
+
+                <div>
+                  <label className="block text-xs text-gray-400 mb-1">Your UPI ID (100% Direct to Your Bank, 0% Fee)</label>
+                  <input
+                    type="text"
+                    value={giftDetails.upi_id}
+                    onChange={(e) => handleGiftChange('upi_id', e.target.value)}
+                    placeholder="e.g. couple@okaxis / 9876543210@paytm"
+                    className="w-full bg-[#161622] border border-[#26263b] rounded px-3 py-2 text-white outline-none focus:border-[#d4af37] text-xs font-mono"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs text-gray-400 mb-1">Receiver Account Name</label>
+                  <input
+                    type="text"
+                    value={giftDetails.receiver_name}
+                    onChange={(e) => handleGiftChange('receiver_name', e.target.value)}
+                    placeholder="e.g. John & Lilly"
+                    className="w-full bg-[#161622] border border-[#26263b] rounded px-3 py-2 text-white outline-none focus:border-[#d4af37] text-xs"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs text-gray-400 mb-1">Thank You Note</label>
+                  <textarea
+                    rows={3}
+                    value={giftDetails.thank_you_message}
+                    onChange={(e) => handleGiftChange('thank_you_message', e.target.value)}
+                    placeholder="Your blessings and presence are our greatest gift..."
+                    className="w-full bg-[#161622] border border-[#26263b] rounded px-3 py-2 text-white outline-none focus:border-[#d4af37] resize-none text-xs"
+                  />
+                </div>
+              </div>
+            ) : (
+              <div className="bg-[#0d0d11]/60 border border-dashed border-[#26263b] rounded-xl p-6 text-center space-y-2">
+                <Gift className="w-8 h-8 text-gray-600 mx-auto" />
+                <p className="text-xs text-gray-300 font-medium">Gift Section is Turned Off</p>
+                <p className="text-[11px] text-gray-500 max-w-xs mx-auto">
+                  If the couple does not want gifts or shagun, leave this off. Turn the toggle above to ON if you wish to accept digital gifts or UPI payments.
+                </p>
+              </div>
+            )}
           </div>
         )}
       </div>

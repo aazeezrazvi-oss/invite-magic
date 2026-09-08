@@ -191,7 +191,7 @@ export default function GuestInvitePage({ params }: PageProps) {
 
   const isOwnerOrAdmin = isAdmin || (invitation?.user_id && currentUserId === invitation.user_id);
 
-  if (!isOwnerOrAdmin && (!invitation.owner_tier || invitation.owner_tier === 'free')) {
+  if (!isOwnerOrAdmin && invitation.owner_tier === 'free') {
     return (
       <div className="min-h-screen bg-[#0d0d11] text-[#f3f4f6] flex flex-col justify-center items-center text-center p-8 relative font-sans">
         {/* Background ambient glow */}

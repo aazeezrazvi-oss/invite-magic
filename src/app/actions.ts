@@ -328,7 +328,7 @@ export async function getInvitationBySlug(slug: string): Promise<Partial<Invitat
 
       const result = cleanInvitationData({
         ...invitation,
-        owner_tier: owner?.subscription_tier || 'free',
+        owner_tier: owner?.subscription_tier ?? undefined,
         styling: styling || undefined,
         events: events || [],
         gift_collection: gift_collection || undefined,
@@ -416,7 +416,7 @@ export async function getInvitationBySlugFresh(slug: string): Promise<Partial<In
 
     const result = cleanInvitationData({
       ...invitation,
-      owner_tier: owner?.subscription_tier || 'free',
+      owner_tier: owner?.subscription_tier ?? undefined,
       styling: styling || undefined,
       events: events || [],
       gift_collection: gift_collection || undefined,

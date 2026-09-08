@@ -81,6 +81,7 @@ export default function InvitationPreview({
   const isKalyanam = styling.secondary_color === '#5c0c1b' || styling.font_heading === 'kannada';
   const isRoyalWreath = styling.secondary_color === '#2e0854';
   const isHexagonFrame = styling.secondary_color === '#5a1846';
+  const isGiftsEnabled = styling.section_order ? styling.section_order.includes('gifts') : true;
 
   // 35 Floating flower petals and gold blossoms for the inner page background (increased density)
   const innerPetals = [
@@ -1857,6 +1858,7 @@ export default function InvitationPreview({
         );
 
       case 'gifts':
+        if (!isGiftsEnabled) return null;
         const upiPaymentUrl = `upi://pay?pa=${encodeURIComponent(giftDetails.upi_id)}&pn=${encodeURIComponent(giftDetails.receiver_name)}&cu=INR`;
         
         return (
@@ -2140,8 +2142,8 @@ export default function InvitationPreview({
       {/* Dynamic Section Ordering */}
       <div className="z-10 flex flex-col flex-grow pb-16">
         {(styling.section_order && styling.section_order.length > 0
-          ? styling.section_order
-          : ['hero', 'countdown', 'story', 'events', 'gallery', 'rsvp', 'gifts']
+          ? styling.section_order.filter((sec) => sec !== 'gifts' || isGiftsEnabled)
+          : ['hero', 'countdown', 'story', 'events', 'gallery', 'rsvp', ...(isGiftsEnabled ? ['gifts'] : [])]
         ).map((section) => renderSection(section))}
 
         {/* Elegant Redirect Footer */}
