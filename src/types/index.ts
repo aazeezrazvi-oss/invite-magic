@@ -47,6 +47,8 @@ export interface Invitation {
   bride_photo: string;
   bride_bio: string;
   parents_names: string;
+  groom_parents?: string;
+  bride_parents?: string;
   invitation_message: string;
   template_id?: string;
   custom_domain?: string;

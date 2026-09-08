@@ -636,6 +636,17 @@ export default function Sidebar({
                       />
                     </div>
                     <div>
+                      <label className="block text-[11px] text-gray-400 mb-1">Groom Parents / Father & Mother</label>
+                      <input
+                        type="text"
+                        value={invitation.groom_parents || ''}
+                        onChange={(e) => handleDetailChange('groom_parents', e.target.value)}
+                        placeholder="e.g. Mr. & Mrs. Mahaboob Ali"
+                        className="w-full bg-[#0d0d11] border border-[#26263b] rounded px-3 py-2 text-white outline-none focus:border-[#d4af37] text-xs"
+                      />
+                      <span className="text-[10px] text-gray-500 mt-0.5 block">Replaces &quot;Son of the Parents&quot; with &quot;Son of [Name]&quot;</span>
+                    </div>
+                    <div>
                       <label className="block text-[11px] text-gray-400 mb-1">Groom Bio</label>
                       <textarea
                         rows={2}
@@ -698,6 +709,17 @@ export default function Sidebar({
                         placeholder="Enter Bride Name"
                         className="w-full bg-[#0d0d11] border border-[#26263b] rounded px-3 py-2 text-white outline-none focus:border-[#d4af37] text-xs"
                       />
+                    </div>
+                    <div>
+                      <label className="block text-[11px] text-gray-400 mb-1">Bride Parents / Father & Mother</label>
+                      <input
+                        type="text"
+                        value={invitation.bride_parents || ''}
+                        onChange={(e) => handleDetailChange('bride_parents', e.target.value)}
+                        placeholder="e.g. Mr. & Mrs. Siddiqui"
+                        className="w-full bg-[#0d0d11] border border-[#26263b] rounded px-3 py-2 text-white outline-none focus:border-[#d4af37] text-xs"
+                      />
+                      <span className="text-[10px] text-gray-500 mt-0.5 block">Replaces &quot;Daughter of the Parents&quot; with &quot;Daughter of [Name]&quot;</span>
                     </div>
                     <div>
                       <label className="block text-[11px] text-gray-400 mb-1">Bride Bio</label>

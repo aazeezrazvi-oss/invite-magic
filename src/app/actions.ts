@@ -609,6 +609,16 @@ export async function saveInvitation(invitationData: Partial<Invitation>): Promi
       return { success: false, error: 'No valid invitation ID found in database.' };
     }
 
+    // Serialize groom_parents and bride_parents into parents_names so they save safely in existing schema
+    let serializedParents = invitationData.parents_names || '';
+    if (invitationData.groom_parents !== undefined || invitationData.bride_parents !== undefined) {
+      serializedParents = JSON.stringify({
+        groom: sanitizeText(invitationData.groom_parents || ''),
+        bride: sanitizeText(invitationData.bride_parents || ''),
+        blessings: sanitizeText(invitationData.parents_names || '')
+      });
+    }
+
     // 2. Validate Core invitation parameters
     const coreDetailsParsed = InvitationCoreSchema.safeParse({
       id: targetId,
@@ -616,10 +626,12 @@ export async function saveInvitation(invitationData: Partial<Invitation>): Promi
       groom_name: invitationData.groom_name,
       groom_photo: invitationData.groom_photo,
       groom_bio: invitationData.groom_bio,
+      groom_parents: invitationData.groom_parents,
       bride_name: invitationData.bride_name,
       bride_photo: invitationData.bride_photo,
       bride_bio: invitationData.bride_bio,
-      parents_names: invitationData.parents_names,
+      bride_parents: invitationData.bride_parents,
+      parents_names: serializedParents,
       invitation_message: invitationData.invitation_message,
       template_id: invitationData.template_id,
       custom_domain: invitationData.custom_domain,
@@ -632,13 +644,14 @@ export async function saveInvitation(invitationData: Partial<Invitation>): Promi
     }
 
     const coreDetails = coreDetailsParsed.data;
+    const { groom_parents: _gp, bride_parents: _bp, ...dbPayload } = coreDetails;
     const { styling, events, gift_collection } = invitationData;
 
     // 3. Update Core Invitation Table
     const { error: inviteError } = await supabase
       .from('invitations')
       .update({
-        ...coreDetails,
+        ...dbPayload,
         updated_at: new Date().toISOString(),
       })
       .eq('id', targetId);

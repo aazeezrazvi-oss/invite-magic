@@ -40,11 +40,33 @@ export function sanitizeText(val: string | null | undefined): string {
  */
 export function cleanInvitationData<T extends Partial<Invitation>>(inv: T): T {
   if (!inv) return inv;
+
+  let groomParents = inv.groom_parents ? decodeHtmlEntities(inv.groom_parents) : '';
+  let brideParents = inv.bride_parents ? decodeHtmlEntities(inv.bride_parents) : '';
+  let rawParentsNames = inv.parents_names ? decodeHtmlEntities(inv.parents_names) : '';
+
+  // Check if parents_names contains structured JSON with groom and bride parent details
+  if (rawParentsNames && rawParentsNames.startsWith('{')) {
+    try {
+      const parsed = JSON.parse(rawParentsNames);
+      if (parsed.groom) groomParents = decodeHtmlEntities(parsed.groom);
+      if (parsed.bride) brideParents = decodeHtmlEntities(parsed.bride);
+      rawParentsNames = decodeHtmlEntities(parsed.blessings || (parsed.groom && parsed.bride ? `${parsed.groom} & ${parsed.bride}` : parsed.groom || parsed.bride || ''));
+    } catch (e) {
+      // Keep raw string if not JSON
+    }
+  } else if (!groomParents && rawParentsNames) {
+    // Legacy fallback: if parents_names exists as plain text, associate with groom parents
+    groomParents = rawParentsNames;
+  }
+
   return {
     ...inv,
     groom_name: decodeHtmlEntities(inv.groom_name),
     bride_name: decodeHtmlEntities(inv.bride_name),
-    parents_names: decodeHtmlEntities(inv.parents_names),
+    parents_names: rawParentsNames,
+    groom_parents: groomParents,
+    bride_parents: brideParents,
     groom_bio: decodeHtmlEntities(inv.groom_bio),
     bride_bio: decodeHtmlEntities(inv.bride_bio),
     invitation_message: decodeHtmlEntities(inv.invitation_message),
@@ -93,10 +115,12 @@ export const InvitationCoreSchema = z.object({
   groom_name: z.string().min(1).max(100).transform(sanitizeText),
   groom_photo: z.string().optional().nullable().or(z.literal('')).transform(val => val ? sanitizeUrl(val) : ''),
   groom_bio: z.string().max(500).optional().nullable().or(z.literal('')).transform(val => val ? sanitizeText(val) : ''),
+  groom_parents: z.string().max(200).optional().nullable().or(z.literal('')).transform(val => val ? sanitizeText(val) : ''),
   bride_name: z.string().min(1).max(100).transform(sanitizeText),
   bride_photo: z.string().optional().nullable().or(z.literal('')).transform(val => val ? sanitizeUrl(val) : ''),
   bride_bio: z.string().max(500).optional().nullable().or(z.literal('')).transform(val => val ? sanitizeText(val) : ''),
-  parents_names: z.string().max(200).optional().nullable().or(z.literal('')).transform(val => val ? sanitizeText(val) : ''),
+  bride_parents: z.string().max(200).optional().nullable().or(z.literal('')).transform(val => val ? sanitizeText(val) : ''),
+  parents_names: z.string().max(1000).optional().nullable().or(z.literal('')).transform(val => val ? sanitizeText(val) : ''),
   invitation_message: z.string().max(2000).optional().nullable().or(z.literal('')).transform(val => val ? sanitizeText(val) : ''),
   template_id: z.string().uuid().optional().nullable(),
   custom_domain: z.string().max(100).optional().nullable().transform(val => val ? sanitizeUrl(val) : null),

@@ -353,6 +353,20 @@ export default function InvitationPreview({
     }
   };
 
+  const getGroomSubtitle = () => {
+    if (!invitation.groom_parents?.trim()) return 'Son of the Parents';
+    const text = invitation.groom_parents.trim();
+    if (/^(son of|father:|mother:|s\/o|with the blessings)/i.test(text)) return text;
+    return `Son of ${text}`;
+  };
+
+  const getBrideSubtitle = () => {
+    if (!invitation.bride_parents?.trim()) return 'Daughter of the Parents';
+    const text = invitation.bride_parents.trim();
+    if (/^(daughter of|father:|mother:|d\/o|with the blessings)/i.test(text)) return text;
+    return `Daughter of ${text}`;
+  };
+
   // Theme styling variables
   const containerStyle = {
     '--primary-color': styling.primary_color,
@@ -1160,7 +1174,7 @@ export default function InvitationPreview({
                   <h3 className={`${getHeadingFontClass()} text-2xl text-[var(--primary-color)] mb-2`}>
                     {invitation.groom_name || 'Groom Name'}
                   </h3>
-                  <p className="text-sm italic opacity-85 mb-4 text-[#fef08a]">Son of the Parents</p>
+                  <p className="text-sm italic opacity-85 mb-4 text-[#fef08a]">{getGroomSubtitle()}</p>
                   <p className="opacity-90 max-w-sm text-sm leading-relaxed text-[#fcf8f2]">
                     {invitation.groom_bio || 'A short biography introducing the groom, his passions, and his perspective on the wedding day.'}
                   </p>
@@ -1183,7 +1197,7 @@ export default function InvitationPreview({
                   <h3 className={`${getHeadingFontClass()} text-2xl text-[var(--primary-color)] mb-2`}>
                     {invitation.groom_name || 'Groom Name'}
                   </h3>
-                  <p className="text-sm italic opacity-70 mb-4">Son of the Parents</p>
+                  <p className="text-sm italic opacity-70 mb-4">{getGroomSubtitle()}</p>
                   <p className="opacity-80 max-w-sm text-sm leading-relaxed">
                     {invitation.groom_bio || 'A short biography introducing the groom, his passions, and his perspective on the wedding day.'}
                   </p>
@@ -1210,7 +1224,7 @@ export default function InvitationPreview({
                   <h3 className={`${getHeadingFontClass()} text-2xl text-[var(--primary-color)] mb-2`}>
                     {invitation.groom_name || 'Groom Name'}
                   </h3>
-                  <p className="text-sm italic opacity-70 mb-4">Son of the Parents</p>
+                  <p className="text-sm italic opacity-70 mb-4">{getGroomSubtitle()}</p>
                   <p className="opacity-80 max-w-sm text-sm leading-relaxed">
                     {invitation.groom_bio || 'A short biography introducing the groom, his passions, and his perspective on the wedding day.'}
                   </p>
@@ -1227,7 +1241,7 @@ export default function InvitationPreview({
                   <h3 className={`${getHeadingFontClass()} text-2xl text-[var(--primary-color)] mb-2`}>
                     {invitation.groom_name || 'Groom Name'}
                   </h3>
-                  <p className="text-sm italic opacity-70 mb-4">Son of the Parents</p>
+                  <p className="text-sm italic opacity-70 mb-4">{getGroomSubtitle()}</p>
                   <p className="opacity-80 max-w-sm text-sm leading-relaxed">
                     {invitation.groom_bio || 'A short biography introducing the groom, his passions, and his perspective on the wedding day.'}
                   </p>
@@ -1253,7 +1267,7 @@ export default function InvitationPreview({
                   <h3 className={`${getHeadingFontClass()} text-2xl text-[var(--primary-color)] mb-2`}>
                     {invitation.bride_name || 'Bride Name'}
                   </h3>
-                  <p className="text-sm italic opacity-85 mb-4 text-[#fef08a]">Daughter of the Parents</p>
+                  <p className="text-sm italic opacity-85 mb-4 text-[#fef08a]">{getBrideSubtitle()}</p>
                   <p className="opacity-90 max-w-sm text-sm leading-relaxed text-[#fcf8f2]">
                     {invitation.bride_bio || 'A short biography introducing the bride, her passions, and her perspective on the wedding day.'}
                   </p>
@@ -1276,7 +1290,7 @@ export default function InvitationPreview({
                   <h3 className={`${getHeadingFontClass()} text-2xl text-[var(--primary-color)] mb-2`}>
                     {invitation.bride_name || 'Bride Name'}
                   </h3>
-                  <p className="text-sm italic opacity-70 mb-4">Daughter of the Parents</p>
+                  <p className="text-sm italic opacity-70 mb-4">{getBrideSubtitle()}</p>
                   <p className="opacity-80 max-w-sm text-sm leading-relaxed">
                     {invitation.bride_bio || 'A short biography introducing the bride, her passions, and her perspective on the wedding day.'}
                   </p>
@@ -1303,7 +1317,7 @@ export default function InvitationPreview({
                   <h3 className={`${getHeadingFontClass()} text-2xl text-[var(--primary-color)] mb-2`}>
                     {invitation.bride_name || 'Bride Name'}
                   </h3>
-                  <p className="text-sm italic opacity-70 mb-4">Daughter of the Parents</p>
+                  <p className="text-sm italic opacity-70 mb-4">{getBrideSubtitle()}</p>
                   <p className="opacity-80 max-w-sm text-sm leading-relaxed">
                     {invitation.bride_bio || 'A short biography introducing the bride, her passions, and her perspective on the wedding day.'}
                   </p>
@@ -1320,7 +1334,7 @@ export default function InvitationPreview({
                   <h3 className={`${getHeadingFontClass()} text-2xl text-[var(--primary-color)] mb-2`}>
                     {invitation.bride_name || 'Bride Name'}
                   </h3>
-                  <p className="text-sm italic opacity-70 mb-4">Daughter of the Parents</p>
+                  <p className="text-sm italic opacity-70 mb-4">{getBrideSubtitle()}</p>
                   <p className="opacity-80 max-w-sm text-sm leading-relaxed">
                     {invitation.bride_bio || 'A short biography introducing the bride, her passions, and her perspective on the wedding day.'}
                   </p>
