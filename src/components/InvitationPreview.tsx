@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { 
   Heart, Calendar, Clock, MapPin, Gift, 
@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import { Invitation, RSVP as RSVPType, StylingPreferences } from '@/types';
 import { QRCodeSVG } from 'qrcode.react';
+import { cleanInvitationData } from '@/utils/sanitizer';
 
 interface InvitationPreviewProps {
   invitation: Partial<Invitation>;
@@ -19,12 +20,16 @@ interface InvitationPreviewProps {
 }
 
 export default function InvitationPreview({ 
-  invitation, 
+  invitation: rawInvitation, 
   onRsvpSubmit,
   isPreviewMode = false,
   isEditorMode = false,
   onEditSection
 }: InvitationPreviewProps) {
+  const invitation = useMemo<Partial<Invitation>>(() => {
+    if (!rawInvitation) return {};
+    return cleanInvitationData(rawInvitation);
+  }, [rawInvitation]);
   const styling = (invitation.styling || {
     primary_color: '#d4af37',
     secondary_color: '#b8962e',

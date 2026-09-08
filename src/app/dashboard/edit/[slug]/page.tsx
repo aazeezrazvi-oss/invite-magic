@@ -6,6 +6,7 @@ import Sidebar from '@/components/Editor/Sidebar';
 import Canvas from '@/components/Editor/Canvas';
 import { Invitation } from '@/types';
 import { getInvitationBySlugFresh, saveInvitation } from '@/app/actions';
+import { cleanInvitationData } from '@/utils/sanitizer';
 import { TEMPLATE_PRESETS } from '@/utils/presets';
 import { ArrowLeft, Check, AlertCircle, Heart, Palette, Calendar, Gift, Save, Undo2, Redo2, ZoomIn, ZoomOut, Globe, Eye, EyeOff, Sparkles } from 'lucide-react';
 import Link from 'next/link';
@@ -231,8 +232,9 @@ export default function EditorPage({ params }: PageProps) {
         if (isSupabaseWorking) {
           const data = await getInvitationBySlugFresh(slug);
           if (data) {
-            setInvitation(data);
-            resetHistory(data);
+            const cleaned = cleanInvitationData(data);
+            setInvitation(cleaned);
+            resetHistory(cleaned);
             
             // Sync subscription status from database owner_tier
             if (data.owner_tier && data.owner_tier !== 'free') {
@@ -247,7 +249,7 @@ export default function EditorPage({ params }: PageProps) {
             const localDraft = localStorage.getItem(`invite_${slug}`);
             if (localDraft) {
               try {
-                draft = JSON.parse(localDraft);
+                draft = cleanInvitationData(JSON.parse(localDraft));
               } catch (e) {
                 console.warn('Failed to parse local storage draft:', e);
               }

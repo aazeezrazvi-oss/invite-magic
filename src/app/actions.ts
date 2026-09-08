@@ -18,7 +18,9 @@ import {
   MediaAssetSchema, 
   BespokeRequestSchema,
   sanitizeText, 
-  sanitizeUrl 
+  sanitizeUrl,
+  decodeHtmlEntities,
+  cleanInvitationData
 } from '@/utils/sanitizer';
 
 // --- Redis Client Initialization ---
@@ -324,13 +326,13 @@ export async function getInvitationBySlug(slug: string): Promise<Partial<Invitat
         .eq('invitation_id', invitation.id)
         .single();
 
-      const result = {
+      const result = cleanInvitationData({
         ...invitation,
         owner_tier: owner?.subscription_tier || 'free',
         styling: styling || undefined,
         events: events || [],
         gift_collection: gift_collection || undefined,
-      };
+      });
 
       // Write to cache
       if (redis) {
@@ -412,13 +414,13 @@ export async function getInvitationBySlugFresh(slug: string): Promise<Partial<In
       .eq('invitation_id', invitation.id)
       .single();
 
-    const result = {
+    const result = cleanInvitationData({
       ...invitation,
       owner_tier: owner?.subscription_tier || 'free',
       styling: styling || undefined,
       events: events || [],
       gift_collection: gift_collection || undefined,
-    };
+    });
 
     // Also update the cache so subsequent cached reads (e.g. public invite page) are fresh
     const cacheKey = INVITATION_CACHE_KEY_PREFIX + cleanSlug;

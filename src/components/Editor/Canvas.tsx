@@ -61,11 +61,14 @@ export default function Canvas({ invitation, zoom = 100, onEditSection }: Canvas
             width: '100%',
             height: '100%'
           }} 
-          className="flex-1 w-full h-full overflow-y-auto overscroll-contain transition-transform duration-150 flex justify-center"
+          className={`flex-1 w-full h-full overflow-y-auto overscroll-contain transition-transform duration-150 flex justify-center ${device === 'mobile' ? 'py-6 px-4' : ''}`}
         >
           {device === 'mobile' ? (
-            /* Mobile View: Borderless Phone Column centered cleanly */
-            <div className="w-full max-w-[440px] min-h-full h-full flex flex-col bg-transparent shadow-[0_0_60px_rgba(0,0,0,0.85)] relative">
+            /* Mobile View: Phone Frame with strict viewport containment */
+            <div 
+              style={{ transform: 'translateZ(0)' }}
+              className="w-full max-w-[440px] h-full flex flex-col bg-[#0d0d11] shadow-[0_0_60px_rgba(0,0,0,0.85)] relative overflow-hidden rounded-3xl border-2 border-[#26263b] [contain:paint] isolate"
+            >
               <div className="flex-1 w-full h-full overflow-y-auto">
                 <InvitationPreview 
                   invitation={invitation} 
@@ -76,8 +79,11 @@ export default function Canvas({ invitation, zoom = 100, onEditSection }: Canvas
               </div>
             </div>
           ) : (
-            /* Desktop View: Full Width Borderless Experience */
-            <div className="w-full min-h-full h-full flex flex-col bg-transparent">
+            /* Desktop View: Full Width Experience with strict viewport containment */
+            <div 
+              style={{ transform: 'translateZ(0)' }}
+              className="w-full min-h-full h-full flex flex-col bg-[#0d0d11] relative overflow-hidden [contain:paint] isolate"
+            >
               <div className="flex-1 w-full h-full overflow-y-auto">
                 <InvitationPreview 
                   invitation={invitation} 

@@ -1,23 +1,65 @@
 import { z } from 'zod';
+import { Invitation } from '@/types';
 
 // --- HTML/XSS Sanitization Helpers ---
 
 /**
- * Strips HTML tags and escapes special characters to prevent HTML/XSS injection.
- * Suitable for general user text inputs (names, messages, wishes).
+ * Decodes HTML entities back into their natural, readable characters.
+ * Handles nested or multiple encodings (e.g. &amp;amp; -> &).
+ */
+export function decodeHtmlEntities(str: string | null | undefined): string {
+  if (!str) return '';
+  let result = str;
+  while (result.includes('&amp;')) {
+    result = result.replace(/&amp;/g, '&');
+  }
+  return result
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#x27;|&#39;/g, "'")
+    .replace(/&#x2F;|&#47;/g, '/');
+}
+
+/**
+ * Strips HTML tags to prevent HTML/XSS injection while preserving natural user characters.
+ * Unescapes any HTML entities (like &amp; -> &) so clean human-readable characters
+ * are stored and rendered natively by React without unwanted entity display.
  */
 export function sanitizeText(val: string | null | undefined): string {
   if (!val) return '';
   // Remove HTML tags
   const noHtml = val.replace(/<[^>]*>/g, '');
-  // Escape HTML characters
-  return noHtml
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#x27;')
-    .replace(/\//g, '&#x2F;');
+  // Decode any HTML entities so text like "&amp;" returns to clean "&"
+  return decodeHtmlEntities(noHtml).trim();
+}
+
+/**
+ * Normalizes invitation text fields to decode any HTML entities (&amp;, &#x27;, etc.)
+ * so the application always works with clean, human-readable strings.
+ */
+export function cleanInvitationData<T extends Partial<Invitation>>(inv: T): T {
+  if (!inv) return inv;
+  return {
+    ...inv,
+    groom_name: decodeHtmlEntities(inv.groom_name),
+    bride_name: decodeHtmlEntities(inv.bride_name),
+    parents_names: decodeHtmlEntities(inv.parents_names),
+    groom_bio: decodeHtmlEntities(inv.groom_bio),
+    bride_bio: decodeHtmlEntities(inv.bride_bio),
+    invitation_message: decodeHtmlEntities(inv.invitation_message),
+    events: inv.events?.map((e: any) => ({
+      ...e,
+      event_name: decodeHtmlEntities(e.event_name),
+      venue_name: decodeHtmlEntities(e.venue_name),
+      venue_address: decodeHtmlEntities(e.venue_address),
+    })),
+    gift_collection: inv.gift_collection ? {
+      ...inv.gift_collection,
+      receiver_name: decodeHtmlEntities(inv.gift_collection.receiver_name),
+      thank_you_message: decodeHtmlEntities(inv.gift_collection.thank_you_message),
+    } : undefined,
+  };
 }
 
 /**
