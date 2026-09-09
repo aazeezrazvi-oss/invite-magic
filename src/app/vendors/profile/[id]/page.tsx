@@ -381,6 +381,81 @@ export default function DedicatedVendorProfilePage({ params }: PageProps) {
           </div>
         </div>
 
+        {/* Instagram Reels Section */}
+        {vendor.instagram_reel_urls && vendor.instagram_reel_urls.length > 0 && (
+          <div className="bg-[#161622] border border-[#26263b] rounded-2xl p-6 sm:p-8 space-y-5 shadow-xl">
+            <div className="flex items-center justify-between">
+              <h3 className="text-lg font-bold text-white font-cinzel flex items-center gap-2.5">
+                <span className="p-1.5 rounded-lg bg-gradient-to-tr from-pink-500 via-red-500 to-yellow-500">
+                  <InstagramIcon className="w-4 h-4 text-white" />
+                </span>
+                Instagram Reels
+              </h3>
+              {vendor.instagram_handle && (
+                <a
+                  href={`https://instagram.com/${vendor.instagram_handle.replace(/^@/, '')}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-[10px] text-pink-400 hover:text-pink-300 font-semibold uppercase tracking-wider transition-colors"
+                >
+                  @{vendor.instagram_handle.replace(/^@/, '')}
+                </a>
+              )}
+            </div>
+            
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+              {vendor.instagram_reel_urls.slice(0, 6).map((url, idx) => {
+                // Extract the reel/post ID from Instagram URL
+                const match = url.match(/instagram\.com\/(?:reel|p)\/([^/?]+)/);
+                const embedUrl = match 
+                  ? `https://www.instagram.com/p/${match[1]}/embed` 
+                  : null;
+                
+                if (!embedUrl) return null;
+                
+                return (
+                  <div 
+                    key={idx} 
+                    className="rounded-xl overflow-hidden border border-[#26263b] bg-black shadow-md aspect-[9/16] relative group"
+                  >
+                    <iframe
+                      src={embedUrl}
+                      className="w-full h-full border-0"
+                      allowTransparency={true}
+                      allow="encrypted-media"
+                      loading="lazy"
+                      title={`Instagram reel ${idx + 1}`}
+                    />
+                    <a
+                      href={url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="absolute inset-0 z-10 bg-black/0 group-hover:bg-black/20 transition-all flex items-end justify-center pb-4 opacity-0 group-hover:opacity-100"
+                    >
+                      <span className="px-3 py-1.5 rounded-full bg-black/70 text-white text-[10px] font-semibold backdrop-blur-sm border border-white/20">
+                        View on Instagram ↗
+                      </span>
+                    </a>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Follow on Instagram Button */}
+            {vendor.instagram_handle && (
+              <a
+                href={`https://instagram.com/${vendor.instagram_handle.replace(/^@/, '')}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-pink-500 via-red-500 to-yellow-500 text-white font-bold text-xs flex items-center justify-center gap-2 transition-all hover:opacity-90 shadow-lg shadow-pink-500/20"
+              >
+                <InstagramIcon className="w-4 h-4" />
+                <span>Follow on Instagram @{vendor.instagram_handle.replace(/^@/, '')}</span>
+              </a>
+            )}
+          </div>
+        )}
+
       </main>
 
       {/* Footer */}

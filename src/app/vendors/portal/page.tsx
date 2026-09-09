@@ -46,6 +46,7 @@ export default function VendorPortalPage() {
     whatsapp_number: '',
     phone_number: '',
     instagram_handle: '',
+    instagram_reel_urls: [],
     starting_price: '',
   });
 
@@ -217,6 +218,7 @@ export default function VendorPortalPage() {
       whatsapp_number: '',
       phone_number: '',
       instagram_handle: '',
+      instagram_reel_urls: [],
       starting_price: '',
     });
     setStatusNotice(null);
@@ -708,6 +710,36 @@ export default function VendorPortalPage() {
                     />
                   </div>
                 </div>
+              </div>
+
+              {/* Instagram Reel URLs */}
+              <div className="space-y-2 bg-[#0d0d11] p-4 rounded-xl border border-[#26263b]">
+                <label className="block text-gray-300 font-semibold uppercase tracking-wider text-xs flex items-center justify-between">
+                  <span className="flex items-center gap-2">
+                    <InstagramIcon className="w-3.5 h-3.5 text-pink-400" />
+                    Instagram Reel / Post URLs
+                  </span>
+                  <span className="text-gray-500 text-[9px] font-normal normal-case">Optional • Max 6 links</span>
+                </label>
+                <p className="text-gray-500 text-[10px] leading-relaxed">
+                  Paste your Instagram Reel or Post links below (one per line). These will be embedded on your profile page. 
+                  Open Instagram → Go to a reel → Tap Share → Copy Link → Paste here.
+                </p>
+                <textarea
+                  value={(formData.instagram_reel_urls || []).join('\n')}
+                  onChange={(e) => {
+                    const urls = e.target.value.split('\n').filter(url => url.trim() !== '');
+                    setFormData(prev => ({ ...prev, instagram_reel_urls: urls.slice(0, 6) }));
+                  }}
+                  placeholder={`https://www.instagram.com/reel/ABC123/\nhttps://www.instagram.com/reel/XYZ789/\nhttps://www.instagram.com/p/DEF456/`}
+                  rows={4}
+                  className="w-full bg-[#161622] border border-[#26263b] rounded px-3 py-2 text-white outline-none focus:border-pink-500/50 text-[11px] resize-none placeholder:text-gray-600"
+                />
+                {(formData.instagram_reel_urls || []).length > 0 && (
+                  <p className="text-pink-400 text-[10px]">
+                    ✔ {(formData.instagram_reel_urls || []).length} reel{(formData.instagram_reel_urls || []).length > 1 ? 's' : ''} added
+                  </p>
+                )}
               </div>
 
               {/* DP Picture URL / Local File Upload */}

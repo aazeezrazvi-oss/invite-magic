@@ -150,6 +150,7 @@ export interface VendorProfile {
   whatsapp_number?: string;
   phone_number?: string;
   instagram_handle?: string;
+  instagram_reel_urls?: string[];
   starting_price?: string;
   rating?: number;
   review_count?: number;

@@ -684,6 +684,63 @@ export default function PublicVendorsPage() {
                   </div>
                 </div>
 
+                {/* Instagram Reels Section */}
+                {selectedVendor.instagram_reel_urls && selectedVendor.instagram_reel_urls.length > 0 && (
+                  <div className="space-y-3">
+                    <h4 className="font-bold text-white uppercase tracking-wider text-[11px] font-cinzel flex items-center gap-2">
+                      <span className="p-1 rounded bg-gradient-to-tr from-pink-500 via-red-500 to-yellow-500">
+                        <InstagramIcon className="w-3 h-3 text-white" />
+                      </span>
+                      Instagram Reels
+                    </h4>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                      {selectedVendor.instagram_reel_urls.slice(0, 6).map((url, idx) => {
+                        const match = url.match(/instagram\.com\/(?:reel|p)\/([^/?]+)/);
+                        const embedUrl = match 
+                          ? `https://www.instagram.com/p/${match[1]}/embed` 
+                          : null;
+                        
+                        if (!embedUrl) return null;
+                        
+                        return (
+                          <a 
+                            key={idx} 
+                            href={url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="rounded-xl overflow-hidden border border-[#26263b] bg-black aspect-[9/16] relative group block"
+                          >
+                            <iframe
+                              src={embedUrl}
+                              className="w-full h-full border-0 pointer-events-none"
+                              allowTransparency={true}
+                              allow="encrypted-media"
+                              loading="lazy"
+                              title={`Instagram reel ${idx + 1}`}
+                            />
+                            <div className="absolute inset-0 z-10 bg-black/0 group-hover:bg-black/20 transition-all flex items-end justify-center pb-3 opacity-0 group-hover:opacity-100">
+                              <span className="px-2 py-1 rounded-full bg-black/70 text-white text-[9px] font-semibold backdrop-blur-sm border border-white/20">
+                                View on Instagram ↗
+                              </span>
+                            </div>
+                          </a>
+                        );
+                      })}
+                    </div>
+                    {selectedVendor.instagram_handle && (
+                      <a
+                        href={`https://instagram.com/${selectedVendor.instagram_handle.replace(/^@/, '')}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="w-full py-2.5 px-4 rounded-lg bg-gradient-to-r from-pink-500 via-red-500 to-yellow-500 text-white font-bold text-[10px] flex items-center justify-center gap-2 transition-all hover:opacity-90 shadow-lg shadow-pink-500/20"
+                      >
+                        <InstagramIcon className="w-3.5 h-3.5" />
+                        <span>Follow @{selectedVendor.instagram_handle.replace(/^@/, '')} on Instagram</span>
+                      </a>
+                    )}
+                  </div>
+                )}
+
                 {/* Contact Options Banner */}
                 <div className="bg-[#0d0d11] p-5 rounded-xl border border-[#26263b] space-y-3">
                   <h4 className="font-bold text-white uppercase tracking-wider text-[11px] font-cinzel">Contact Service Provider</h4>

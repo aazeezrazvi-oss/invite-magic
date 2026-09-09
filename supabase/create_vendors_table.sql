@@ -12,6 +12,7 @@ CREATE TABLE IF NOT EXISTS public.vendors (
     whatsapp_number TEXT,
     phone_number TEXT,
     instagram_handle TEXT,
+    instagram_reel_urls TEXT[] DEFAULT '{}'::TEXT[],
     starting_price TEXT,
     rating NUMERIC(3,2) DEFAULT 4.90,
     review_count INT DEFAULT 15,

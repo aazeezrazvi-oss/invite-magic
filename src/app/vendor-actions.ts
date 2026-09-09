@@ -273,6 +273,10 @@ export async function submitVendorProfile(
       whatsapp_number: sanitizeText(formData.whatsapp_number).replace(/[^0-9]/g, ''),
       phone_number: sanitizeText(formData.phone_number),
       instagram_handle: sanitizeText(formData.instagram_handle).replace(/^@/, ''),
+      instagram_reel_urls: (formData.instagram_reel_urls || [])
+        .map((url: string) => sanitizeUrl(url.trim()))
+        .filter((url: string) => url && url.includes('instagram.com'))
+        .slice(0, 6),
       starting_price: sanitizeText(formData.starting_price),
       updated_at: new Date().toISOString(),
     };
