@@ -8,7 +8,8 @@ import { Invitation } from '@/types';
 import { getInvitationBySlugFresh, saveInvitation } from '@/app/actions';
 import { cleanInvitationData } from '@/utils/sanitizer';
 import { TEMPLATE_PRESETS } from '@/utils/presets';
-import { ArrowLeft, Check, AlertCircle, Heart, Palette, Calendar, Gift, Save, Undo2, Redo2, ZoomIn, ZoomOut, Globe, Eye, EyeOff, Sparkles } from 'lucide-react';
+import { ArrowLeft, Check, AlertCircle, Heart, Palette, Calendar, Gift, Save, Undo2, Redo2, ZoomIn, ZoomOut, Globe, Eye, EyeOff, Sparkles, QrCode, Download, Share2 } from 'lucide-react';
+import { QRCodeCanvas } from 'qrcode.react';
 import Link from 'next/link';
 import { supabase } from '@/utils/supabase';
 
@@ -205,11 +206,25 @@ export default function EditorPage({ params }: PageProps) {
     setShowShareModal(true);
   };
 
+  const [shareTab, setShareTab] = useState<'link' | 'qr'>('link');
+
   const handleCopyLink = () => {
     const link = `${window.location.origin}/invite/${slug}`;
     navigator.clipboard.writeText(link);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
+  };
+
+  const handleDownloadQR = () => {
+    const canvas = document.getElementById('invitation-qr-code-canvas') as HTMLCanvasElement;
+    if (!canvas) return;
+    const pngUrl = canvas.toDataURL('image/png');
+    const downloadLink = document.createElement('a');
+    downloadLink.href = pngUrl;
+    downloadLink.download = `InviteMagic-${slug}-QRCode.png`;
+    document.body.appendChild(downloadLink);
+    downloadLink.click();
+    document.body.removeChild(downloadLink);
   };
 
   useEffect(() => {
@@ -734,34 +749,92 @@ export default function EditorPage({ params }: PageProps) {
               <h3 className="text-lg font-light text-white font-cinzel tracking-wider">Share Invitation</h3>
               <p className="text-[10px] text-gray-400">Your live invitation link is active and ready to share!</p>
             </div>
+
+            {/* Tab Switcher */}
+            <div className="flex bg-[#0d0d11] p-1 rounded-xl border border-[#26263b]">
+              <button
+                type="button"
+                onClick={() => setShareTab('link')}
+                className={`flex-1 py-1.5 px-3 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 transition-all ${
+                  shareTab === 'link' 
+                    ? 'bg-[#d4af37] text-[#0d0d11] shadow-md font-bold' 
+                    : 'text-gray-400 hover:text-white'
+                }`}
+              >
+                <Share2 className="w-3.5 h-3.5" />
+                <span>Link & WhatsApp</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setShareTab('qr')}
+                className={`flex-1 py-1.5 px-3 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 transition-all ${
+                  shareTab === 'qr' 
+                    ? 'bg-[#d4af37] text-[#0d0d11] shadow-md font-bold' 
+                    : 'text-gray-400 hover:text-white'
+                }`}
+              >
+                <QrCode className="w-3.5 h-3.5" />
+                <span>QR Code</span>
+              </button>
+            </div>
             
-            <div className="space-y-1.5">
-              <label className="block text-[10px] font-semibold text-gray-400 uppercase tracking-widest">Invitation Link</label>
-              <div className="flex bg-[#0d0d11] rounded border border-[#26263b] p-1.5 items-center justify-between gap-2 overflow-hidden">
-                <span className="text-[11px] font-mono text-gray-300 truncate select-all px-1">
-                  {`${typeof window !== 'undefined' ? window.location.origin : ''}/invite/${slug}`}
-                </span>
+            {shareTab === 'link' ? (
+              <>
+                <div className="space-y-1.5">
+                  <label className="block text-[10px] font-semibold text-gray-400 uppercase tracking-widest">Invitation Link</label>
+                  <div className="flex bg-[#0d0d11] rounded border border-[#26263b] p-1.5 items-center justify-between gap-2 overflow-hidden">
+                    <span className="text-[11px] font-mono text-gray-300 truncate select-all px-1">
+                      {`${typeof window !== 'undefined' ? window.location.origin : ''}/invite/${slug}`}
+                    </span>
+                    <button
+                      onClick={handleCopyLink}
+                      className="px-3 py-1 bg-[#26263b] hover:bg-[#34344d] rounded text-[10px] font-bold uppercase text-white transition-all shrink-0 cursor-pointer"
+                    >
+                      {copied ? 'Copied!' : 'Copy'}
+                    </button>
+                  </div>
+                </div>
+
+                <div className="h-[1px] bg-[#26263b]" />
+
+                <div className="grid grid-cols-1 gap-2">
+                  <a
+                    href={`https://api.whatsapp.com/send?text=Hey! You are cordially invited to our wedding. Please view our wedding card here: ${typeof window !== 'undefined' ? window.location.origin : ''}/invite/${slug}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="w-full py-2.5 bg-[#25D366] hover:bg-[#20ba56] text-[#0d0d11] font-bold rounded-lg flex items-center justify-center gap-1.5 transition-all text-xs text-center"
+                  >
+                    Share on WhatsApp
+                  </a>
+                </div>
+              </>
+            ) : (
+              <div className="space-y-4">
+                <div className="flex flex-col items-center justify-center p-4 bg-white rounded-2xl shadow-xl">
+                  <QRCodeCanvas
+                    id="invitation-qr-code-canvas"
+                    value={`${typeof window !== 'undefined' ? window.location.origin : 'https://invitemagic.com'}/invite/${slug}`}
+                    size={200}
+                    level="H"
+                    includeMargin={true}
+                  />
+                  <span className="text-[10px] text-gray-500 font-mono mt-1">Scan to open digital invitation</span>
+                </div>
+
+                <p className="text-[10px] text-gray-400 text-center leading-relaxed">
+                  Download and print this QR code on physical cards, table stands, or share on WhatsApp status.
+                </p>
+
                 <button
-                  onClick={handleCopyLink}
-                  className="px-3 py-1 bg-[#26263b] hover:bg-[#34344d] rounded text-[10px] font-bold uppercase text-white transition-all shrink-0 cursor-pointer"
+                  type="button"
+                  onClick={handleDownloadQR}
+                  className="w-full py-2.5 bg-[#d4af37] hover:bg-[#b8962e] text-[#0d0d11] font-bold rounded-lg flex items-center justify-center gap-2 transition-all text-xs shadow-lg cursor-pointer"
                 >
-                  {copied ? 'Copied!' : 'Copy'}
+                  <Download className="w-4 h-4" />
+                  <span>Download QR Code (PNG)</span>
                 </button>
               </div>
-            </div>
-
-            <div className="h-[1px] bg-[#26263b]" />
-
-            <div className="grid grid-cols-1 gap-2">
-              <a
-                href={`https://api.whatsapp.com/send?text=Hey! You are cordially invited to our wedding. Please view our wedding card here: ${typeof window !== 'undefined' ? window.location.origin : ''}/invite/${slug}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="w-full py-2.5 bg-[#25D366] hover:bg-[#20ba56] text-[#0d0d11] font-bold rounded-lg flex items-center justify-center gap-1.5 transition-all text-xs text-center"
-              >
-                Share on WhatsApp
-              </a>
-            </div>
+            )}
           </div>
         </div>
       )}

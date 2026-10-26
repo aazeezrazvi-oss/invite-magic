@@ -9,7 +9,7 @@ import {
   X, ExternalLink, Tag, ShieldCheck, ArrowRight, PlusCircle, Share2, Copy, Check 
 } from 'lucide-react';
 import { VendorProfile, VendorCategory, VendorAd } from '@/types';
-import { getPublicVendors, rateVendor, getActiveVendorAds } from '@/app/vendor-actions';
+import { getPublicVendors, rateVendor, getActiveVendorAds, getVendorSlug } from '@/app/vendor-actions';
 import Logo from '@/components/Logo';
 import JsonLd from '@/components/JsonLd';
 import TopAdCarousel from '@/components/ads/TopAdCarousel';
@@ -145,12 +145,13 @@ export default function PublicVendorsPage() {
     }
   };
 
-  const handleShareVendor = (e: React.MouseEvent, vendorId: string) => {
+  const handleShareVendor = (e: React.MouseEvent, vendor: VendorProfile) => {
     e.stopPropagation();
     if (typeof window !== 'undefined') {
-      const url = `${window.location.origin}/vendors/profile/${vendorId}`;
+      const slug = getVendorSlug(vendor);
+      const url = `${window.location.origin}/vendors/profile/${slug}`;
       navigator.clipboard.writeText(url);
-      setCopiedVendorId(vendorId);
+      setCopiedVendorId(vendor.id);
       setTimeout(() => setCopiedVendorId(null), 2500);
     }
   };
@@ -367,7 +368,7 @@ export default function PublicVendorsPage() {
                   {/* Rating & Share Badges */}
                   <div className="absolute top-3 right-3 flex items-center gap-1.5">
                     <button
-                      onClick={(e) => handleShareVendor(e, vendor.id)}
+                      onClick={(e) => handleShareVendor(e, vendor)}
                       className="bg-black/70 hover:bg-black/90 backdrop-blur-md p-1.5 rounded-md border border-white/10 text-gray-300 hover:text-white transition-all cursor-pointer"
                       title="Copy Shareable Profile Link"
                     >
@@ -558,8 +559,20 @@ export default function PublicVendorsPage() {
       </section>
 
       {/* Footer */}
-      <footer className="border-t border-[#26263b] py-8 px-6 text-center text-xs text-gray-500 z-10">
-        <p>© 2026 InviteMagic Service Directory. Connecting couples with India&apos;s best wedding professionals for free.</p>
+      <footer className="border-t border-[#26263b] py-8 px-6 text-xs text-gray-500 z-10">
+        <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4 text-center sm:text-left">
+          <p>© 2026 InviteMagic Service Directory. Connecting couples with India&apos;s best wedding professionals for free.</p>
+          <a
+            href="https://www.instagram.com/invite_magic_"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1.5 text-gray-400 hover:text-pink-400 transition-colors"
+            title="Follow @invite_magic_ on Instagram"
+          >
+            <InstagramIcon className="w-4 h-4 text-pink-500" />
+            <span>Follow @invite_magic_</span>
+          </a>
+        </div>
       </footer>
 
       {/* Vendor Profile & Portfolio Lightbox Modal */}
@@ -784,19 +797,19 @@ export default function PublicVendorsPage() {
                       <Share2 className="w-3.5 h-3.5 text-[#d4af37]" />
                       <span>Direct Share Link:</span>
                       <span className="font-mono text-[#d4af37] text-[11px]">
-                        {typeof window !== 'undefined' ? `${window.location.origin}/vendors/profile/${selectedVendor.id}` : ''}
+                        {typeof window !== 'undefined' ? `${window.location.origin}/vendors/profile/${getVendorSlug(selectedVendor)}` : ''}
                       </span>
                     </div>
                     <div className="flex gap-2 w-full sm:w-auto">
                       <button
-                        onClick={(e) => handleShareVendor(e, selectedVendor.id)}
+                        onClick={(e) => handleShareVendor(e, selectedVendor)}
                         className="flex-1 sm:flex-initial py-2 px-3 bg-[#26263b] hover:bg-[#34344d] text-white font-bold text-xs rounded flex items-center justify-center gap-1.5 transition-all cursor-pointer"
                       >
                         {copiedVendorId === selectedVendor.id ? <Check className="w-3.5 h-3.5 text-green-400" /> : <Copy className="w-3.5 h-3.5 text-[#d4af37]" />}
                         <span>{copiedVendorId === selectedVendor.id ? 'Copied Link!' : 'Copy Link'}</span>
                       </button>
                       <Link
-                        href={`/vendors/profile/${selectedVendor.id}`}
+                        href={`/vendors/profile/${getVendorSlug(selectedVendor)}`}
                         target="_blank"
                         className="flex-1 sm:flex-initial py-2 px-3 bg-[#d4af37] hover:bg-[#b8962e] text-[#0d0d11] font-bold text-xs rounded flex items-center justify-center gap-1.5 transition-all cursor-pointer"
                       >

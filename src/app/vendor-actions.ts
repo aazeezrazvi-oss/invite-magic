@@ -195,25 +195,117 @@ export async function rateVendor(
 }
 
 /**
- * Fetch a single vendor by ID
+ * Helper to produce a clean URL-friendly slug from a vendor's business name
  */
-export async function getVendorById(id: string): Promise<VendorProfile | null> {
+export function slugifyVendor(name: string): string {
+  if (!name) return '';
+  return name
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+}
+
+/**
+ * Retrieve the public slug for a vendor, falling back to slugified business_name or id
+ */
+export function getVendorSlug(vendor: { id?: string; slug?: string; business_name?: string }): string {
+  if (vendor.slug && vendor.slug.trim()) {
+    return vendor.slug.trim();
+  }
+  if (vendor.business_name && vendor.business_name.trim()) {
+    const slug = slugifyVendor(vendor.business_name);
+    if (slug) return slug;
+  }
+  return vendor.id || '';
+}
+
+/**
+ * Fetch a single vendor by ID, Slug, or Business Name
+ * Guarantees zero data loss: supports old UUID links and new brand name slugs simultaneously.
+ */
+export async function getVendorById(idOrSlug: string): Promise<VendorProfile | null> {
+  if (!idOrSlug) return null;
+  const decoded = decodeURIComponent(idOrSlug).trim();
+
   const supabase = await getSupabase();
   const supabaseAdmin = getServiceSupabase();
   const client = supabaseAdmin || supabase;
 
+  // 1. Check if identifier is a valid UUID
+  const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(decoded);
+
+  if (isUuid) {
+    try {
+      const { data, error } = await client
+        .from('vendors')
+        .select('*')
+        .eq('id', decoded)
+        .maybeSingle();
+
+      if (!error && data) return data as VendorProfile;
+    } catch (err) {
+      // Continue to slug fallback
+    }
+  }
+
+  // 2. Query by slug column if present
   try {
-    const { data, error } = await client
+    const { data: slugData, error: slugErr } = await client
       .from('vendors')
       .select('*')
-      .eq('id', id)
-      .single();
+      .ilike('slug', decoded)
+      .maybeSingle();
 
-    if (error || !data) return null;
-    return data as VendorProfile;
+    if (!slugErr && slugData) return slugData as VendorProfile;
   } catch (err) {
-    return null;
+    // If slug column does not exist yet in DB, continue to business_name fallback
   }
+
+  // 3. Resilient fallback: Query by exact or formatted business_name
+  try {
+    // Try exact or case-insensitive business name
+    const { data: nameData } = await client
+      .from('vendors')
+      .select('*')
+      .ilike('business_name', decoded)
+      .maybeSingle();
+
+    if (nameData) return nameData as VendorProfile;
+
+    // Try name with spaces instead of hyphens/underscores
+    const nameWithSpaces = decoded.replace(/[-_]+/g, ' ');
+    const { data: spaceData } = await client
+      .from('vendors')
+      .select('*')
+      .ilike('business_name', nameWithSpaces)
+      .maybeSingle();
+
+    if (spaceData) return spaceData as VendorProfile;
+
+    // Try name with underscores instead of hyphens/spaces (e.g. INAYATH_PRESENTS)
+    const nameWithUnderscores = decoded.replace(/[\s-]+/g, '_');
+    const { data: underscoreData } = await client
+      .from('vendors')
+      .select('*')
+      .ilike('business_name', nameWithUnderscores)
+      .maybeSingle();
+
+    if (underscoreData) return underscoreData as VendorProfile;
+
+    // Try starts-with or partial matching as last resort
+    const { data: listData } = await client
+      .from('vendors')
+      .select('*')
+      .ilike('business_name', `%${nameWithSpaces}%`)
+      .limit(1);
+
+    if (listData && listData.length > 0) return listData[0] as VendorProfile;
+  } catch (err) {
+    console.warn('Vendor fallback lookup error:', err);
+  }
+
+  return null;
 }
 
 /**
@@ -261,9 +353,13 @@ export async function submitVendorProfile(
     } catch (e) {}
 
     // Clean and sanitize inputs
-    const sanitizedData = {
+    const businessName = sanitizeText(formData.business_name);
+    const computedSlug = formData.slug ? slugifyVendor(formData.slug) : slugifyVendor(businessName);
+
+    const sanitizedData: Record<string, any> = {
       user_id: currentUserId,
-      business_name: sanitizeText(formData.business_name),
+      business_name: businessName,
+      slug: computedSlug,
       category: formData.category,
       tagline: sanitizeText(formData.tagline),
       description: sanitizeText(formData.description),

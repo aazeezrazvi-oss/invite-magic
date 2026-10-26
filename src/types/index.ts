@@ -141,6 +141,7 @@ export interface VendorProfile {
   id: string;
   user_id?: string | null;
   business_name: string;
+  slug?: string;
   category: VendorCategory;
   tagline?: string;
   description?: string;

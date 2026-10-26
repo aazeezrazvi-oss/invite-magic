@@ -4,8 +4,9 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { 
-  Heart, Users, Gift, Eye, Edit2, Plus, BarChart2, ShieldAlert, User, Lock, Tag, Clock, CheckCircle2, AlertCircle
+  Heart, Users, Gift, Eye, Edit2, Plus, BarChart2, ShieldAlert, User, Lock, Tag, Clock, CheckCircle2, AlertCircle, QrCode, Download, Share2, Copy, Check
 } from 'lucide-react';
+import { QRCodeCanvas } from 'qrcode.react';
 import { RSVP, GiftTransaction } from '@/types';
 import CheckoutButton from '@/components/CheckoutButton';
 import Logo from '@/components/Logo';
@@ -52,6 +53,20 @@ export default function Dashboard() {
   const [latestPayment, setLatestPayment] = useState<any | null>(null);
   
   const [loadingInvite, setLoadingInvite] = useState(true);
+  const [showQrModal, setShowQrModal] = useState(false);
+  const [copiedLink, setCopiedLink] = useState(false);
+
+  const handleDownloadDashboardQR = () => {
+    const canvas = document.getElementById('dashboard-qr-code-canvas') as HTMLCanvasElement;
+    if (!canvas) return;
+    const pngUrl = canvas.toDataURL('image/png');
+    const downloadLink = document.createElement('a');
+    downloadLink.href = pngUrl;
+    downloadLink.download = `InviteMagic-${slug}-QRCode.png`;
+    document.body.appendChild(downloadLink);
+    downloadLink.click();
+    document.body.removeChild(downloadLink);
+  };
 
   // Load user session and user profile
   async function loadUserAndData() {
@@ -629,10 +644,19 @@ export default function Dashboard() {
                       <Edit2 className="w-3.5 h-3.5" />
                       <span>Customize Code</span>
                     </Link>
+                    <button
+                      type="button"
+                      onClick={() => setShowQrModal(true)}
+                      className="py-2 px-3 bg-[#d4af37]/15 hover:bg-[#d4af37]/25 border border-[#d4af37]/30 rounded text-[#d4af37] text-xs font-semibold flex items-center justify-center transition-all cursor-pointer"
+                      title="Download Invitation QR Code & Link"
+                    >
+                      <QrCode className="w-4 h-4" />
+                    </button>
                     <Link
                       href={`/invite/${slug}`}
                       target="_blank"
                       className="py-2 px-3 bg-[#d4af37]/10 hover:bg-[#d4af37]/20 border border-[#d4af37]/20 rounded text-[#d4af37] text-xs font-semibold flex items-center justify-center transition-all"
+                      title="Open Live Preview"
                     >
                       <Eye className="w-4 h-4" />
                     </Link>
@@ -913,6 +937,73 @@ export default function Dashboard() {
           </>
         )}
       </div>
+      {/* QR Code & Share Modal */}
+      {showQrModal && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-[60] p-4">
+          <div className="w-full max-w-[420px] bg-[#161622] border border-[#d4af37]/30 rounded-2xl p-6 space-y-4 shadow-2xl relative">
+            <button
+              onClick={() => setShowQrModal(false)}
+              className="absolute top-4 right-4 text-gray-400 hover:text-white text-xl font-bold p-1 cursor-pointer"
+            >
+              &times;
+            </button>
+            <div className="text-center space-y-1">
+              <QrCode className="w-8 h-8 text-[#d4af37] mx-auto" />
+              <h3 className="text-lg font-light text-white font-cinzel tracking-wider">Invitation QR Code</h3>
+              <p className="text-[11px] text-gray-400">Scan to view the live wedding invitation</p>
+            </div>
+
+            <div className="flex flex-col items-center justify-center p-4 bg-white rounded-2xl shadow-xl">
+              <QRCodeCanvas
+                id="dashboard-qr-code-canvas"
+                value={`${typeof window !== 'undefined' ? window.location.origin : 'https://invitemagic.com'}/invite/${slug}`}
+                size={200}
+                level="H"
+                includeMargin={true}
+              />
+              <span className="text-[10px] text-gray-500 font-mono mt-1">/invite/{slug}</span>
+            </div>
+
+            <div className="space-y-2">
+              <button
+                type="button"
+                onClick={handleDownloadDashboardQR}
+                className="w-full py-2.5 bg-[#d4af37] hover:bg-[#b8962e] text-[#0d0d11] font-bold rounded-lg flex items-center justify-center gap-2 transition-all text-xs shadow-lg cursor-pointer"
+              >
+                <Download className="w-4 h-4" />
+                <span>Download QR Code (PNG)</span>
+              </button>
+
+              <div className="flex bg-[#0d0d11] rounded border border-[#26263b] p-1.5 items-center justify-between gap-2 overflow-hidden">
+                <span className="text-[11px] font-mono text-gray-300 truncate select-all px-1">
+                  {`${typeof window !== 'undefined' ? window.location.origin : ''}/invite/${slug}`}
+                </span>
+                <button
+                  onClick={() => {
+                    if (typeof window !== 'undefined') {
+                      navigator.clipboard.writeText(`${window.location.origin}/invite/${slug}`);
+                      setCopiedLink(true);
+                      setTimeout(() => setCopiedLink(false), 2000);
+                    }
+                  }}
+                  className="px-3 py-1 bg-[#26263b] hover:bg-[#34344d] rounded text-[10px] font-bold uppercase text-white transition-all shrink-0 cursor-pointer"
+                >
+                  {copiedLink ? 'Copied!' : 'Copy'}
+                </button>
+              </div>
+
+              <a
+                href={`https://api.whatsapp.com/send?text=Hey! You are cordially invited to our wedding. Please view our wedding card here: ${typeof window !== 'undefined' ? window.location.origin : ''}/invite/${slug}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-full py-2 bg-[#25D366] hover:bg-[#20ba56] text-[#0d0d11] font-bold rounded-lg flex items-center justify-center gap-1.5 transition-all text-xs text-center font-sans"
+              >
+                Share on WhatsApp
+              </a>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

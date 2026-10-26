@@ -1,5 +1,6 @@
 import type { MetadataRoute } from 'next';
 import { supabase } from '@/utils/supabase';
+import { slugifyVendor } from '@/app/vendor-actions';
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://invitemagic.com';
@@ -24,6 +25,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       lastModified: currentDate,
       changeFrequency: 'weekly',
       priority: 0.8,
+    },
+    {
+      url: `${siteUrl}/vendors/portal`,
+      lastModified: currentDate,
+      changeFrequency: 'monthly',
+      priority: 0.6,
     },
     {
       url: `${siteUrl}/login`,
@@ -66,21 +73,24 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     console.error('Error fetching invitations for sitemap:', error);
   }
 
-  // Dynamic verified wedding vendor profiles
+  // Dynamic verified/approved wedding vendor profiles with brand slug URLs
   let vendorRoutes: MetadataRoute.Sitemap = [];
   try {
     const { data: vendors } = await supabase
-      .from('vendor_profiles')
-      .select('id, updated_at, created_at')
-      .eq('is_verified', true);
+      .from('vendors')
+      .select('id, slug, business_name, updated_at, created_at')
+      .eq('is_approved', true);
 
     if (vendors && vendors.length > 0) {
-      vendorRoutes = vendors.map((vendor) => ({
-        url: `${siteUrl}/vendors/profile/${vendor.id}`,
-        lastModified: vendor.updated_at || vendor.created_at || currentDate,
-        changeFrequency: 'weekly',
-        priority: 0.8,
-      }));
+      vendorRoutes = vendors.map((vendor) => {
+        const vendorSlug = vendor.slug || slugifyVendor(vendor.business_name || '') || vendor.id;
+        return {
+          url: `${siteUrl}/vendors/profile/${vendorSlug}`,
+          lastModified: vendor.updated_at || vendor.created_at || currentDate,
+          changeFrequency: 'weekly',
+          priority: 0.8,
+        };
+      });
     }
   } catch (error) {
     console.error('Error fetching vendors for sitemap:', error);

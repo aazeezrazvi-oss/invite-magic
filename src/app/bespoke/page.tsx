@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import { submitBespokeRequest } from '@/app/actions';
 import Logo from '@/components/Logo';
+import InstagramIcon from '@/components/InstagramIcon';
 
 export default function BespokeInquiryPage() {
   const [formData, setFormData] = useState({
@@ -288,8 +289,20 @@ export default function BespokeInquiryPage() {
       </main>
 
       {/* Footer */}
-      <footer className="border-t border-[#26263b] py-8 px-6 text-center text-xs text-gray-500 z-10">
-        <p>© 2026 InviteMagic Bespoke. All rights reserved. Crafting luxury digital wedding cards.</p>
+      <footer className="border-t border-[#26263b] py-8 px-6 text-xs text-gray-500 z-10">
+        <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4 text-center sm:text-left">
+          <p>© 2026 InviteMagic Bespoke. All rights reserved. Crafting luxury digital wedding cards.</p>
+          <a
+            href="https://www.instagram.com/invite_magic_"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1.5 text-gray-400 hover:text-pink-400 transition-colors"
+            title="Follow @invite_magic_ on Instagram"
+          >
+            <InstagramIcon className="w-4 h-4 text-pink-500" />
+            <span>Follow @invite_magic_</span>
+          </a>
+        </div>
       </footer>
 
     </div>

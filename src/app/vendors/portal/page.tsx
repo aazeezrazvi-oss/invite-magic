@@ -9,7 +9,7 @@ import {
   AlertCircle, ArrowLeft, Plus, Trash2, Eye, Star, Share2, Copy, Check, Upload, Lock, Mail, LogOut, User 
 } from 'lucide-react';
 import { VendorProfile, VendorCategory } from '@/types';
-import { submitVendorProfile, getVendorByUserId } from '@/app/vendor-actions';
+import { submitVendorProfile, getVendorByUserId, getVendorSlug } from '@/app/vendor-actions';
 import Logo from '@/components/Logo';
 import { supabase } from '@/utils/supabase';
 
@@ -149,8 +149,8 @@ export default function VendorPortalPage() {
   };
 
   const getProfileUrl = () => {
-    if (typeof window !== 'undefined' && existingVendor?.id) {
-      return `${window.location.origin}/vendors/profile/${existingVendor.id}`;
+    if (typeof window !== 'undefined' && existingVendor) {
+      return `${window.location.origin}/vendors/profile/${getVendorSlug(existingVendor)}`;
     }
     return '';
   };
@@ -543,7 +543,7 @@ export default function VendorPortalPage() {
               </div>
 
               <Link
-                href={`/vendors/profile/${existingVendor.id}`}
+                href={`/vendors/profile/${getVendorSlug(existingVendor)}`}
                 target="_blank"
                 className="px-3.5 py-2 bg-[#26263b] hover:bg-[#34344d] text-white font-bold rounded-lg text-xs flex items-center gap-1.5 transition-all shrink-0"
               >
@@ -1110,8 +1110,20 @@ export default function VendorPortalPage() {
       )}
 
       {/* Footer */}
-      <footer className="border-t border-[#26263b] py-8 px-6 text-center text-xs text-gray-500 z-10">
-        <p>© 2026 InviteMagic Vendor Portal. 100% Free registration for wedding service professionals.</p>
+      <footer className="border-t border-[#26263b] py-8 px-6 text-xs text-gray-500 z-10">
+        <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4 text-center sm:text-left">
+          <p>© 2026 InviteMagic Vendor Portal. 100% Free registration for wedding service professionals.</p>
+          <a
+            href="https://www.instagram.com/invite_magic_"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1.5 text-gray-400 hover:text-pink-400 transition-colors"
+            title="Follow @invite_magic_ on Instagram"
+          >
+            <InstagramIcon className="w-4 h-4 text-pink-500" />
+            <span>Follow @invite_magic_</span>
+          </a>
+        </div>
       </footer>
 
     </div>

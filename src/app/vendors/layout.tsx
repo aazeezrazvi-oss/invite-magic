@@ -1,5 +1,6 @@
 import React from 'react';
 import type { Metadata } from 'next';
+import Script from 'next/script';
 import JsonLd from '@/components/JsonLd';
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://invitemagic.com';
@@ -103,6 +104,13 @@ export default function VendorsLayout({
 
   return (
     <>
+      {/* Google AdSense - Scoped to Vendor Directory & Vendor Profiles only */}
+      <Script
+        async
+        src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-8627080018482883"
+        crossOrigin="anonymous"
+        strategy="afterInteractive"
+      />
       <JsonLd data={directorySchema} />
       {children}
     </>

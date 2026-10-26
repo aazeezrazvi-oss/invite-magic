@@ -1,6 +1,6 @@
 import React from 'react';
 import type { Metadata } from 'next';
-import { getVendorById } from '@/app/vendor-actions';
+import { getVendorById, getVendorSlug } from '@/app/vendor-actions';
 import JsonLd from '@/components/JsonLd';
 
 interface LayoutProps {
@@ -20,6 +20,18 @@ const categoryLabels: Record<string, string> = {
   other: 'Wedding Specialist',
 };
 
+const categorySchemaTypes: Record<string, string> = {
+  venue: 'EventVenue',
+  catering: 'FoodEstablishment',
+  photography: 'ProfessionalService',
+  makeup: 'ProfessionalService',
+  mehendi: 'ProfessionalService',
+  decor: 'ProfessionalService',
+  planner: 'ProfessionalService',
+  dj_music: 'EntertainmentBusiness',
+  other: 'LocalBusiness',
+};
+
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
   const { id } = await params;
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://invitemagic.com';
@@ -37,25 +49,28 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
     };
   }
 
+  const vendorSlug = getVendorSlug(vendor);
   const categoryName = categoryLabels[vendor.category] || 'Wedding Specialist';
   const locationText = vendor.location ? ` in ${vendor.location}` : '';
   const title = `${vendor.business_name} - ${categoryName}${locationText} | Reviews & Contact`;
   const ratingText = vendor.rating ? ` ⭐ Rated ${vendor.rating}/5.0 (${vendor.review_count || 0} reviews).` : '';
   const description = vendor.tagline || vendor.description || `Connect directly with ${vendor.business_name}, verified wedding ${categoryName}${locationText}.${ratingText} View portfolio, pricing, and contact via WhatsApp.`;
   const imageUrl = vendor.dp_url || (vendor.portfolio_photos && vendor.portfolio_photos[0]) || `${siteUrl}/logo.png`;
-  const canonicalUrl = `${siteUrl}/vendors/profile/${id}`;
+  const canonicalUrl = `${siteUrl}/vendors/profile/${vendorSlug}`;
 
   return {
     title,
     description,
     keywords: [
-      `${vendor.business_name}`,
+      vendor.business_name,
+      `${vendor.business_name} ${vendor.location || ''}`.trim(),
+      `${vendor.business_name} wedding`,
+      `${vendor.business_name} reviews`,
+      `${vendor.business_name} contact`,
       `${categoryName} near me`,
       `wedding ${categoryName} near me`,
       `best ${categoryName} in ${vendor.location || 'India'}`,
-      `hire ${categoryName} ${locationText}`,
-      `${vendor.business_name} reviews`,
-      `${vendor.business_name} contact`,
+      `hire ${categoryName} ${locationText}`.trim(),
       'verified wedding vendor'
     ],
     alternates: {
@@ -95,24 +110,59 @@ export default async function VendorProfileLayout({ children, params }: LayoutPr
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://invitemagic.com';
 
   const vendor = await getVendorById(id);
+  const vendorSlug = vendor ? getVendorSlug(vendor) : id;
+  const canonicalUrl = `${siteUrl}/vendors/profile/${vendorSlug}`;
 
   const categoryName = vendor ? (categoryLabels[vendor.category] || 'Wedding Specialist') : 'Wedding Specialist';
+  const schemaType = vendor ? (categorySchemaTypes[vendor.category] || 'LocalBusiness') : 'LocalBusiness';
 
-  // Generate LocalBusiness / ProfessionalService structured data for Google Local / "Near Me" search
+  // BreadcrumbList schema for rich Google search result breadcrumbs
+  const breadcrumbSchema = vendor ? {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+      {
+        "@type": "ListItem",
+        "position": 1,
+        "name": "Home",
+        "item": siteUrl
+      },
+      {
+        "@type": "ListItem",
+        "position": 2,
+        "name": "Wedding Vendors",
+        "item": `${siteUrl}/vendors`
+      },
+      {
+        "@type": "ListItem",
+        "position": 3,
+        "name": categoryName,
+        "item": `${siteUrl}/vendors?category=${vendor.category}`
+      },
+      {
+        "@type": "ListItem",
+        "position": 4,
+        "name": vendor.business_name,
+        "item": canonicalUrl
+      }
+    ]
+  } : null;
+
+  // LocalBusiness / ProfessionalService structured data for Google Local / "Near Me" search
   const vendorSchema = vendor ? {
     "@context": "https://schema.org",
-    "@type": "LocalBusiness",
+    "@type": schemaType,
     "name": vendor.business_name,
     "description": vendor.tagline || vendor.description || `Wedding ${categoryName} services`,
-    "url": `${siteUrl}/vendors/profile/${vendor.id}`,
+    "url": canonicalUrl,
     "image": vendor.dp_url || (vendor.portfolio_photos && vendor.portfolio_photos[0]) || `${siteUrl}/logo.png`,
     "telephone": vendor.phone_number || vendor.whatsapp_number || undefined,
     "priceRange": vendor.starting_price ? `₹${vendor.starting_price}+` : "₹₹",
     "areaServed": vendor.location ? [vendor.location, "Nearby Cities", "India"] : ["India"],
     "serviceType": [
       categoryName,
-      `${categoryName} near me`,
-      `Wedding ${categoryName} in ${vendor.location || 'India'}`
+      `Wedding ${categoryName}`,
+      `Wedding Services in ${vendor.location || 'India'}`
     ],
     "address": {
       "@type": "PostalAddress",
@@ -132,6 +182,7 @@ export default async function VendorProfileLayout({ children, params }: LayoutPr
 
   return (
     <>
+      {breadcrumbSchema && <JsonLd data={breadcrumbSchema} />}
       {vendorSchema && <JsonLd data={vendorSchema} />}
       {children}
     </>

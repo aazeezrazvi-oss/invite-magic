@@ -8,7 +8,7 @@ import {
   ShieldCheck, ArrowLeft, Share2, Copy, Check, Sparkles, AlertCircle 
 } from 'lucide-react';
 import { VendorProfile } from '@/types';
-import { getVendorById, rateVendor } from '@/app/vendor-actions';
+import { getVendorById, rateVendor, getVendorSlug } from '@/app/vendor-actions';
 import Logo from '@/components/Logo';
 
 interface PageProps {
@@ -41,7 +41,6 @@ export default function DedicatedVendorProfilePage({ params }: PageProps) {
     async function loadVendor() {
       setLoading(true);
       if (typeof window !== 'undefined') {
-        setShareUrl(window.location.href);
         const saved = localStorage.getItem(`rated_vendor_${id}`);
         if (saved) {
           setUserRatedStars(parseInt(saved, 10));
@@ -49,6 +48,12 @@ export default function DedicatedVendorProfilePage({ params }: PageProps) {
       }
       const data = await getVendorById(id);
       setVendor(data);
+      if (data && typeof window !== 'undefined') {
+        const brandSlug = getVendorSlug(data);
+        setShareUrl(`${window.location.origin}/vendors/profile/${brandSlug}`);
+      } else if (typeof window !== 'undefined') {
+        setShareUrl(window.location.href);
+      }
       setLoading(false);
     }
     loadVendor();
@@ -373,7 +378,7 @@ export default function DedicatedVendorProfilePage({ params }: PageProps) {
               <div key={idx} className="h-48 rounded-xl overflow-hidden border border-[#26263b] bg-black shadow-md">
                 <img 
                   src={photoUrl} 
-                  alt={`Work sample ${idx + 1}`} 
+                  alt={`${vendor.business_name} - ${vendor.category} portfolio work sample ${idx + 1}`} 
                   className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
                 />
               </div>
@@ -459,8 +464,20 @@ export default function DedicatedVendorProfilePage({ params }: PageProps) {
       </main>
 
       {/* Footer */}
-      <footer className="border-t border-[#26263b] py-8 px-6 text-center text-xs text-gray-500 z-10">
-        <p>© 2026 InviteMagic Service Directory. Connecting couples with top wedding professionals.</p>
+      <footer className="border-t border-[#26263b] py-8 px-6 text-xs text-gray-500 z-10">
+        <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4 text-center sm:text-left">
+          <p>© 2026 InviteMagic Service Directory. Connecting couples with top wedding professionals.</p>
+          <a
+            href="https://www.instagram.com/invite_magic_"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1.5 text-gray-400 hover:text-pink-400 transition-colors"
+            title="Follow @invite_magic_ on Instagram"
+          >
+            <InstagramIcon className="w-4 h-4 text-pink-500" />
+            <span>Follow @invite_magic_</span>
+          </a>
+        </div>
       </footer>
 
     </div>

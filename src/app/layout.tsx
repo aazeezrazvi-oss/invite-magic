@@ -149,7 +149,7 @@ export default function RootLayout({
     "logo": `${siteUrl}/logo.png`,
     "description": "InviteMagic offers luxury digital wedding invitation websites with animated envelope unboxing, interactive features, digital gift collections, and verified wedding vendor directory.",
     "sameAs": [
-      "https://instagram.com/invitemagic",
+      "https://www.instagram.com/invite_magic_",
       "https://twitter.com/invitemagic",
       "https://facebook.com/invitemagic"
     ]

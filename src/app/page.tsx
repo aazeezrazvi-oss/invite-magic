@@ -14,6 +14,7 @@ import InvitationPreview from '@/components/InvitationPreview';
 import { Invitation } from '@/types';
 import Logo from '@/components/Logo';
 import JsonLd from '@/components/JsonLd';
+import InstagramIcon from '@/components/InstagramIcon';
 
 const faqSchema = {
   "@context": "https://schema.org",
@@ -937,12 +938,23 @@ export default function LandingPage() {
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-4">
           <Logo variant="compact" size="sm" href="/" />
           <p>© 2026 InviteMagic. All rights reserved. Made for love and weddings.</p>
-          <div className="flex gap-4 mt-2 md:mt-0">
+          <div className="flex flex-wrap items-center justify-center gap-4 mt-2 md:mt-0">
             <Link href="/vendors" className="hover:text-white transition-colors">Vendors Directory</Link>
             <span className="text-[#26263b]">|</span>
             <Link href="/terms" className="hover:text-white transition-colors">Terms & Conditions</Link>
             <span className="text-[#26263b]">|</span>
             <Link href="/privacy" className="hover:text-white transition-colors">Privacy Policy</Link>
+            <span className="text-[#26263b]">|</span>
+            <a
+              href="https://www.instagram.com/invite_magic_"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 text-gray-400 hover:text-pink-400 transition-colors"
+              title="Follow @invite_magic_ on Instagram"
+            >
+              <InstagramIcon className="w-4 h-4 text-pink-500" />
+              <span>@invite_magic_</span>
+            </a>
           </div>
         </div>
       </footer>
