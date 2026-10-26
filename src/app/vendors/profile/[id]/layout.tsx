@@ -99,7 +99,7 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
       images: [imageUrl],
     },
     robots: {
-      index: Boolean(vendor.is_approved),
+      index: true,
       follow: true,
     },
   };
