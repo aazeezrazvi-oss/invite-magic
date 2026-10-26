@@ -9,7 +9,8 @@ import {
   AlertCircle, ArrowLeft, Plus, Trash2, Eye, Star, Share2, Copy, Check, Upload, Lock, Mail, LogOut, User 
 } from 'lucide-react';
 import { VendorProfile, VendorCategory } from '@/types';
-import { submitVendorProfile, getVendorByUserId, getVendorSlug } from '@/app/vendor-actions';
+import { submitVendorProfile, getVendorByUserId } from '@/app/vendor-actions';
+import { getVendorSlug } from '@/utils/vendorSlug';
 import Logo from '@/components/Logo';
 import { supabase } from '@/utils/supabase';
 

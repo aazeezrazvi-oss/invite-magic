@@ -9,7 +9,8 @@ import {
   X, ExternalLink, Tag, ShieldCheck, ArrowRight, PlusCircle, Share2, Copy, Check 
 } from 'lucide-react';
 import { VendorProfile, VendorCategory, VendorAd } from '@/types';
-import { getPublicVendors, rateVendor, getActiveVendorAds, getVendorSlug } from '@/app/vendor-actions';
+import { getPublicVendors, rateVendor, getActiveVendorAds } from '@/app/vendor-actions';
+import { getVendorSlug } from '@/utils/vendorSlug';
 import Logo from '@/components/Logo';
 import JsonLd from '@/components/JsonLd';
 import TopAdCarousel from '@/components/ads/TopAdCarousel';

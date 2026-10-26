@@ -1,6 +1,7 @@
 import React from 'react';
 import type { Metadata } from 'next';
-import { getVendorById, getVendorSlug } from '@/app/vendor-actions';
+import { getVendorById } from '@/app/vendor-actions';
+import { getVendorSlug } from '@/utils/vendorSlug';
 import JsonLd from '@/components/JsonLd';
 
 interface LayoutProps {

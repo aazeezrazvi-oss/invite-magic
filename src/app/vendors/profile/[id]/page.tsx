@@ -8,7 +8,8 @@ import {
   ShieldCheck, ArrowLeft, Share2, Copy, Check, Sparkles, AlertCircle 
 } from 'lucide-react';
 import { VendorProfile } from '@/types';
-import { getVendorById, rateVendor, getVendorSlug } from '@/app/vendor-actions';
+import { getVendorById, rateVendor } from '@/app/vendor-actions';
+import { getVendorSlug } from '@/utils/vendorSlug';
 import Logo from '@/components/Logo';
 
 interface PageProps {

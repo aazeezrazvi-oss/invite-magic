@@ -1,6 +1,6 @@
 import type { MetadataRoute } from 'next';
 import { supabase } from '@/utils/supabase';
-import { slugifyVendor } from '@/app/vendor-actions';
+import { slugifyVendor } from '@/utils/vendorSlug';
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.invitemagic.in';
