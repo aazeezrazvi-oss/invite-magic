@@ -10,7 +10,7 @@ interface LayoutProps {
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { slug } = await params;
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://invitemagic.com';
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.invitemagic.in';
 
   const invitation = await getInvitationBySlug(slug);
 
@@ -71,7 +71,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
 
 export default async function InviteLayout({ children, params }: LayoutProps) {
   const { slug } = await params;
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://invitemagic.com';
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.invitemagic.in';
 
   const invitation = await getInvitationBySlug(slug);
 

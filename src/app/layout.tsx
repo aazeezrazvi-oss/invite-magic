@@ -47,7 +47,7 @@ const notoKannada = Noto_Sans_Kannada({
   variable: "--font-noto-kannada",
 });
 
-const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://invitemagic.com';
+const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.invitemagic.in';
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
@@ -131,6 +131,9 @@ export const metadata: Metadata = {
     },
   },
   category: "Weddings & Celebrations",
+  verification: {
+    google: "bIH8QIHYbj4w006-g1pkNdZEIQL6LqlKhGVSP9YXGIQ",
+  },
 };
 
 import JsonLd from "@/components/JsonLd";

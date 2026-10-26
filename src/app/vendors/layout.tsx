@@ -3,7 +3,7 @@ import type { Metadata } from 'next';
 import Script from 'next/script';
 import JsonLd from '@/components/JsonLd';
 
-const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://invitemagic.com';
+const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.invitemagic.in';
 
 export const metadata: Metadata = {
   title: 'Top Wedding Vendors Near Me | Verified Mehendi Artists, Makeup & Photographers',

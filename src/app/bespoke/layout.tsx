@@ -1,7 +1,7 @@
 import React from 'react';
 import type { Metadata } from 'next';
 
-const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://invitemagic.com';
+const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.invitemagic.in';
 
 export const metadata: Metadata = {
   title: 'Custom Bespoke Wedding Invitation Websites | Luxury Handcrafted E-Invites',

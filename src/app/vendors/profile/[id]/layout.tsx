@@ -34,7 +34,7 @@ const categorySchemaTypes: Record<string, string> = {
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
   const { id } = await params;
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://invitemagic.com';
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.invitemagic.in';
 
   const vendor = await getVendorById(id);
 
@@ -107,7 +107,7 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
 
 export default async function VendorProfileLayout({ children, params }: LayoutProps) {
   const { id } = await params;
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://invitemagic.com';
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.invitemagic.in';
 
   const vendor = await getVendorById(id);
   const vendorSlug = vendor ? getVendorSlug(vendor) : id;

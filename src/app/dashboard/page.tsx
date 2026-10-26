@@ -956,7 +956,7 @@ export default function Dashboard() {
             <div className="flex flex-col items-center justify-center p-4 bg-white rounded-2xl shadow-xl">
               <QRCodeCanvas
                 id="dashboard-qr-code-canvas"
-                value={`${typeof window !== 'undefined' ? window.location.origin : 'https://invitemagic.com'}/invite/${slug}`}
+                value={`${typeof window !== 'undefined' ? window.location.origin : 'https://www.invitemagic.in'}/invite/${slug}`}
                 size={200}
                 level="H"
                 includeMargin={true}

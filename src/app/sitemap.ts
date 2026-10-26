@@ -3,7 +3,7 @@ import { supabase } from '@/utils/supabase';
 import { slugifyVendor } from '@/app/vendor-actions';
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://invitemagic.com';
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.invitemagic.in';
   const currentDate = new Date().toISOString();
 
   // Static marketing and public routes

@@ -398,7 +398,7 @@ export default function LandingPage() {
                 </div>
                 <h3 className="text-lg font-bold text-white font-cinzel">Share on WhatsApp</h3>
                 <p className="text-xs text-gray-400 leading-relaxed">
-                  Get your custom link <code className="text-[#d4af37] bg-[#0d0d11] px-1 py-0.5 rounded text-[10px]">invitemagic.com/invite/jhon-lilly</code>. Share on WhatsApp or Instagram with rich preview cards.
+                  Get your custom link <code className="text-[#d4af37] bg-[#0d0d11] px-1 py-0.5 rounded text-[10px]">invitemagic.in/invite/jhon-lilly</code>. Share on WhatsApp or Instagram with rich preview cards.
                 </p>
               </div>
               <div className="mt-6 pt-4 border-t border-[#26263b]/60 flex items-center gap-1.5 text-[11px] text-green-400">
@@ -639,7 +639,7 @@ export default function LandingPage() {
               Open the sample live invitation website to experience wax-seal opening, soothing music, event timeline, and digital RSVP in action.
             </p>
             <div className="font-mono text-xs text-[#d4af37] bg-[#0d0d11]/80 px-3.5 py-1.5 rounded-lg inline-block border border-[#26263b]">
-              invitemagic.com/invite/jhon-lilly
+              invitemagic.in/invite/jhon-lilly
             </div>
           </div>
 
